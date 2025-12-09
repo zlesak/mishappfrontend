@@ -13,7 +13,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @Getter
 @Setter
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 public abstract class AbstractEntity implements IEntity {
     String id;
     String name;

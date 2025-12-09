@@ -25,9 +25,7 @@ public class QuizListItem extends AbstractListItem {
         details.add(quizName);
 
 
-        setOpenButtonClickListener(e -> {
-            UI.getCurrent().navigate("model/" + quiz.getId());
-        });
+        setOpenButtonClickListener(e -> UI.getCurrent().navigate("quiz/" + quiz.getId()));
     }
 }
 

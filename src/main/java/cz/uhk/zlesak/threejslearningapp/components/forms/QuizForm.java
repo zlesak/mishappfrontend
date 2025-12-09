@@ -15,13 +15,15 @@ import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateQuizButton;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.listDialogs.ChapterListDialog;
+import cz.uhk.zlesak.threejslearningapp.components.editors.question.QuestionEditorBase;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import lombok.Getter;
 
-import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -39,6 +41,7 @@ public class QuizForm extends VerticalLayout implements I18nAware {
     public final Accordion questionsContainer;
     public final Scroller scroller;
     private final CreateQuizButton saveQuizButton;
+    private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
 
     /**
      * Constructs a new QuizForm.
@@ -143,6 +146,7 @@ public class QuizForm extends VerticalLayout implements I18nAware {
 
     /**
      * Gets the localized label for a given question type.
+     *
      * @param type The question type enum
      * @return The localized label
      */
@@ -159,6 +163,7 @@ public class QuizForm extends VerticalLayout implements I18nAware {
 
     /**
      * Gets the quiz name.
+     *
      * @return The quiz name
      */
     public String getName() {
@@ -167,10 +172,31 @@ public class QuizForm extends VerticalLayout implements I18nAware {
 
     /**
      * Gets the quiz description.
+     *
      * @return The quiz description
      */
     public String getDescription() {
         return descriptionField.getValue();
     }
+
+    /**
+     * Gets the time limit in minutes.
+     *
+     * @return The time limit
+     */
+    public int getTimeLimit() {
+        return timeLimitField.getValue() != null ? timeLimitField.getValue() : 0;
+    }
+
+    /**
+     * Gets the selected chapter.
+     *
+     * @return The selected chapter
+     */
+    public String getSelectedChapter() {
+        return chapterSelect.getValue() != null ? chapterSelect.getValue().getId() : null;
+    }
+
+
 }
 

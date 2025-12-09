@@ -6,8 +6,6 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.util.List;
-
 /**
  * Answer data for texture click question.
  */
@@ -17,6 +15,8 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 public class TextureClickAnswerData extends AbstractAnswerData {
+    String modelId;
+    String textureId;
     String hexColor;
 }
 

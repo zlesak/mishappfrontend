@@ -49,7 +49,7 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
     @Override
     public QuizEntity readQuizStudent(String quizId) throws Exception {
         QuizEntity quiz = read(quizId);
-        quiz.setAnswersJson(null);
+        quiz.setAnswers(null);
         return quiz;
 
     }

@@ -10,7 +10,6 @@ import lombok.Getter;
 
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 @Getter
 public class ModelSelectContainer extends HorizontalLayout implements I18nAware {
