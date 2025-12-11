@@ -4,6 +4,7 @@ import cz.uhk.zlesak.threejslearningapp.api.clients.QuizApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.*;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.AbstractSubmissionData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Service for managing quizzes in the application.
@@ -44,12 +44,12 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      * Validates user's answers for a quiz.
      *
      * @param quizId      Quiz ID
-     * @param userAnswers Map of questionId -> user's answer
+     * @param answers List of user's answer submissions
      * @return Validation result with score and feedback
      * @throws Exception if API call fails
      */
-    public QuizValidationResult validateAnswers(String quizId, Map<String, Object> userAnswers) throws Exception {
-        QuizSubmissionRequest request = new QuizSubmissionRequest(quizId, userAnswers);
+    public QuizValidationResult validateAnswers(String quizId, List<AbstractSubmissionData> answers) throws Exception {
+        QuizSubmissionRequest request = new QuizSubmissionRequest(quizId, answers);
         return quizApiClient.validateAnswers(request);
     }
 
@@ -58,10 +58,15 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      *
      * @param quizId Quiz ID
      * @return Quiz entity for student
-     * @throws Exception if API call fails
      */
-    public QuizEntity getQuizForStudent(String quizId) throws Exception {
-        return quizApiClient.readQuizStudent(quizId);
+    public QuizEntity getQuizForStudent(String quizId){
+
+        try {
+            return quizApiClient.readQuizStudent(quizId);
+        } catch (Exception e) {
+            log.error("Nepodařilo se naříst kvíz: {}", String.valueOf(e));
+            throw new ApplicationContextException("Nepodařilo se naříst kvíz");
+        }
     }
 
     /**

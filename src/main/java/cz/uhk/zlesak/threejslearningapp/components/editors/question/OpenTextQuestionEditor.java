@@ -62,6 +62,7 @@ public class OpenTextQuestionEditor extends QuestionEditorBase<QuestionOption> {
     public AbstractQuestionData getQuestionData() {
         return OpenTextQuestionData.builder()
                 .questionId(questionId)
+                .placeholder("")
                 .questionText(getQuestionText())
                 .type(questionType)
                 .points(getPoints())

@@ -25,6 +25,14 @@ interface IService<E, Q, F> {
     E read(String id) throws RuntimeException;
 
     /**
+     * Reads a quick entity by its ID.
+     *
+     * @param id Entity ID.
+     * @return Read entity.
+     */
+    Q readQuick(String id) throws RuntimeException;
+
+    /**
      * Reads entities with pagination.
      *
      * @return Page result of entities.

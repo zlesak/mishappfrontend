@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> implements IService< E, Q, F> {
     E entity;
+    Q quickEntity;
     IApiClient<E, Q, F> apiClient;
 
     /**
@@ -79,6 +80,29 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
         } catch (Exception e) {
             log.error("Chyba při získávání entity: {}", e.getMessage(), e);
             throw new RuntimeException("Chyba při získávání entity: " + e.getMessage());
+        }
+    }
+    /**
+     * Reads a quick version of entity by its ID.
+     *
+     * @param entityId Entity ID.
+     * @return Read entity.
+     * @throws RuntimeException if an error occurs during the read operation.
+     */
+    @Override
+    public Q readQuick(String entityId) throws RuntimeException {
+        try {
+            if (entityId == null || entityId.isEmpty()) {
+                throw new RuntimeException("ID entity nesmí být prázdné.");
+            }
+
+            if (quickEntity == null || quickEntity.getId() == null || quickEntity.getId().isEmpty()) {
+                quickEntity = apiClient.readQuick(entityId);
+            }
+            return quickEntity;
+        } catch (Exception e) {
+            log.error("Chyba při získávání quick entity: {}", e.getMessage(), e);
+            throw new RuntimeException("Chyba při získávání quick entity: " + e.getMessage());
         }
     }
 

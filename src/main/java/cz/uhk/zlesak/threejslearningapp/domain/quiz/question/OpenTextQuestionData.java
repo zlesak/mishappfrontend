@@ -15,6 +15,6 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class OpenTextQuestionData extends AbstractQuestionData {
-    String placeholder;
+    String placeholder = "";
 }
 

@@ -89,7 +89,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     @Override
     public Q readQuick(String id) throws Exception {
-        return sendGetRequest(baseUrl + "/quick" + id, getQuicEntityClass(), "Chyba při získávání quick entity dle ID", id);
+        return sendGetRequest(baseUrl + "quick/" + id, getQuicEntityClass(), "Chyba při získávání quick entity dle ID", id);
     }
 
     /**
