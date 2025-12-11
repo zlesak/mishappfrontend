@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
+import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
@@ -19,6 +20,7 @@ import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
 import java.io.IOException;
@@ -120,19 +122,16 @@ public class QuizCreateView extends AbstractQuizView {
         try {
             String name = quizForm.getName();
             if (name == null || name.isEmpty()) {
-                new ErrorNotification(text("quiz.validation.name.required"), 3000);
-                return;
+                throw new ApplicationContextException(text("quiz.validation.name.required"));
             }
 
             if (questionEditors.isEmpty()) {
-                new ErrorNotification(text("quiz.validation.questions.required"), 3000);
-                return;
+                throw new ApplicationContextException(text("quiz.validation.questions.required"));
             }
 
             for (QuestionEditorBase<?> editor : questionEditors) {
                 if (!editor.validate()) {
-                    new ErrorNotification(text("quiz.validation.question.invalid"), 3000);
-                    return;
+                    throw new ApplicationContextException(text("quiz.validation.question.invalid"));
                 }
                 quizService.addQuestion(editor.getQuestionData());
                 quizService.addAnswer(editor.getAnswerData());
@@ -149,7 +148,7 @@ public class QuizCreateView extends AbstractQuizView {
 
             new InfoNotification(text("quiz.created.success"));
             log.info("Quiz created with ID: {}", quizId);
-
+            skipBeforeLeaveDialog = true;
             UI.getCurrent().navigate("quiz/" + quizId);
 
         } catch (Exception e) {
@@ -198,4 +197,9 @@ public class QuizCreateView extends AbstractQuizView {
         Map<String, String> texturesMap = TextureMapHelper.otherTexturesMap(allTextures, textureService);
         modelDiv.renderer.addOtherTextures(texturesMap, quickModelEntity.getModel().getId());
     }
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) { }
+
+    @Override
+    protected void afterNavigationActions() { }
 }
