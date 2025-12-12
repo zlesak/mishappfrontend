@@ -15,9 +15,10 @@ import java.util.stream.Collectors;
  * Editor for ordering questions.
  */
 public class OrderingQuestionEditor extends QuestionEditorBase<QuestionOption> {
-    private final List<QuestionOption> options = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
 
+    /**
+     * Constructor for OrderingQuestionEditor.
+     */
     public OrderingQuestionEditor() {
         super(QuestionTypeEnum.ORDERING);
     }

@@ -40,7 +40,7 @@ public class SingleChoiceQuestionRendererComponent extends AbstractQuestionRende
         return SingleChoiceSubmissionData.builder()
                 .questionId(question.getQuestionId())
                 .type(question.getType())
-                .selectedIndex(radioGroup.getValue())
+                .selectedIndex(radioGroup.getValue() + 1) // +1 to convert from 0-based to 1-based index as answer is stored with 1-based index
                 .build();
     }
 
