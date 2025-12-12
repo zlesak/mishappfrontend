@@ -35,7 +35,9 @@ export function createClickHandler(camera, scene, renderer, getCurrentModel, get
     const currentModel = getCurrentModel();
     const lastSelectedTextureId = getLastTextureId();
 
-    if (lastSelectedTextureId === null || currentModel === null) {
+    if (currentModel === null) return;
+
+    if (lastSelectedTextureId === null && currentModel.question === null) {
       return;
     }
 
@@ -80,7 +82,8 @@ export function createClickHandler(camera, scene, renderer, getCurrentModel, get
         const hex = '#' + ((1 << 24) | (pixel[0] << 16) | (pixel[1] << 8) | pixel[2]).toString(16).slice(1);
 
         if (element && element.$server && typeof element.$server.onColorPicked === 'function') {
-          element.$server.onColorPicked(currentModel.id, lastSelectedTextureId, hex);
+          element.$server.onColorPicked(currentModel.id, lastSelectedTextureId, hex, currentModel.question);
+          currentModel.question = null;
         }
       }
     }

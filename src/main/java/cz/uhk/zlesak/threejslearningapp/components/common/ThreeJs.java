@@ -1,20 +1,21 @@
 package cz.uhk.zlesak.threejslearningapp.components.common;
 
 import com.google.gson.Gson;
-import com.vaadin.flow.component.ClientCallable;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentEventListener;
-import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.function.SerializableRunnable;
+import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
+import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
+import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -30,6 +31,7 @@ import java.util.Map;
 public class ThreeJs extends Component {
 
     private Runnable onDisposedCallback;
+    protected final List<Registration> registrations = new ArrayList<>();
 
     /**
      * Default constructor for ThreeJsComponent.
@@ -119,19 +121,19 @@ public class ThreeJs extends Component {
      * @param textureUrl the base64 encoded string of the texture data.
      * @param modelId    id of the loaded model.
      */
-    public void loadModel(String objectUrl, String textureUrl, String modelId) {
+    public void loadModel(String objectUrl, String textureUrl, String modelId, String... questionId) {
         if (textureUrl == null || textureUrl.isBlank()) {
             loadModel(objectUrl, modelId);
         } else {
             getElement().executeJs("""
                     try {
                         if (typeof window.loadAdvancedModel === 'function') {
-                            window.loadAdvancedModel($0, $1, $2, $3);
+                            window.loadAdvancedModel($0, $1, $2, $3, $4);
                         }
                     } catch (e) {
                         console.error('[JS] Error in loadAdvancedModel:', e);
                     }
-                    """, getElement(), objectUrl, textureUrl, modelId);
+                    """, getElement(), objectUrl, textureUrl, modelId, questionId.length > 0 ? questionId[0] : null);
         }
     }
 
@@ -271,8 +273,12 @@ public class ThreeJs extends Component {
      * @param hexColor  the selected color in hexadecimal format.
      */
     @ClientCallable
-    public void onColorPicked(String modelId, String textureId, String hexColor) { //TODO implement proper functionality based on chosen logic of transferring color to the JAVA side when properly thought through
-        new InfoNotification("Model: " + modelId + ", textura: " + textureId + ", vybraná barva: " + hexColor);
+    public void onColorPicked(String modelId, String textureId, String hexColor, String questionId) {
+        if (questionId == null || questionId.isBlank()) {
+            fireEvent(new TextureClickedEvent(this, null, modelId, textureId, hexColor));
+        } else {
+            ComponentUtil.fireEvent(UI.getCurrent(), new TextureClickedEvent(this, questionId, modelId, textureId, hexColor));
+        }
     }
 
     /**
@@ -309,5 +315,26 @@ public class ThreeJs extends Component {
      */
     public void addThreeJsFinishedActionsListener(ComponentEventListener<ThreeJsFinishedActions> listener) {
         addListener(ThreeJsFinishedActions.class, listener);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ModelLoadEvent.class,
+                event -> {
+                    log.info("Loading model with ID: {}", event.getModelId());
+                    loadModel(event.getModel(), event.getTexture(), event.getModelId(), event.getQuestionId());
+                    showModel(event.getModelId());
+                }
+        ));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        registrations.forEach(Registration::remove);
+        registrations.clear();
     }
 }

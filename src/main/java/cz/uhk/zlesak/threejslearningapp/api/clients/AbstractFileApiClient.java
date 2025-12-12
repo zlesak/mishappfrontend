@@ -107,4 +107,7 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     public String getStreamBeEndpointUrl(String id) {
         return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
     }
+    public static String getStreamBeEndpointUrl(String id, String type) {
+        return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
+    }
 }

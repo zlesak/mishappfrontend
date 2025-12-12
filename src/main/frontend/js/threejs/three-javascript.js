@@ -47,10 +47,10 @@ window.loadModel = async function(element, modelUrl, modelId) {
   }
 };
 
-window.loadAdvancedModel = async function(element, objUrl, textureUrl, modelId) {
+window.loadAdvancedModel = async function(element, objUrl, textureUrl, modelId, questionId) {
   const inst = getInstance(element);
   if (inst) {
-    await inst.loadAdvancedModel(objUrl, textureUrl, modelId);
+    await inst.loadAdvancedModel(objUrl, textureUrl, modelId, questionId);
   }
 };
 

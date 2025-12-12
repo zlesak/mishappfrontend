@@ -203,9 +203,9 @@ class ThreeTest {
     this.finishedActions();
   };
 
-  loadAdvancedModel = async (objUrl, mainTextureUrl, modelId) => {
+  loadAdvancedModel = async (objUrl, mainTextureUrl, modelId, questionId) => {
     this.doingActions('Loading advanced model');
-    await loadAdvancedModel(objUrl, mainTextureUrl, modelId, this.models);
+    await loadAdvancedModel(objUrl, mainTextureUrl, modelId, this.models, questionId);
     this.finishedActions();
   };
 
