@@ -25,7 +25,7 @@ public class AccessDeniedView extends VerticalLayout implements HasErrorParamete
         setSizeFull();
         getStyle().set("display", "block");
 
-        add(new ErrorDialog(VaadinIcon.BAN, "403 - Přístup odepřen", "Nemáte oprávnění pro přístup k této stránce.", "Pokud si myslíte, že byste měli mít přístup, kontaktujte prosím administrátora."));
+        add(new ErrorDialog(VaadinIcon.BAN, "Přístup odepřen", "Nemáte oprávnění pro přístup k této stránce.", "Pokud si myslíte, že byste měli mít přístup, kontaktujte prosím administrátora."));
     }
 
     @Override

@@ -17,6 +17,7 @@ public class ErrorDialog extends Div {
         getStyle().set("justify-content", "center");
         setHeight("100%");
         getStyle().set("text-align", "center");
+        getStyle().set("margin", "auto");
 
         Icon errorIcon = new Icon(icon);
         errorIcon.setSize("100px");

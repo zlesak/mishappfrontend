@@ -7,6 +7,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -91,4 +92,21 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
         return body;
     }
     //endregion
+
+    //TODO: Remove after list url is unified in the BE
+    @Override
+    protected String pageRequestToQueryParams(PageRequest pageRequest, String customBaseUrl) {
+        customBaseUrl = customBaseUrl == null ? "list-by" : customBaseUrl;
+        String orderBy = pageRequest.getSort().isSorted()
+                ? pageRequest.getSort().iterator().next().getProperty()
+                : "id";
+        String sortDirection = pageRequest.getSort().isSorted()
+                ? pageRequest.getSort().iterator().next().getDirection().name()
+                : "ASC";
+        return baseUrl + customBaseUrl +
+                "?limit=" + pageRequest.getPageSize() +
+                "&page=" + pageRequest.getPageNumber() +
+                "&orderBy=" + orderBy +
+                "&sortDirection=" + sortDirection;
+    }
 }

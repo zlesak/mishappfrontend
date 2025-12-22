@@ -3,16 +3,20 @@ package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import cz.uhk.zlesak.threejslearningapp.components.common.Filter;
+import cz.uhk.zlesak.threejslearningapp.components.common.NoItemInfo;
 import cz.uhk.zlesak.threejslearningapp.components.common.Pagination;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ErrorDialog;
 import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
 import java.util.List;
@@ -24,6 +28,7 @@ import java.util.function.Consumer;
  * @param <Q>
  * @param <F>
  */
+@Slf4j
 @Scope("prototype")
 @Tag("listing-scaffold")
 public abstract class AbstractListingView<Q, F> extends AbstractView {
@@ -104,23 +109,38 @@ public abstract class AbstractListingView<Q, F> extends AbstractView {
         itemListLayout.removeAll();
         paginationLayout.removeAll();
 
-        PageResult<Q> pageResult = fetchPage(filterParameters);
-        List<Q> entities = pageResult.elements().stream().toList();
-        for (Q entity : entities) {
-            AbstractListItem itemComponent = createListItem(entity);
-            itemComponent.setSelectButtonClickListener(e -> {
-                if (entitySelectedListener != null) {
-                    entitySelectedListener.accept(entity);
-                }
-            });
-            itemListLayout.add(itemComponent);
+        try {
+            PageResult<Q> pageResult = fetchPage(filterParameters);
+            List<Q> entities = pageResult.elements().stream().toList();
+
+            if (entities.isEmpty()) {
+                itemListLayout.add(new NoItemInfo("page.info.noItemsFound"));
+                return;
+            }
+
+            for (Q entity : entities) {
+                AbstractListItem itemComponent = createListItem(entity);
+                itemComponent.setSelectButtonClickListener(e -> {
+                    if (entitySelectedListener != null) {
+                        entitySelectedListener.accept(entity);
+                    }
+                });
+                itemListLayout.add(itemComponent);
+            }
+            paginationLayout.add(new Pagination(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), pageResult.total(),
+                    p -> {
+                        filterParameters.setPageNumber(p);
+                        listEntities();
+                    }
+            ));
+        } catch (Exception e) {
+            log.error("Error while listing entities: ", e);
+            itemListLayout.add(new ErrorDialog(
+                    VaadinIcon.WARNING,
+                    "Interní chyba",
+                    "Neočekávaná interní chyba aplikace.",
+                    "Pro více informací kontaktujte správce aplikace."));
         }
-        paginationLayout.add(new Pagination(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), pageResult.total(),
-                p -> {
-                    filterParameters.setPageNumber(p);
-                    listEntities();
-                }
-        ));
     }
 
     /**

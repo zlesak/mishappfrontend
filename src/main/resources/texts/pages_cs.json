@@ -12,6 +12,10 @@
   "page.title.createQuizView" : "Vytvořit kvíz",
   "page.title.quizView" : "Kvíz",
   "page.title.quizListView" : "Kvízy",
-  "page.title.administrationView" : "Administrace"
+  "page.title.administrationView" : "Administrace",
+  "page.title.chapterDetailView" : "Detail kapitoly",
+
+  "page.info.noItemsFound" : "Nebyly nalezeny žádné položky.",
+  "page.info.errorLoadingItems" : "Chyba při načítání položek."
 }
 

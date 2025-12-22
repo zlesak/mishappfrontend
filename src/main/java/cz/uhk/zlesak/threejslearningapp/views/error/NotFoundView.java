@@ -25,7 +25,7 @@ public class NotFoundView extends VerticalLayout implements HasErrorParameter<No
         setSizeFull();
         getStyle().set("display", "block");
 
-        add(new ErrorDialog(VaadinIcon.FILE_REMOVE, "404 - Stránka nenalezena", "Stránka nebyla nalezena.", "Zkontrolujte adresu nebo se vraťte na hlavní stránku."));
+        add(new ErrorDialog(VaadinIcon.FILE_REMOVE, "Stránka nenalezena", "Stránka nebyla nalezena.", "Zkontrolujte adresu nebo se vraťte na hlavní stránku."));
     }
 
     @Override

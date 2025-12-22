@@ -29,7 +29,7 @@ import java.util.*;
 @Slf4j
 @Service
 @Scope("prototype")
-public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> { //TODO quick chapter entity
+public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> { //TODO quick chapter entity on BE side
     private final ObjectMapper objectMapper;
     private final List<QuickModelEntity> uploadedModels = new ArrayList<>();
 
@@ -78,7 +78,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * @throws Exception if there is an error retrieving the sub-chapter names or if the chapter does not exist
      * @see SubChapterForSelect
      */
-    public List<SubChapterForSelect> getSubChaptersNames(String chapterId) throws Exception {
+    public List<SubChapterForSelect> getSubChaptersNames(String chapterId) {
         read(chapterId);
 
         List<SubChapterForSelect> subChapters = new ArrayList<>();
@@ -108,7 +108,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * @return a JsonArray containing sub-chapter content, where each sub-chapter is represented by its header and content blocks
      * @throws Exception if there is an error retrieving the sub-chapter content or if the chapter does not exist
      */
-    public JsonArray getSubChaptersContent(String chapterId) throws Exception {
+    public JsonArray getSubChaptersContent(String chapterId) {
         read(chapterId);
 
         try {
@@ -324,20 +324,19 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage(), 5000);
         }
 
-        List<QuickModelEntity> modelsList = new ArrayList<>();
-        Set<String> addedModelIds = new HashSet<>();
+        Set<QuickModelEntity> addedModelIds = new HashSet<>();
 
         chapterCreateEntity.getModelHeaderMap().forEach((key, model) -> {
-            if (!key.equals("main") && !addedModelIds.contains(model.getId())) {
-                modelsList.add(model);
-                addedModelIds.add(model.getId());
+            if (!key.equals("main")) {
+                addedModelIds.add(model);
             }
         });
+
+        ArrayList<QuickModelEntity> modelsList = new ArrayList<>(addedModelIds);
 
         if (chapterCreateEntity.getModelHeaderMap().containsKey("main")) {
             QuickModelEntity mainModel = chapterCreateEntity.getModelHeaderMap().get("main");
             modelsList.addFirst(mainModel);
-            addedModelIds.add(mainModel.getId());
         }
 
         uploadedModels.addAll(modelsList);

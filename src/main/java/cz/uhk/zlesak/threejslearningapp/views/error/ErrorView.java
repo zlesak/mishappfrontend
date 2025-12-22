@@ -30,7 +30,7 @@ public class ErrorView extends VerticalLayout implements HasErrorParameter<Excep
 
         add(new ErrorDialog(
                 VaadinIcon.WARNING,
-                "501 - Interní chyba",
+                "Interní chyba",
                 "Neočekávaná interní chyba aplikace.",
                 "Pro více informací kontaktujte správce aplikace."));
     }
