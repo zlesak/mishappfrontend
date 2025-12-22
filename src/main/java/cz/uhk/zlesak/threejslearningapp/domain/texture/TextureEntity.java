@@ -1,18 +1,20 @@
 package cz.uhk.zlesak.threejslearningapp.domain.texture;
 
-import cz.uhk.zlesak.threejslearningapp.domain.common.Entity;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Texture entity data class - holds data about texture from a model on FE side or when communicating with backend API endpoints.
+ * TextureEntity Class - Represents a texture entity with associated files.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
+@Getter
+@Setter
 @SuperBuilder
-public class TextureEntity extends Entity {
-    String CsvContent;
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class TextureEntity extends QuickTextureEntity {
+    InputStreamMultipartFile textureFile;
+    InputStreamMultipartFile csvFile;
 }

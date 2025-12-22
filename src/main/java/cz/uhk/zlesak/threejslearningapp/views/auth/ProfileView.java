@@ -1,11 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.views.auth;
 
-import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.dependency.Uses;
 import com.vaadin.flow.component.icon.Icon;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
-import cz.uhk.zlesak.threejslearningapp.views.IView;
+import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractView;
 import jakarta.annotation.security.PermitAll;
 import org.springframework.context.annotation.Scope;
 
@@ -20,14 +18,9 @@ import org.springframework.context.annotation.Scope;
 @Uses(Icon.class)
 @Scope("prototype")
 @PermitAll
-public class ProfileView extends Composite<VerticalLayout> implements IView {
+public class ProfileView extends AbstractView {
 
     public ProfileView() {
-
-    }
-
-    @Override
-    public String getPageTitle() {
-        return text("page.title.profileView");
+        super("page.title.profileView");
     }
 }

@@ -21,7 +21,7 @@ public class Pagination extends Div {
     private final HorizontalLayout layout = new HorizontalLayout();
 
     public Pagination(int page, int limit, long totalItems, Consumer<Integer> onPageChange) {
-        this.currentPage = page;
+        this.currentPage = page+1;
         this.onPageChange = onPageChange;
         this.totalPages = (int) Math.ceil((double) totalItems / limit);
 
@@ -85,7 +85,7 @@ public class Pagination extends Div {
 
     private void goToPage(int page) {
         if (page < 1 || page > totalPages) return;
-        this.currentPage = page;
+        this.currentPage = page-1;
         updateButtons();
         updatePageNumbers();
         if (onPageChange != null) {

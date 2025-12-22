@@ -1,10 +1,13 @@
 package cz.uhk.zlesak.threejslearningapp.domain.parsers;
 
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * TextureListingDataParser class - utility class for parsing texture data into records for select.
@@ -20,31 +23,44 @@ public abstract class TextureListingDataParser {
      * @param allTextures Flag indicating whether to include all textures or only other textures.
      * @return List of TextureListingForSelectRecord objects (without duplicates).
      */
-    public static List<TextureListingForSelect> textureListingForSelectDataParser(Map<String, QuickModelEntity> models, boolean allTextures) {
+    public static List<TextureListingForSelect> textureListingForSelectDataParser(Map<String, QuickModelEntity> models, boolean allTextures, String noTextureText) {
         if (models == null || models.isEmpty()) {
             return List.of();
         }
 
-        Map<String, QuickModelEntity> uniqueModels = new java.util.LinkedHashMap<>();
+        Map<String, QuickModelEntity> uniqueModels = new LinkedHashMap<>();
         models.values().forEach(model -> uniqueModels.putIfAbsent(model.getModel().getId(), model));
 
         if (allTextures) {
             return uniqueModels.values().stream()
-                    .flatMap(model -> model.getAllTextures().stream()
-                            .map(texture -> new TextureListingForSelect(
-                                    texture.getTextureFileId(),
-                                    model.getModel().getId(),
-                                    texture.getName())))
+                    .flatMap(model -> {
+                        String modelId = model.getModel().getId();
+                        List<QuickTextureEntity> textures = model.getAllTextures();
+                        if (textures == null || textures.isEmpty()) {
+                            return Stream.of(new TextureListingForSelect(modelId, modelId, noTextureText));
+                        }
+                        return textures.stream()
+                                .map(texture -> new TextureListingForSelect(
+                                        texture.getTextureFileId(),
+                                        modelId,
+                                        texture.getName()));
+                    })
                     .toList();
         } else {
             return uniqueModels.values().stream()
-                    .flatMap(model -> model.getOtherTextures().stream()
-                            .map(texture -> new TextureListingForSelect(
-                                    texture.getTextureFileId(),
-                                    model.getModel().getId(),
-                                    texture.getName())))
+                    .flatMap(model -> {
+                        String modelId = model.getModel().getId();
+                        List<QuickTextureEntity> textures = model.getOtherTextures();
+                        if (textures == null || textures.isEmpty()) {
+                            return Stream.of(new TextureListingForSelect(modelId, modelId, noTextureText));
+                        }
+                        return textures.stream()
+                                .map(texture -> new TextureListingForSelect(
+                                        texture.getTextureFileId(),
+                                        modelId,
+                                        texture.getName()));
+                    })
                     .toList();
         }
-
     }
 }

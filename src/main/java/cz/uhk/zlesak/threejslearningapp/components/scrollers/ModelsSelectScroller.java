@@ -1,14 +1,11 @@
 package cz.uhk.zlesak.threejslearningapp.components.scrollers;
 
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
-import cz.uhk.zlesak.threejslearningapp.components.dialogs.ModelListDialog;
-import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import cz.uhk.zlesak.threejslearningapp.components.containers.ModelSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.views.model.ModelListView;
+import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import org.springframework.context.ApplicationContextException;
 
 import java.util.HashMap;
@@ -23,7 +20,7 @@ import java.util.function.Consumer;
  */
 public class ModelsSelectScroller extends Scroller implements I18nAware {
     private Select<QuickModelEntity> mainModelSelect;
-    private final Map<String, HorizontalLayout> otherModelsHorizontalLayouts = new HashMap<>();
+    private final Map<String, ModelSelectContainer> otherModelsHorizontalLayouts = new HashMap<>();
     private final VerticalLayout scrollerLayout;
     private Consumer<Map<String, QuickModelEntity>> modelSelectConsumer;
 
@@ -31,22 +28,6 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
         super(new VerticalLayout(), ScrollDirection.VERTICAL);
         this.scrollerLayout = (VerticalLayout) getContent();
         setSizeFull();
-    }
-
-    /**
-     * Get model select component.
-     *
-     * @param label Label for the select component.
-     * @return Select component for QuickModelEntity in deactivated state as the model is selected via dialog.
-     */
-    private Select<QuickModelEntity> getModelSelect(String label, String id) {
-        Select<QuickModelEntity> modelSelect = new Select<>();
-        modelSelect.setHelperText(label);
-        modelSelect.getElement().setAttribute("block-id", id);
-        modelSelect.setItemLabelGenerator(entity -> entity != null ? entity.getModel().getName() : "");
-        modelSelect.setWidthFull();
-        modelSelect.setReadOnly(true);
-        return modelSelect;
     }
 
     /**
@@ -92,43 +73,14 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      * @param main  whether this is the main model select or sub-chapter model select.
      */
     private void modelSelectHorizontalLayout(String label, String id, boolean main) {
-        HorizontalLayout horizontalLayout = new HorizontalLayout();
-        horizontalLayout.setWidthFull();
-        Select<QuickModelEntity> select = getModelSelect(label, id);
-
-        Button alreadyCreatedModelButton = getChooseAlreadyCreatedModelButton(select);
-        horizontalLayout.add(select, alreadyCreatedModelButton);
+        ModelSelectContainer container = new ModelSelectContainer(label, id, main, modelSelectConsumer);
 
         if (main) {
-            this.mainModelSelect = select;
+            this.mainModelSelect = container.getSelect();
         } else {
-            horizontalLayout.setId("select-models-tab-piece-" + id);
-            otherModelsHorizontalLayouts.putIfAbsent(id, horizontalLayout);
+            otherModelsHorizontalLayouts.putIfAbsent(id, container);
         }
-        scrollerLayout.add(horizontalLayout);
-    }
-
-    /**
-     * Get button to choose already created model.
-     * Using ModelListDialog to select model via paged model selector.
-     *
-     * @param modelSelect Select component to set the selected model to.
-     * @return Button to open ModelListDialog.
-     */
-    private Button getChooseAlreadyCreatedModelButton(Select<QuickModelEntity> modelSelect) {
-        Button chooseAlreadyCreatedModelButton = new Button(text("modelSelectButton.label"));
-
-        ModelListDialog modelListDialog = new ModelListDialog(new ModelListView());
-        modelListDialog.setModelSelectedListener(entity -> {
-            modelSelect.setItems(entity);
-            modelSelect.setValue(entity);
-            if (modelSelect.getValue() != null) {
-                modelSelectConsumer.accept(getAllModelsMappedToChapterHeaderBlockId());
-            }
-        });
-        chooseAlreadyCreatedModelButton.addClickListener(e -> modelListDialog.open());
-
-        return chooseAlreadyCreatedModelButton;
+        scrollerLayout.add(container);
     }
 
     /**
@@ -145,8 +97,8 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
         }
 
         Map<String, QuickModelEntity> models = new HashMap<>();
-        for (HorizontalLayout layout : otherModelsHorizontalLayouts.values()) {
-            @SuppressWarnings("unchecked") Select<QuickModelEntity> select = ((Select<QuickModelEntity>) layout.getComponentAt(0));
+        for (ModelSelectContainer container : otherModelsHorizontalLayouts.values()) {
+            Select<QuickModelEntity> select = container.getSelect();
             QuickModelEntity selected = select.getValue();
             if (selected != null) {
                 models.put(select.getElement().getAttribute("block-id"), selected);

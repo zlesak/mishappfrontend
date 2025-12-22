@@ -47,7 +47,7 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect,
      * @param models a map of model IDs to QuickModelEntity objects used to generate the texture listing records
      */
     public void initializeTextureListingSelect(Map<String, QuickModelEntity> models) {
-        initialize(TextureListingDataParser.textureListingForSelectDataParser(models, true), true);
+        initialize(TextureListingDataParser.textureListingForSelectDataParser(models, true, text("textureListingSelect.noOtherTextures")), false);
     }
 
     /**

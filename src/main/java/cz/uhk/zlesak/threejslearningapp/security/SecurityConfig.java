@@ -55,14 +55,18 @@ class SecurityConfig {
     @Bean
     public UserDetailsManager userDetailsManager() {
         log.warn("NOT FOR PRODUCTION: Using in-memory user details manager!");
-        var user = User.withUsername("user")
-                .password(passwordEncoder().encode("user"))
-                .roles("USER")
+        var student = User.withUsername("student")
+                .password(passwordEncoder().encode("student"))
+                .roles("STUDENT")
                 .build();
         var admin = User.withUsername("admin")
                 .password(passwordEncoder().encode("admin"))
                 .roles("ADMIN")
                 .build();
-        return new InMemoryUserDetailsManager(user, admin);
+        var ucitel = User.withUsername("ucitel")
+                .password(passwordEncoder().encode("ucitel"))
+                .roles("TEACHER")
+                .build();
+        return new InMemoryUserDetailsManager(student, admin, ucitel);
     }
 }

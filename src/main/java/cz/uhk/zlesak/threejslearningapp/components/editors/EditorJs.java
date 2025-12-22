@@ -17,6 +17,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.ModelListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.TextureListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
+import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import elemental.json.JsonValue;
 import org.springframework.context.annotation.Scope;
 
@@ -36,7 +37,7 @@ import java.util.concurrent.CompletableFuture;
 @JsModule("./js/editorjs/editor-js.ts")
 @NpmPackage(value = "@editorjs/editorjs", version = "2.30.8")
 @Scope("prototype")
-public class EditorJs extends Component implements HasSize, HasStyle {
+public class EditorJs extends Component implements HasSize, HasStyle, I18nAware {
     private final List<Registration> registrations = new ArrayList<>();
 
     /**
@@ -118,7 +119,7 @@ public class EditorJs extends Component implements HasSize, HasStyle {
      */
     public void initializeTextureSelects(Map<String, QuickModelEntity> quickModelEntityList) {
         List<ModelForSelect> modelForSelects = ModelListingDataParser.modelForSelectDataParser(quickModelEntityList);
-        List<TextureListingForSelect> otherTexturesMap = TextureListingDataParser.textureListingForSelectDataParser(quickModelEntityList, false);
+        List<TextureListingForSelect> otherTexturesMap = TextureListingDataParser.textureListingForSelectDataParser(quickModelEntityList, false, text("textureListingSelect.noOtherTextures"));
         List<TextureAreaForSelect> textureAreaForSelect = TextureMapHelper.createTextureAreaForSelectRecordList(quickModelEntityList);
 
         ObjectMapper mapper = new ObjectMapper();

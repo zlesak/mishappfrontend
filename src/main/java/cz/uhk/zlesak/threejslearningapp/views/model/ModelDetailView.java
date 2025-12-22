@@ -1,8 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.views.model;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -10,7 +8,7 @@ import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.services.TextureService;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
-import cz.uhk.zlesak.threejslearningapp.views.layouts.ModelLayout;
+import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +19,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * ModelView for displaying a 3D model without the need for the sub-chapter to be present.
+ * ModelDetailView for displaying a 3D model entity detail
  * It is accessible at the route "/model/:modelId?".
  * The model is loaded from the backend using the ModelService.
  */
@@ -30,13 +28,13 @@ import java.util.Map;
 @Tag("view-model")
 @Scope("prototype")
 @PermitAll
-public class ModelDetailView extends ModelLayout {
+public class ModelDetailView extends AbstractModelView {
     private final ModelService modelService;
     private final TextureService textureService;
     private QuickModelEntity quickModelEntity;
 
     /**
-     * Constructor for ModelView.
+     * Constructor for ModelDetailView.
      * Initializes the view with necessary controllers and providers.
      *
      * @param modelService   controller for handling model-related operations
@@ -44,7 +42,7 @@ public class ModelDetailView extends ModelLayout {
      */
     @Autowired
     public ModelDetailView(ModelService modelService, TextureService textureService) {
-        super();
+        super("page.title.modelView");
         this.modelService = modelService;
         this.textureService = textureService;
     }
@@ -61,43 +59,19 @@ public class ModelDetailView extends ModelLayout {
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty()) {
-            event.forwardTo(ModelListView.class);
+            event.forwardTo(ModelListingView.class);
         }
 
         if (parameters.get("modelId").orElse(null) == null) {
-            event.forwardTo(ModelListView.class);
+            event.forwardTo(ModelListingView.class);
         }
 
         //TODO remove after BE implementation of geting model by modelEntityId
         if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
             this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
         } else {
-            event.forwardTo(ModelListView.class);
+            event.forwardTo(ModelListingView.class);
         }
-    }
-
-    /**
-     * Handles actions before leaving the view.
-     * It disposes of the renderer resources to free up memory.
-     * The navigation is postponed until the disposal is complete.
-     *
-     * @param event before leave event with event details
-     */
-    @Override
-    public void beforeLeave(BeforeLeaveEvent event) {
-        BeforeLeaveEvent.ContinueNavigationAction postponed = event.postpone();
-        modelDiv.renderer.dispose((SerializableRunnable) () -> UI.getCurrent().access(postponed::proceed));
-    }
-
-    /**
-     * Provides the title of the page.
-     * The title is localized using the CustomI18NProvider.
-     *
-     * @return the localized page title
-     */
-    @Override
-    public String getPageTitle() {
-        return text("page.title.modelView");
     }
 
     /**
@@ -119,9 +93,14 @@ public class ModelDetailView extends ModelLayout {
             modelDiv.renderer.loadModel(modelUrl, textureUrl, quickModelEntity.getModel().getId());
 
             try {
-                Map<String, String> otherTexturesMap = TextureMapHelper.otherTexturesMap(quickModelEntity.getOtherTextures(), textureService);
-                modelDiv.renderer.addOtherTextures(otherTexturesMap, quickModelEntity.getModel().getId());
-                modelDiv.modelTextureAreaSelectContainer.initializeData(Map.of(quickModelEntity.getModel().getId(), quickModelEntity));
+                if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
+                    Map<String, String> otherTexturesMap = TextureMapHelper.otherTexturesMap(quickModelEntity.getOtherTextures(), textureService);
+                    modelDiv.renderer.addOtherTextures(otherTexturesMap, quickModelEntity.getModel().getId());
+                    modelDiv.modelTextureAreaSelectContainer.initializeData(Map.of(quickModelEntity.getModel().getId(), quickModelEntity));
+                }
+                else {
+                    modelDiv.renderer.showModel(quickModelEntity.getModel().getId());
+                }
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
                 throw new ApplicationContextException(e.getMessage());

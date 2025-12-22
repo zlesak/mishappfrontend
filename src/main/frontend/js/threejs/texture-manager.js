@@ -98,6 +98,7 @@ export async function switchOtherTexture(modelId, textureId, currentModel, model
     await new Promise(resolve => setTimeout(resolve, 50));
     return { model: currentModel, lastSelectedTextureId: textureId };
   } else {
+    await switchToMainTexture(modelId, currentModel, showModelByIdFn);
     return { model: currentModel, lastSelectedTextureId: null };
   }
 }

@@ -1,20 +1,22 @@
 package cz.uhk.zlesak.threejslearningapp.domain.texture;
 
-import cz.uhk.zlesak.threejslearningapp.domain.common.QuickFile;
+import cz.uhk.zlesak.threejslearningapp.domain.file.QuickFileEntity;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
- * QuickTextureEntity is a data class that extends QuickFile to represent a texture entity with additional properties.
- * It includes fields for texture file ID, name, and CSV content.
+ * QuickTextureEntity Class - Represents a lightweight texture entity with essential information.
  */
-@EqualsAndHashCode(callSuper = true)
 @Data
-@AllArgsConstructor
 @Getter
 @Setter
-@Builder
-public class QuickTextureEntity extends QuickFile {
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class QuickTextureEntity extends QuickFileEntity {
     String textureFileId;
-    String name;
+    String modelId;
+    Boolean isPrimary;
     String csvContent;
 }

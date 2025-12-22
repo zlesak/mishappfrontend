@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.domain.parsers;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelForSelect;
 
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,7 @@ public abstract class ModelListingDataParser {
             return List.of();
         }
 
-        Map<String, ModelForSelect> uniqueModels = new java.util.LinkedHashMap<>();
+        Map<String, ModelForSelect> uniqueModels = new LinkedHashMap<>();
 
         if (models.containsKey("main")) {
             QuickModelEntity mainEntity = models.get("main");

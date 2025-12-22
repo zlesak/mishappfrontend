@@ -1,25 +1,26 @@
 package cz.uhk.zlesak.threejslearningapp.domain.chapter;
 
-import cz.uhk.zlesak.threejslearningapp.domain.common.Entity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.util.List;
+import java.util.Map;
 
 /**
- * Chapter entity data class - holds data about chapter on frontend side or when communicating with backend API endpoints.
+ * ChapterEntity Class - Represents a detailed chapter entity with models, quizzes, and content.
  */
 @Data
-@EqualsAndHashCode(callSuper = true)
-@AllArgsConstructor
+@Getter
+@Setter
 @SuperBuilder
 @NoArgsConstructor
-public class ChapterEntity extends Entity {
-    String Content;
-    List<QuickModelEntity> Models;
-    String Metadata;
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class ChapterEntity extends QuickChapterEntity {
+    Map<String, QuickModelEntity> modelHeaderMap;
+    String content;
+    List<QuickModelEntity> models;
+    List<QuickQuizEntity> quizzes;
 }

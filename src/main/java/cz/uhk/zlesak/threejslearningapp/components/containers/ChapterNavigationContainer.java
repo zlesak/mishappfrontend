@@ -14,8 +14,8 @@ import com.vaadin.flow.dom.DomEventListener;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.common.LocatorAnchor;
-import cz.uhk.zlesak.threejslearningapp.components.selects.ChapterSelect;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
+import cz.uhk.zlesak.threejslearningapp.components.selects.ChapterSelect;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
 import elemental.json.JsonArray;
 import elemental.json.JsonObject;
@@ -116,12 +116,18 @@ public class ChapterNavigationContainer extends VerticalLayout {
             toggleButton.setTooltipText("Skrýt navigaci");
             setWidth("min-content");
             setMinWidth("12vw");
+
             toggleButton.getStyle()
                     .set("width", "20px")
                     .set("height", "36px")
-                    .set("top", "calc(100% - 36px)")
-                    .set("right", "-10px")
-                    .set("transform", "translate(calc(100% + 8px), -50%)");
+                    .set("background-color", "rgba(233, 235, 239, 1)")
+                    .set("position", "absolute")
+                    .set("top", "calc(100% - 26px)")
+                    .set("right", "0")
+                    .set("padding-left", "0")
+                    .set("padding", "0px")
+                    .set("transform", "translate(calc(100% + 8px), -50%)")
+                    .set("z-index", "100");
 
         } else {
             toggleButton.setIcon(VaadinIcon.CHEVRON_RIGHT.create());
@@ -130,9 +136,10 @@ public class ChapterNavigationContainer extends VerticalLayout {
             setMinWidth("0");
             toggleButton.getStyle()
                     .set("height", "60px")
-                    .set("margin", "15px")
                     .set("width", "20px")
                     .set("top", "50vh")
+                    .set("padding", "0")
+                    .set("padding-left", "10px")
                     .set("right", "20px");
         }
     }

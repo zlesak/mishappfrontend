@@ -203,27 +203,37 @@ class ThreeTest {
     this.finishedActions();
   };
 
-  loadAdvancedModel = async (objUrl, mainTextureUrl, modelId) => {
+  loadAdvancedModel = async (objUrl, mainTextureUrl, modelId, questionId) => {
     this.doingActions('Loading advanced model');
-    await loadAdvancedModel(objUrl, mainTextureUrl, modelId, this.models);
+    await loadAdvancedModel(objUrl, mainTextureUrl, modelId, this.models, questionId);
     this.finishedActions();
   };
 
   showModelById = async (modelId) => {
+    // Lock to prevent concurrent model loading! (will load multiple models causing scene to carry multiple models if not locked)
+    while (this._showModelInProgress) {
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    this._showModelInProgress = true;
     this.doingActions('Switching model');
-    const result = await showModelById(
-      modelId,
-      this.models,
-      this.model,
-      this.scene,
-      (obj) => disposeObject(obj),
-      (model) => centerCameraOnModelFn(this.camera, this.controls, model)
-    );
-    this.model = result.model;
-    this.lastSelectedTextureId = result.lastSelectedTextureId;
-    this.finishedActions();
-    this.render();
-    return result;
+    try {
+      const result = await showModelById(
+        modelId,
+        this.models,
+        this.model,
+        this.scene,
+        (obj) => disposeObject(obj),
+        (model) => centerCameraOnModelFn(this.camera, this.controls, model)
+      );
+      this.model = result.model;
+      this.lastSelectedTextureId = result.lastSelectedTextureId;
+      this.finishedActions();
+      this.render();
+      return result;
+    } finally {
+      this._showModelInProgress = false;
+    }
   };
 
   addOtherTextures = async (textureMap, modelId) => {

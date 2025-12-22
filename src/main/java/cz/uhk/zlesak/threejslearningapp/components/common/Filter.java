@@ -9,11 +9,11 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
+import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
-import cz.uhk.zlesak.threejslearningapp.domain.common.Entity;
-import cz.uhk.zlesak.threejslearningapp.domain.common.SortDirectionEnum;
 import lombok.Getter;
+import org.springframework.data.domain.Sort;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -28,7 +28,7 @@ import java.util.Set;
 public class Filter extends HorizontalLayout implements I18nAware {
     @Getter
     private final SearchTextField searchField;
-    private final Select<SortDirectionEnum> searchDirectionSelect;
+    private final Select<Sort.Direction> searchDirectionSelect;
     private final Select<String> orderBySelect;
     private final Button createButton;
 
@@ -99,7 +99,7 @@ public class Filter extends HorizontalLayout implements I18nAware {
      */
     private Select<String> getOrderBySelect() {
         Select<String> select = new Select<>();
-        List<String> fieldNames = extractFieldNames(Entity.class);
+        List<String> fieldNames = extractFieldNames(AbstractEntity.class);
         select.setItems(fieldNames);
         if (!fieldNames.isEmpty()) {
             select.setValue(fieldNames.getFirst());
@@ -116,10 +116,10 @@ public class Filter extends HorizontalLayout implements I18nAware {
      *
      * @return the configured Select component for sorting direction
      */
-    private Select<SortDirectionEnum> getSortDirectionSelect() {
-        Select<SortDirectionEnum> sortDirectionSelect = new Select<>();
-        sortDirectionSelect.setItems(SortDirectionEnum.values());
-        sortDirectionSelect.setValue(SortDirectionEnum.ASC);
+    private Select<Sort.Direction> getSortDirectionSelect() {
+        Select<Sort.Direction> sortDirectionSelect = new Select<>();
+        sortDirectionSelect.setItems(Sort.Direction.values());
+        sortDirectionSelect.setValue(Sort.Direction.ASC);
         sortDirectionSelect.setHelperText(text("filter.sort.label"));
         sortDirectionSelect.setItemLabelGenerator(direction -> switch (direction) {
             case ASC -> text("filter.sort.direction.asc");
@@ -176,6 +176,7 @@ public class Filter extends HorizontalLayout implements I18nAware {
 
     /**
      * Sets the value of the search field.
+     *
      * @param value the value to set in the search field
      */
     public void setSearchFieldValue(String value) {

@@ -14,7 +14,7 @@ import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.services.TextureService;
-import cz.uhk.zlesak.threejslearningapp.views.layouts.ChapterLayout;
+import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Scope;
 import java.util.Map;
 
 /**
- * ChapterView Class - Shows the requested chapter from URL parameter. Initializes all the necessary elements
+ * ChapterDetailView Class - Shows the requested chapter from URL parameter. Initializes all the necessary elements
  * to provide the user with the chapter content in intuitive way.
  */
 @Slf4j
@@ -32,7 +32,7 @@ import java.util.Map;
 @Tag("chapter-view")
 @Scope("prototype")
 @PermitAll
-public class ChapterDetailView extends ChapterLayout {
+public class ChapterDetailView extends AbstractChapterView {
     private final ModelService modelService;
     private final TextureService textureService;
     private final ChapterService chapterService;
@@ -46,26 +46,10 @@ public class ChapterDetailView extends ChapterLayout {
      */
     @Autowired
     public ChapterDetailView(ChapterService chapterService, ModelService modelService, TextureService textureService) {
-        super(false);
+        super("page.title.chapterDetailView");
         this.chapterService = chapterService;
         this.modelService = modelService;
         this.textureService = textureService;
-    }
-
-    /**
-     * Overridden beforeLeave function to proper disposal of the model renderer to free the used RAM memory immediately.
-     *
-     * @param event BeforeLeave
-     */
-    @Override
-    public void beforeLeave(BeforeLeaveEvent event) {
-        BeforeLeaveEvent.ContinueNavigationAction postponed = event.postpone();
-        UI ui = UI.getCurrent();
-        if (modelDiv.renderer != null) {
-            modelDiv.renderer.dispose(() -> ui.access(postponed::proceed));
-        } else {
-            postponed.proceed();
-        }
     }
 
     /**
@@ -78,27 +62,13 @@ public class ChapterDetailView extends ChapterLayout {
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty()) {
-            event.forwardTo(ChapterListView.class);
+            event.forwardTo(ChapterListingView.class);
         }
         this.chapterId = event.getRouteParameters().get("chapterId").orElse(null);
         if (chapterId == null) {
             log.error("Nelze načíst kapitolu bez ID");
             new ErrorNotification("Nelze načíst kapitolu bez ID", 5000);
-            UI.getCurrent().navigate(ChapterListView.class);
-        }
-    }
-
-    /**
-     * Overridden getPageTitle function to provide dynamic page title based on the chapter name.
-     *
-     * @return String - page title
-     */
-    @Override
-    public String getPageTitle() {
-        try {
-            return text("page.title.chapterDetailView") + " - " + chapterService.getChapterName(chapterId).trim();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            UI.getCurrent().navigate(ChapterListingView.class);
         }
     }
 
@@ -113,7 +83,6 @@ public class ChapterDetailView extends ChapterLayout {
 
         try {
             loadChapterData();
-            setupSubChapterModelMap();
             loadAndDisplay3DModels();
         } catch (Exception e) {
             handleChapterLoadError(e);
@@ -139,15 +108,6 @@ public class ChapterDetailView extends ChapterLayout {
         editorjs.setChapterContentData(chapterService.getChapterContent(chapterId));
         chapterSelect.initializeChapterSelectionSelect(chapterService.getSubChaptersNames(chapterId));
         navigationContentLayout.initializeSubChapterData(chapterService.getSubChaptersContent(chapterId));
-    }
-
-    /**
-     * Sets up sub-chapter model map for quick access during sub-chapter changes.
-     *
-     * @throws Exception if models cannot be retrieved
-     */
-    private void setupSubChapterModelMap() throws Exception {
-        modelsMap = chapterService.getChaptersModels(chapterId);
     }
 
     /**
@@ -198,13 +158,13 @@ public class ChapterDetailView extends ChapterLayout {
      */
     private void loadAndDisplay3DModels() throws Exception {
         try {
-            Map<String, QuickModelEntity> quickModelEntityMap = chapterService.getChaptersModels(chapterId);
+            modelsMap = chapterService.getChaptersModels(chapterId);
 
-            for (QuickModelEntity quickModelEntity : quickModelEntityMap.values()) {
+            for (QuickModelEntity quickModelEntity : modelsMap.values()) {
                 loadModelWithTextures(quickModelEntity);
             }
 
-            setupModelDiv(quickModelEntityMap);
+            setupData(modelsMap);
         } catch (Exception e) {
             log.error("Failed to load 3D models: {}", e.getMessage(), e);
             new ErrorNotification(text("error.modelLoadFailed") + ": " + e.getMessage(), 5000);
@@ -248,7 +208,7 @@ public class ChapterDetailView extends ChapterLayout {
     private void handleChapterLoadError(Exception e) {
         log.error("Error loading chapter: {}", e.getMessage(), e);
         new ErrorNotification(text("error.chapterLoadFailed") + ": " + e.getMessage(), 5000);
-        UI.getCurrent().navigate(ChapterListView.class);
+        UI.getCurrent().navigate(ChapterListingView.class);
     }
 
     /**

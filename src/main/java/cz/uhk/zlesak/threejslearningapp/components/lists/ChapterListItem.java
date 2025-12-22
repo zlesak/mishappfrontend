@@ -3,32 +3,22 @@ package cz.uhk.zlesak.threejslearningapp.components.lists;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.markdown.Markdown;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.server.VaadinSession;
-import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Tag("div")
-public class ChapterListItem extends Div implements I18nAware {
+public class ChapterListItem extends AbstractListItem {
 
-    public ChapterListItem(ChapterEntity chapter) {
-        setWidthFull();
-        getStyle().set("border", "1px solid #ccc");
-        getStyle().set("border-radius", "8px");
-
-        VerticalLayout details = new VerticalLayout();
-        details.setWidth("50%");
+    public ChapterListItem(ChapterEntity chapter, boolean listView) {
+        super(listView);
 
         HorizontalLayout chapterName = new HorizontalLayout();
         Span nameLabel = new Span(text("chapter.title") + ": ");
@@ -44,8 +34,8 @@ public class ChapterListItem extends Div implements I18nAware {
         }
         if (chapter.getCreated() != null) {
             HorizontalLayout dateRow = new HorizontalLayout();
-           dateRow.add(new Span(text("chapter.creationDate") + ": "), new Span(DateTimeFormatter.ofPattern("d.M.yyyy HH:mm").withZone(ZoneId.systemDefault()).format(chapter.getCreated())));
-           details.add(dateRow);
+            dateRow.add(new Span(text("chapter.creationDate") + ": "), new Span(DateTimeFormatter.ofPattern("d.M.yyyy HH:mm").withZone(ZoneId.systemDefault()).format(chapter.getCreated())));
+            details.add(dateRow);
         }
         if (chapter.getUpdated() != null) {
             HorizontalLayout dateRow = new HorizontalLayout();
@@ -83,37 +73,9 @@ public class ChapterListItem extends Div implements I18nAware {
             details.add(modelsRow);
         }
 
-
-        Button openButton = getOpenButton(chapter, text("button.open"));
-
-        Markdown markdown = new Markdown(text("chapter.content.loading"));
-        markdown.setWidthFull();
-        UI.getCurrent().getPage().executeJs(
-                "return window.convertEditorJsToMarkdown($0)", chapter.getContent()
-        ).toCompletableFuture().whenComplete((md, t) -> markdown.setContent(md.asString()));
-
-
-        HorizontalLayout row = new HorizontalLayout();
-
-        row.setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);
-        row.setAlignItems(HorizontalLayout.Alignment.CENTER);
-        row.add(details, markdown, openButton);
-
-        row.setFlexGrow(0, details);
-        row.setFlexGrow(1, markdown);
-        row.setFlexGrow(0, openButton);
-
-        add(row);
-    }
-
-    @NotNull
-    private static Button getOpenButton(ChapterEntity chapter, String label) {
-        Button button = new Button(label);
-        button.getStyle().set("margin", "12px").set("padding", "8px 24px");
-        button.addClickListener(e -> {
+        setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
             UI.getCurrent().navigate("chapter/" + chapter.getId());
         });
-        return button;
     }
 }

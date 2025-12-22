@@ -2,10 +2,11 @@ package cz.uhk.zlesak.threejslearningapp.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.api.clients.TextureApiClient;
-import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureUploadEntity;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureFilter;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
@@ -13,8 +14,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,10 +26,8 @@ import java.util.List;
 @Slf4j
 @Service
 @Scope("prototype")
-public class TextureService implements IService {
-    protected final TextureApiClient textureApiClient;
+public class TextureService extends AbstractService<TextureEntity, QuickTextureEntity, TextureFilter> {
     protected final ObjectMapper objectMapper;
-    private TextureEntity textureEntity = null;
 
     /**
      * Constructor for TextureService.
@@ -41,95 +38,40 @@ public class TextureService implements IService {
      */
     @Autowired
     public TextureService(TextureApiClient textureApiClient, ObjectMapper objectMapper) {
-        this.textureApiClient = textureApiClient;
+        super(textureApiClient);
         this.objectMapper = objectMapper;
     }
 
     /**
-     * Uploads a texture file along with its metadata to the server.
-     * Validates the input file and constructs a TextureUploadEntity to send to the TextureApiClient.
+     * Creates a new texture entity.
      *
-     * @param inputStream the texture file to be uploaded
-     * @param isPrimary   indicates if the texture is the primary texture
-     * @param modelId     the ID of the model to which the texture belongs
-     * @param csv         an optional CSV file containing additional texture metadata
-     * @return a QuickTextureEntity representing the uploaded texture
-     * @throws ApplicationContextException if the input file is empty or has no name
+     * @param createEntity Entity to create
+     * @return Created texture entity
+     * @throws RuntimeException if an error occurs during the creation process
      */
-    public QuickTextureEntity uploadTexture(InputStreamMultipartFile inputStream, boolean isPrimary, String modelId, InputStream csv) throws ApplicationContextException {
-        if (inputStream.isEmpty()) {
-            throw new ApplicationContextException("Soubor pro nahrání textury nesmí být prázdný.");
-        }
-        if (inputStream.getDisplayName().isEmpty()) {
-            throw new ApplicationContextException("Název textury nesmí být prázdný.");
-        }
-
+    @Override
+    public QuickTextureEntity create(TextureEntity createEntity) throws RuntimeException {
         try {
-            String csvString = csv == null ? "" : new String(csv.readAllBytes(), StandardCharsets.UTF_8);
-            TextureEntity textureEntity = TextureEntity.builder()
-                    .Name(inputStream.getDisplayName())
-                    .Created(Instant.now())
-                    .CsvContent(csvString)
-                    .build();
-            TextureUploadEntity uploadedEntity = TextureUploadEntity.builder()
-                    .modelId(modelId)
-                    .isPrimary(isPrimary)
-                    .texture(textureEntity)
-                    .build();
-            return textureApiClient.uploadFileEntity(inputStream, uploadedEntity);
+            return apiClient.create(createFinalEntity(validateCreateEntity(createEntity)));
         } catch (Exception e) {
             throw new RuntimeException("Chyba při nahrávání textury: " + e.getMessage(), e);
         }
     }
 
     /**
-     * Uploads multiple non-primary textures along with their associated CSV metadata files.
-     * Matches each texture file with its corresponding CSV file based on the filename prefix.
-     * For this to work, the files of the csv needs to mathc the texture file names.
+     * Creates multiple other texture entities.
      *
-     * @param textureInputStream a list of texture files to be uploaded
-     * @param modelId            the ID of the model to which the textures belong
-     * @param listCsvInputStream a list of CSV files containing additional texture metadata
-     * @return a list of QuickTextureEntity objects representing the uploaded textures
-     * @throws ApplicationContextException if any of the input files are invalid
+     * @param otherTexturesEntities List of texture entities to create
+     * @return List of created texture entities
+     * @throws RuntimeException if an error occurs during the creation process
      */
-    public List<QuickTextureEntity> uploadOtherTextures(List<InputStreamMultipartFile> textureInputStream, String modelId, List<InputStreamMultipartFile> listCsvInputStream) throws ApplicationContextException {
+    public List<QuickTextureEntity> createOtherTextures(List<TextureEntity> otherTexturesEntities) throws RuntimeException {
         List<QuickTextureEntity> otherTextureEntities = new ArrayList<>();
-        for (var entry : textureInputStream) {
-            if (!entry.isEmpty()) {
-                InputStreamMultipartFile csv = null;
-                InputStream csvStream = null;
-                String prefix;
-                prefix = entry.getName().substring(0, entry.getName().lastIndexOf('.'));
-                for (InputStreamMultipartFile csvFile : listCsvInputStream) {
-                    if (csvFile.getName().equals(prefix + ".csv")) {
-                        csv = csvFile;
-                        csvStream = csv.getInputStream();
-                        break;
-                    }
-                }
-                listCsvInputStream.remove(csv);
-
-                QuickTextureEntity quickTextureEntity = uploadTexture(entry, false, modelId, csvStream);
-                otherTextureEntities.add(quickTextureEntity);
-            }
+        for (TextureEntity otherTextureEntity : otherTexturesEntities) {
+            QuickTextureEntity quickTextureEntity = create(otherTextureEntity);
+            otherTextureEntities.add(quickTextureEntity);
         }
         return otherTextureEntities;
-    }
-
-    /**
-     * Retrieves a texture entity by its ID using the TextureApiClient.
-     * Caches the retrieved texture entity for future use.
-     *
-     * @param textureId the ID of the texture to be retrieved
-     */
-    private void getTexture(String textureId) {
-        try {
-            this.textureEntity = textureApiClient.getFileEntityById(textureId);
-        } catch (Exception e) {
-            log.error("Chyba při získávání textury: {}", e.getMessage(), e);
-            throw new RuntimeException("Chyba při získávání textury: " + e.getMessage(), e);
-        }
     }
 
     /**
@@ -141,12 +83,8 @@ public class TextureService implements IService {
      * @return the name of the texture
      */
     public String getTextureName(String textureId) {
-        if (this.textureEntity == null) {
-            this.getTexture(textureId);
-        } else if (this.textureEntity.getId() == null || !this.textureEntity.getId().equals(textureId)) {
-            this.getTexture(textureId);
-        }
-        return this.textureEntity.getName();
+        read(textureId);
+        return entity.getName();
     }
 
     /**
@@ -158,12 +96,12 @@ public class TextureService implements IService {
      * @return an InputStream of the texture file
      */
     public InputStreamResource getInputStream(String textureId) {
-        if (this.textureEntity == null) {
-            this.getTexture(textureId);
-        } else if (this.textureEntity.getId() == null || !this.textureEntity.getId().equals(textureId)) {
-            this.getTexture(textureId);
+        if (entity == null) {
+            this.read(textureId);
+        } else if (this.entity.getId() == null || !this.entity.getId().equals(textureId)) {
+            this.read(textureId);
         }
-        return new InputStreamResource(textureEntity.getFile().getInputStream());
+        return new InputStreamResource(entity.getTextureFile().getInputStream());
     }
 
     /**
@@ -183,6 +121,47 @@ public class TextureService implements IService {
      * @return the backend endpoint URL for the texture file
      */
     public String getTextureFileBeEndpointUrl(String textureId) {
-        return textureApiClient.getTextureStreamBeEndpointUrl(textureId);
+        return IApiClient.getLocalBaseBeUrl() + "texture" + "/download/" + textureId;
+    }
+
+    /**
+     * Validates the create entity.
+     *
+     * @param createEntity Entity to validate
+     * @return Validated entity
+     * @throws RuntimeException if validation fails
+     */
+    @Override
+    protected TextureEntity validateCreateEntity(TextureEntity createEntity) throws RuntimeException {
+        if (createEntity.getTextureFile().isEmpty()) {
+            throw new ApplicationContextException("Soubor pro nahrání textury nesmí být prázdný.");
+        }
+        if (createEntity.getTextureFile().getDisplayName().isEmpty()) {
+            throw new ApplicationContextException("Název textury nesmí být prázdný.");
+        }
+        return createEntity;
+    }
+
+    /**
+     * Creates the final entity from the create entity.
+     *
+     * @param createEntity Entity to create
+     * @return Final entity
+     * @throws RuntimeException if creation fails
+     */
+    @Override
+    protected TextureEntity createFinalEntity(TextureEntity createEntity) throws RuntimeException {
+        String csvString = createEntity.getCsvContent() == null ? "" : createEntity.getCsvContent();
+        TextureEntity texture =  TextureEntity.builder()
+                .name(createEntity.getTextureFile().getDisplayName())
+                .created(Instant.now())
+                .csvContent(csvString)
+                .build();
+        return TextureUpload.builder()
+                .modelId(createEntity.getModelId())
+                .textureFile(createEntity.getTextureFile())
+                .texture(texture)
+                .isPrimary(createEntity.getIsPrimary())
+                .build();
     }
 }

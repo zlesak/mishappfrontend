@@ -1,10 +1,10 @@
 package cz.uhk.zlesak.threejslearningapp.components.selects;
 
 import com.vaadin.flow.component.ComponentEventListener;
-import cz.uhk.zlesak.threejslearningapp.events.texture.TextureAreaChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
+import cz.uhk.zlesak.threejslearningapp.events.texture.TextureAreaChangeEvent;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;

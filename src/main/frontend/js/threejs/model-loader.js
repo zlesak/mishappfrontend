@@ -20,20 +20,25 @@ export async function loadBasicModel(modelUrl, modelId, models) {
 }
 
 /**
- * Načte pokročilý OBJ model s texturou
+ * Načte pokročilý OBJ model s texturou, přidá id otázky, pakliže se volá z QuizPlayerView
  */
-export async function loadAdvancedModel(objUrl, mainTextureUrl, modelId, models) {
-  if (!models.some(m => m.id === modelId)) {
+export async function loadAdvancedModel(objUrl, mainTextureUrl, modelId, models, questionId) {
+  const modelExists = models.find(m => m.id === modelId);
+  if (!modelExists) {
     models.push({
       id: modelId,
       advanced: true,
       model: objUrl,
       mainTexture: mainTextureUrl,
       otherTextures: [],
+      question: questionId,
       modelLoader: null,
       textureLoader: null,
       loadedMainTexture: null
     });
+  } else if (questionId)
+  {
+    modelExists.question = questionId;
   }
 }
 
