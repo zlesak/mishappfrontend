@@ -5,6 +5,10 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
 
+/**
+ * ChapterContentScroller Class - A custom scroller component that contains both an EditorJs and a MarkdownEditor.
+ * This scroller is designed to hold chapter content editors in a vertical layout.
+ */
 public class ChapterContentScroller extends Scroller {
 
     public ChapterContentScroller(EditorJs editorjs, MarkdownEditor mdEditor) {
