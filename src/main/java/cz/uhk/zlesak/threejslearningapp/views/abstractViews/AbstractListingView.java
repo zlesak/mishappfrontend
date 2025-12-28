@@ -7,17 +7,23 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import cz.uhk.zlesak.threejslearningapp.components.common.Filter;
 import cz.uhk.zlesak.threejslearningapp.components.common.NoItemInfo;
 import cz.uhk.zlesak.threejslearningapp.components.common.Pagination;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ErrorDialog;
 import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.common.FilterBase;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
+import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -25,26 +31,27 @@ import java.util.function.Consumer;
 /**
  * AbstractListingView, abstract view for displaying a list of entities with filtering and pagination capabilities.
  *
- * @param <Q>
- * @param <F>
+ * @param <Q> the type of entity to be listed - quick type
+ * @param <F> the type of filter used for listing entities
  */
 @Slf4j
 @Scope("prototype")
 @Tag("listing-scaffold")
-public abstract class AbstractListingView<Q, F> extends AbstractView {
+public abstract class AbstractListingView<Q extends AbstractEntity, F extends FilterBase, E extends Q, S extends AbstractService<E, Q, F>> extends AbstractView {
     protected final VerticalLayout listingLayout, itemListLayout, paginationLayout, secondaryFilterLayout;
     protected final Filter filter = new Filter();
     protected final boolean listView;
     @Setter
     private Consumer<Q> entitySelectedListener;
     protected FilterParameters<F> filterParameters;
+    protected final S service;
 
     /**
      * Constructor for AbstractListingView.
      * Initializes the view in non-list mode with an empty page title key.
      */
-    public AbstractListingView() {
-        this(false, "");
+    public AbstractListingView(S service) {
+        this(false, "", service);
     }
 
     /**
@@ -52,13 +59,16 @@ public abstract class AbstractListingView<Q, F> extends AbstractView {
      *
      * @param listView indicates whether the view is in list view mode or select mode (in cases of model or chapter selection dialogs)
      */
-    public AbstractListingView(boolean listView, String pageTitleKey) {
+    public AbstractListingView(boolean listView, String pageTitleKey, S service) {
         super(pageTitleKey);
         this.listView = listView;
         this.listingLayout = new VerticalLayout();
         this.itemListLayout = new VerticalLayout();
         this.paginationLayout = new VerticalLayout();
         this.secondaryFilterLayout = new VerticalLayout(filter);
+        this.service = service;
+
+        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), createFilter(""));
 
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
         itemListLayout.setSpacing(false);
@@ -77,14 +87,6 @@ public abstract class AbstractListingView<Q, F> extends AbstractView {
         getContent().add(listingLayout);
         getContent().setSizeFull();
     }
-
-    /**
-     * Fetches a page of entities based on the provided filter parameters.
-     *
-     * @param params the filter parameters including pagination and filtering criteria
-     * @return a PageResult containing the fetched entities and pagination info
-     */
-    protected abstract PageResult<Q> fetchPage(FilterParameters<F> params);
 
     /**
      * Creates a list item component for the given entity.
@@ -110,7 +112,7 @@ public abstract class AbstractListingView<Q, F> extends AbstractView {
         paginationLayout.removeAll();
 
         try {
-            PageResult<Q> pageResult = fetchPage(filterParameters);
+            PageResult<Q> pageResult = service.readEntities(filterParameters);
             List<Q> entities = pageResult.elements().stream().toList();
 
             if (entities.isEmpty()) {
@@ -162,5 +164,16 @@ public abstract class AbstractListingView<Q, F> extends AbstractView {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         registrations.add(ComponentUtil.addListener(attachEvent.getUI(), SearchEvent.class, this::showFilteredEntities));
+    }
+
+    /**
+     * Called after navigation to the view.
+     *
+     * @param event the after navigation event
+     */
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        filter.setSearchFieldValue("");
+        listEntities();
     }
 }

@@ -1,13 +1,11 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
 import cz.uhk.zlesak.threejslearningapp.components.lists.QuizListItem;
-import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
-import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizFilter;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractListingView;
@@ -15,8 +13,6 @@ import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 /**
  * QuizListingView Class - Displays a list of available quizzes to the user.
@@ -27,8 +23,7 @@ import org.springframework.data.domain.Sort;
 @Scope("prototype")
 @Tag("quizes-listing")
 @PermitAll
-public class QuizListingView extends AbstractListingView<QuickQuizEntity, QuizFilter> {
-    private final QuizService quizService;
+public class QuizListingView extends AbstractListingView<QuickQuizEntity, QuizFilter, QuizEntity, QuizService> {
 
     /**
      * Constructor for QuizListingView.
@@ -38,32 +33,7 @@ public class QuizListingView extends AbstractListingView<QuickQuizEntity, QuizFi
      */
     @Autowired
     public QuizListingView(QuizService quizService) {
-        super(true, "page.title.quizListView");
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), new QuizFilter(""));
-        this.quizService = quizService;
-    }
-
-    /**
-     * Handles actions to be performed after navigation to this view.
-     *
-     * @param event after navigation event with event details
-     */
-    @Override
-    public void afterNavigation(AfterNavigationEvent event) {
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), new QuizFilter(""));
-        filter.setSearchFieldValue(filterParameters.getFilter().getSearchText());
-        listEntities();
-    }
-
-    /**
-     * Fetches a page of quizzes based on the provided filter parameters.
-     *
-     * @param params the filter parameters including pagination and filtering criteria
-     * @return a PageResult containing the fetched quizzes and pagination info
-     */
-    @Override
-    protected PageResult<QuickQuizEntity> fetchPage(FilterParameters<QuizFilter> params) {
-        return quizService.readEntities(filterParameters);
+        super(true, "page.title.quizListView", quizService);
     }
 
     /**
