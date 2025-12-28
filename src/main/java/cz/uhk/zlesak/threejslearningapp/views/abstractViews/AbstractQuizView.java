@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizListingView;
@@ -29,14 +28,4 @@ public abstract class AbstractQuizView extends AbstractEntityView {
         }
         quizId = parameters.get("quizId").get();
     }
-
-
-    @Override
-    public void afterNavigation(AfterNavigationEvent event) {
-        afterNavigationActions();
-
-    }
-
-    protected abstract void afterNavigationActions();
-
 }

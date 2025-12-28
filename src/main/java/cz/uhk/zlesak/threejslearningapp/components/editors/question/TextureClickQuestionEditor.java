@@ -1,6 +1,5 @@
 package cz.uhk.zlesak.threejslearningapp.components.editors.question;
 
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelTextureAreaSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.quizes.TextureQuestionOption;
@@ -25,12 +24,11 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
 
     /**
      * Constructor for TextureClickQuestionEditor.
-     * @param renderer the ThreeJs renderer
      * @param loadModelDataConsumer consumer to load model data
      */
-    public TextureClickQuestionEditor(ThreeJs renderer, Consumer<Map<String, QuickModelEntity>> loadModelDataConsumer) {
+    public TextureClickQuestionEditor(Consumer<Map<String, QuickModelEntity>> loadModelDataConsumer) {
         super(QuestionTypeEnum.TEXTURE_CLICK);
-        modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer(renderer);
+        modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
         this.modelSelectContainer = new ModelSelectContainer(
                 "Select Model",
                 "model-select",

@@ -1,11 +1,14 @@
 package cz.uhk.zlesak.threejslearningapp.components.containers;
 
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
 import cz.uhk.zlesak.threejslearningapp.components.selects.ModelListingSelect;
 import cz.uhk.zlesak.threejslearningapp.components.selects.TextureAreaSelect;
 import cz.uhk.zlesak.threejslearningapp.components.selects.TextureListingSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import lombok.Getter;
 import org.springframework.context.annotation.Scope;
 
@@ -25,14 +28,14 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
     TextureListingSelect textureListingSelect = new TextureListingSelect();
     TextureAreaSelect textureAreaSelect = new TextureAreaSelect();
 
-    public ModelTextureAreaSelectContainer(ThreeJs renderer) {
+    public ModelTextureAreaSelectContainer() {
         modelListingSelect.addModelChangeListener(
                 event -> {
                     var newValue = event.getNewValue();
                     if (newValue != null) {
                         String modelId = newValue.id();
                         if (modelId != null && !Objects.equals(modelId, "")) {
-                            renderer.showModel(modelId);
+                            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, null, ThreeJsActions.SHOW_MODEL));
                             textureListingSelect.showTexturesForSelectedModel(modelId);
                         }
                     }
@@ -43,16 +46,19 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
                     var newValue = event.getNewValue();
                     if (newValue != null) {
                         String textureId = newValue.id();
+
                         if (textureId != null && !Objects.equals(textureId, "")) {
+                            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), newValue.modelId(), textureId, ThreeJsActions.SWITCH_OTHER_TEXTURE));
+
                             textureAreaSelect.showSelectedTextureAreas(textureId);
-                            renderer.switchOtherTexture(event.getNewValue().modelId(), event.getNewValue().id());
                         }
                     }
                 }
         );
         textureAreaSelect.addTextureAreaChangeListener(event -> {
             if (event.getNewValue() != null && !Objects.equals(event.getNewValue().textureId(), "")) {
-                renderer.applyMaskToMainTexture(event.getNewValue().modelId(), event.getNewValue().textureId(), event.getNewValue().hexColor());
+                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), event.getNewValue().modelId(), event.getNewValue().textureId(), ThreeJsActions.APPLY_MASK_TO_TEXTURE, event.getNewValue().hexColor()));
+
             }
         });
         add(modelListingSelect, textureListingSelect, textureAreaSelect);

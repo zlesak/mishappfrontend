@@ -37,6 +37,8 @@ public class ErrorView extends VerticalLayout implements HasErrorParameter<Excep
 
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<Exception> parameter) {
+
+        log.error(parameter.getException().getMessage(), parameter.getException());
         return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
     }
 }

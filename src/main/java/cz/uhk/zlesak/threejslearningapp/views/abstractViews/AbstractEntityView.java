@@ -1,14 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeLeaveEvent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractFileApiClient;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelContainer;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.leaveDialogs.BeforeLeaveActionDialog;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
+import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 
 import java.util.Map;
 
@@ -17,7 +21,7 @@ import java.util.Map;
  * It extends AbstractView and provides common layout components for entity views.
  *
  */
-public abstract class AbstractEntityView extends AbstractView{
+public abstract class AbstractEntityView extends AbstractView {
     protected VerticalLayout entityContentNavigation = new VerticalLayout();
     protected VerticalLayout entityContent = new VerticalLayout();
     protected final ModelContainer modelDiv = new ModelContainer();
@@ -77,15 +81,40 @@ public abstract class AbstractEntityView extends AbstractView{
         BeforeLeaveActionDialog.leave(event, this::disposeRendererAndProceed);
     }
 
-
     /**
-     * Sets up the modelDiv with the provided map of QuickModelEntity.
-     * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects used for initialization
+     * Loads multiple models along with their associated textures by firing UploadFileEvent events.
+     * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects
      */
-    protected void setupModelDiv(Map<String, QuickModelEntity> quickModelEntityMap){
-        modelDiv.modelTextureAreaSelectContainer.initializeData(quickModelEntityMap);
+    protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
+        for (QuickModelEntity quickModelEntity : quickModelEntityMap.values()) {
+            loadSingleModelWithTextures(quickModelEntity);
+        }
     }
+    /**
+     * Loads a single model along with its associated textures by firing UploadFileEvent events.
+     *
+     * @param quickModelEntity the QuickModelEntity containing the model and texture information
+     */
+    protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity) {
 
+        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MODEL, quickModelEntity.getModel().getId(),
+                AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId(), "model"),
+                quickModelEntity.getName(), quickModelEntity.getMainTexture() != null));
+
+
+        if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
+            for (var texture : quickModelEntity.getOtherTextures()) {
+                String otherTextureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(texture.getTextureFileId(), "texture");
+                ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), true));
+            }
+        }
+
+        if (quickModelEntity.getMainTexture() != null) {
+            ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MAIN, quickModelEntity.getMainTexture().getTextureFileId(),
+                    AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId(), "texture"),
+                    quickModelEntity.getMainTexture().getName(), true));
+        }
+    }
 
     /**
      * Disposes of the renderer and proceeds with navigation.

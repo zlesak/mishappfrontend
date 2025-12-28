@@ -1,6 +1,5 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
-import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ChapterNavigationContainer;
@@ -38,7 +37,6 @@ public abstract class AbstractChapterView extends AbstractEntityView {
     protected ChapterTabSheetContainer secondaryNavigation = null;
 
 
-
     /**
      * Constructor for AbstractChapterView.
      * Initializes the layout and components based on the specified view type.
@@ -47,6 +45,7 @@ public abstract class AbstractChapterView extends AbstractEntityView {
     public AbstractChapterView(String pageTitleKey) {
         this(pageTitleKey, false, true);
     }
+
     public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog) {
         super(pageTitleKey, skipBeforeLeaveDialog);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs, mdEditor);
@@ -70,17 +69,28 @@ public abstract class AbstractChapterView extends AbstractEntityView {
     }
 
     /**
-     * Sets up the model div with event listeners and initializes texture selects.
+     * Sets up the model div with event listeners, models and initializes texture selects.
      *
      * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects used for initialization
      */
     protected void setupData(Map<String, QuickModelEntity> quickModelEntityMap) {
+        loadModelsWithTextures(quickModelEntityMap);
+
         editorjs.addModelTextureColorAreaClickListener((modelId, textureId, hexColor, text) -> {
             modelDiv.modelTextureAreaSelectContainer.getModelListingSelect().setSelectedModelById(modelId);
             modelDiv.modelTextureAreaSelectContainer.getTextureListingSelect().setSelectedTextureById(textureId);
             modelDiv.modelTextureAreaSelectContainer.getTextureAreaSelect().setSelectedAreaByHexColor(hexColor, textureId);
         });
         editorjs.initializeTextureSelects(quickModelEntityMap);
-       setupModelDiv(quickModelEntityMap);
+        modelDiv.modelTextureAreaSelectContainer.initializeData(quickModelEntityMap);
+    }
+
+    /**
+     * Configures the view to read-only mode.
+     * Disables editing of the chapter name and content.
+     */
+    protected void configureReadOnlyMode() {
+        nameTextField.setReadOnly(true);
+        editorjs.toggleReadOnlyMode(true);
     }
 }

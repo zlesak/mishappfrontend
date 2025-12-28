@@ -1,14 +1,15 @@
 package cz.uhk.zlesak.threejslearningapp.components.common;
 
-import com.google.gson.Gson;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
-import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This component integrates Three.js into a Vaadin application.
@@ -45,7 +45,7 @@ public class ThreeJs extends Component {
      * This method is called automatically when the component is created.
      * Further initialization is done in the JavaScript side, where the Three.js scene, camera, and renderer are set up.
      */
-    public void init() {
+    private void init() {
         getElement().executeJs("""
                 try {
                     if (typeof window.initThree === 'function') {
@@ -87,28 +87,6 @@ public class ThreeJs extends Component {
     }
 
     /**
-     * Loads a 3D model into the Three.js scene.
-     * This method expects a base64 encoded string of the model data.
-     * It calls the JavaScript function loadModel to handle the loading process.
-     * Loading methods are now separated into two methods, one for basic models and one for advanced models.
-     * This allows for more flexibility in handling different types of models  based on the selected model upload method.
-     *
-     * @param modelUrl the base64 encoded string of the model data.
-     * @param modelId  id of the loaded model.
-     */
-    private void loadModel(String modelUrl, String modelId) {
-        getElement().executeJs("""
-                try {
-                    if (typeof window.loadModel === 'function') {
-                        window.loadModel($0, $1, $2);
-                    }
-                } catch (e) {
-                    console.error('[JS] Error in loadModel:', e);
-                }
-                """, getElement(), modelUrl, modelId);
-    }
-
-    /**
      * Loads an advanced 3D model into the Three.js scene.
      * This method expects two base64 encoded strings: one for the object data and one for the texture data.
      * It calls the JavaScript function loadAdvancedModel to handle the loading process.
@@ -117,24 +95,19 @@ public class ThreeJs extends Component {
      * This loading methods needs only the main texture, as other may not be provided.
      * Other textures can be added later using the addOtherTexture method.
      *
-     * @param objectUrl  the base64 encoded string of the object data.
-     * @param textureUrl the base64 encoded string of the texture data.
-     * @param modelId    id of the loaded model.
+     * @param modelUrl the base64 encoded string of the model data.
+     * @param modelId  id of the loaded model.
      */
-    public void loadModel(String objectUrl, String textureUrl, String modelId, String... questionId) {
-        if (textureUrl == null || textureUrl.isBlank()) {
-            loadModel(objectUrl, modelId);
-        } else {
-            getElement().executeJs("""
-                    try {
-                        if (typeof window.loadAdvancedModel === 'function') {
-                            window.loadAdvancedModel($0, $1, $2, $3, $4);
-                        }
-                    } catch (e) {
-                        console.error('[JS] Error in loadAdvancedModel:', e);
+    private void loadModel(String modelUrl, String modelId, boolean advanced, String... questionId) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.loadModel === 'function') {
+                        window.loadModel($0, $1, $2, $3, $4);
                     }
-                    """, getElement(), objectUrl, textureUrl, modelId, questionId.length > 0 ? questionId[0] : null);
-        }
+                } catch (e) {
+                    console.error('[JS] Error in loadAdvancedModel:', e);
+                }
+                """, getElement(), modelUrl, modelId, questionId.length > 0 ? questionId[0] : null, advanced);
     }
 
     /**
@@ -142,7 +115,7 @@ public class ThreeJs extends Component {
      * This method is used to remove all objects from the scene, effectively resetting it.
      * It is useful for starting fresh without reloading the entire component.
      */
-    public void clear() {
+    private void clear() {
         getElement().executeJs("""
                 try {
                     if (typeof window.clear === 'function') {
@@ -155,26 +128,66 @@ public class ThreeJs extends Component {
     }
 
     /**
+     * Adds the main texture to the Three.js scene.
+     * This method expects a base64 encoded string of the texture data.
+     * It calls the JavaScript function addMainTexture to handle the addition of the main texture.
+     * This is used to apply the main texture to models in the scene.
+     *
+     * @param mainTexture the base64 encoded string of the main texture data.
+     * @param modelId     id of the loaded model.
+     */
+    private void addMainTexture(String mainTexture, String modelId) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.addMainTexture === 'function') {
+                        window.addMainTexture($0, $1, $2).then(r => window.switchToMainTexture($0, $2));
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in addOtherTexture:', e);
+                }
+                """, getElement(), mainTexture, modelId);
+        switchToMainTexture(modelId);
+    }
+
+    /**
+     * Removes the main texture from the Three.js scene.
+     * This method calls the JavaScript function removeMainTexture to handle the removal process.
+     * It is used to delete the main texture that is currently applied to the model in the scene.
+     *
+     * @param modelId id of the loaded model.
+     */
+    private void removeMainTexture(String modelId) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.removeMainTexture === 'function') {
+                        window.removeMainTexture($0, $1);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in addOtherTexture:', e);
+                }
+                """, getElement(), modelId);
+    }
+
+    /**
      * Adds a texture to the Three.js scene.
      * This method expects a base64 encoded string of the texture data.
      * It calls the JavaScript function addTexture to handle the addition of the texture.
      * This is used to apply textures to models in the scene.
      *
-     * @param otherTexturesUrl the base64 encoded string of the texture data.
-     * @param modelId          id of the loaded model.
+     * @param otherTextureUrl the base64 encoded string of the texture data.
+     * @param textureId       identification of the texture to be added
+     * @param modelId         identification of the model the texture belongs to
      */
-    public void addOtherTextures(Map<String, String> otherTexturesUrl, String modelId) {
-        if (otherTexturesUrl.isEmpty()) return;
-        String jsonTextures = new Gson().toJson(otherTexturesUrl);
+    private void addOtherTexture(String otherTextureUrl, String textureId, String modelId) {
         getElement().executeJs("""
                 try {
-                    if (typeof window.addOtherTextures === 'function') {
-                        window.addOtherTextures($0, $1, $2);
+                    if (typeof window.addOtherTexture === 'function') {
+                        window.addOtherTexture($0, $1, $2, $3).then(r => window.switchOtherTexture($0, $3));
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
                 }
-                """, getElement(), jsonTextures, modelId);
+                """, getElement(), otherTextureUrl, textureId, modelId);
     }
 
     /**
@@ -186,7 +199,7 @@ public class ThreeJs extends Component {
      * @param modelId   identification of the model the texture belongs to
      * @see ModelUploadForm for usage context
      */
-    public void removeOtherTexture(String modelId, String textureId) {
+    private void removeOtherTexture(String modelId, String textureId) {
         if (textureId.isEmpty() || modelId.isEmpty()) return;
         getElement().executeJs("""
                 try {
@@ -197,6 +210,7 @@ public class ThreeJs extends Component {
                     console.error('[JS] Error in removeOtherTexture:', e);
                 }
                 """, getElement(), modelId, textureId);
+        switchToMainTexture(modelId);
     }
 
     /**
@@ -207,7 +221,7 @@ public class ThreeJs extends Component {
      * @param textureId identification of the texture to be switched to
      * @param modelId   identification of the model the texture belongs to
      */
-    public void switchOtherTexture(String modelId, String textureId) {
+    private void switchOtherTexture(String modelId, String textureId) {
         getElement().executeJs("""
                 try {
                     if (typeof window.switchOtherTexture === 'function') {
@@ -226,7 +240,7 @@ public class ThreeJs extends Component {
      *
      * @param modelId identification of the model to be displayed
      */
-    public void showModel(String modelId) {
+    private void showModel(String modelId) {
         getElement().executeJs("""
                 try {
                     if (typeof window.showModel === 'function') {
@@ -235,6 +249,18 @@ public class ThreeJs extends Component {
                     }
                 } catch (e) {
                     console.error('[JS] Error in switchOtherModel:', e);
+                }
+                """, getElement(), modelId);
+    }
+
+    private void switchToMainTexture(String modelId) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.switchToMainTexture === 'function') {
+                        window.switchToMainTexture($0, $1);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in switchOtherTexture:', e);
                 }
                 """, getElement(), modelId);
     }
@@ -251,7 +277,7 @@ public class ThreeJs extends Component {
      * @param maskColor the color to be applied as a mask to the main texture.
      *
      */
-    public void applyMaskToMainTexture(String modelId, String textureId, String maskColor) {
+    private void applyMaskToMainTexture(String modelId, String textureId, String maskColor) {
         getElement().executeJs("""
                 try {
                     if (typeof window.applyMaskToMainTexture === 'function') {
@@ -286,7 +312,7 @@ public class ThreeJs extends Component {
      */
     @ClientCallable
     public void doingActions(String actionDescription) {
-        fireEvent(new ThreeJsDoingActions(this, actionDescription));
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(this, actionDescription));
     }
 
     /**
@@ -294,39 +320,56 @@ public class ThreeJs extends Component {
      */
     @ClientCallable
     public void finishedActions() {
-        fireEvent(new ThreeJsFinishedActions(this));
-    }
-
-    /**
-     * Adds a listener for the ThreeJsDoingActions event.
-     * This allows other components to react when the Three.js renderer starts performing actions.
-     *
-     * @param listener the listener to be added for ThreeJsDoingActions events.
-     */
-    public void addThreeJsDoingActionsListener(ComponentEventListener<ThreeJsDoingActions> listener) {
-        addListener(ThreeJsDoingActions.class, listener);
-    }
-
-    /**
-     * Adds a listener for the ThreeJsFinishedActions event.
-     * This allows other components to react when the Three.js renderer finishes performing actions.
-     *
-     * @param listener the listener to be added for ThreeJsFinishedActions events.
-     */
-    public void addThreeJsFinishedActionsListener(ComponentEventListener<ThreeJsFinishedActions> listener) {
-        addListener(ThreeJsFinishedActions.class, listener);
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsFinishedActions(this));
     }
 
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
-                ModelLoadEvent.class,
+                UploadFileEvent.class,
                 event -> {
-                    log.info("Loading model with ID: {}", event.getModelId());
-                    loadModel(event.getModel(), event.getTexture(), event.getModelId(), event.getQuestionId());
-                    showModel(event.getModelId());
+                    switch (event.getFileType()) {
+                        case MODEL -> {
+                            loadModel(event.getBase64File(), event.getModelId(), event.isAdvanced());
+                            showModel(event.getModelId());
+                        }
+                        case OTHER -> addOtherTexture(event.getBase64File(), event.getEntityId(), event.getModelId());
+                        case MAIN -> addMainTexture(event.getBase64File(), event.getModelId());
+                        case CSV -> { /* CSV files are not handled in ThreeJs component */ }
+                        default -> log.warn("Unsupported file type for upload: {}", event.getFileType());
+                    }
+                }
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                RemoveFileEvent.class,
+                event -> {
+                    switch (event.getFileType()) {
+                        case MODEL -> clear();
+                        case OTHER -> removeOtherTexture(event.getModelId(), event.getEntityId());
+                        case MAIN -> removeMainTexture(event.getModelId());
+                        case CSV -> { /* CSV files are not handled in ThreeJs component */ }
+                        default -> log.warn("Unsupported file type for removal: {}", event.getFileType());
+                    }
+                }
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ThreeJsActionEvent.class,
+                event -> {
+                    switch (event.getAction()) {
+                        case SWITCH_MAIN_TEXTURE -> switchToMainTexture(event.getModelId());
+                        case SWITCH_OTHER_TEXTURE -> switchOtherTexture(event.getModelId(), event.getTextureId());
+                        case SHOW_MODEL -> showModel(event.getModelId());
+                        case APPLY_MASK_TO_TEXTURE ->
+                                applyMaskToMainTexture(event.getModelId(), event.getTextureId(), event.getMaskColor());
+                        default -> { /* No action */}
+                    }
                 }
         ));
     }

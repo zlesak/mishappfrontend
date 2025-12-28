@@ -6,7 +6,6 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinSession;
-import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateModelButton;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
@@ -39,19 +38,54 @@ public class ModelCreateView extends AbstractModelView {
     public ModelCreateView(ModelService modelService) {
         super("page.title.createModelView", false);
         this.modelService = modelService;
-
-        CreateModelButton createButton = new CreateModelButton(modelUploadForm);
-        modelUploadForm.getVl().add(createButton);
     }
 
     /**
-     * Handles the model upload process.
-     * Determines if it's an advanced or basic upload and calls the appropriate service method.
-     * Shows notifications based on the result and navigates to the model detail view on success.
+     * Uploads the model based on the form data.
+     * Determines if it's an advanced upload (with textures) or basic upload.
      */
-    private void handleModelUpload() {
+    private void uploadModel() {
+        QuickModelEntity quickModelEntity;
         try {
-            QuickModelEntity quickModelEntity = uploadModel();
+            if (modelUploadForm.getModelName().getValue() == null || modelUploadForm.getModelName().getValue().trim().isEmpty()) {
+                throw new ApplicationContextException(text("model.upload.error.emptyName"));
+            }
+            if (modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()) {
+                throw new ApplicationContextException(text("model.upload.error.emptyModelFile"));
+            }
+            if (modelUploadForm.getIsAdvanced().getValue()) {
+                if (modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()) {
+                    throw new ApplicationContextException(text("model.upload.error.emptyModelMainTexture"));
+                }
+                quickModelEntity = modelService.create(
+                        ModelEntity.builder()
+                                .name(modelUploadForm.getModelName().getValue().trim())
+                                .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
+                                .fullMainTexture(
+                                        TextureEntity.builder()
+                                                .textureFile(
+                                                        modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst()
+                                                ).build()
+                                )
+                                .fullOtherTextures(
+                                        modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles()
+                                                .stream()
+                                                .map(file -> TextureEntity.builder().textureFile(file).build())
+                                                .collect(java.util.stream.Collectors.toList())
+                                )
+                                .csvFiles(modelUploadForm.getCsvFileUpload().getUploadedFiles())
+                                .isAdvanced(true)
+                                .build()
+                );
+            } else {
+                quickModelEntity = modelService.create(
+                        ModelEntity.builder()
+                                .name(modelUploadForm.getModelName().getValue().trim())
+                                .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
+                                .isAdvanced(false)
+                                .build()
+                );
+            }
             showSuccessNotification();
             navigateToModelDetailView(quickModelEntity);
         } catch (ApplicationContextException e) {
@@ -59,54 +93,6 @@ public class ModelCreateView extends AbstractModelView {
         } catch (Exception e) {
             log.error("Unexpected error while uploading model", e);
             showErrorNotification(text("notification.uploadError"), e.getMessage());
-        }
-    }
-
-    /**
-     * Uploads the model based on the form data.
-     * Determines if it's an advanced upload (with textures) or basic upload.
-     *
-     * @return the uploaded model entity
-     */
-    private QuickModelEntity uploadModel() {
-        if (modelUploadForm.getModelName().getValue() == null || modelUploadForm.getModelName().getValue().trim().isEmpty()) {
-            throw new ApplicationContextException(text("model.upload.error.emptyName"));
-        }
-        if (modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()) {
-            throw new ApplicationContextException(text("model.upload.error.emptyModelFile"));
-        }
-        if (modelUploadForm.getIsAdvanced().getValue()) {
-            if (modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()) {
-                throw new ApplicationContextException(text("model.upload.error.emptyModelMainTexture"));
-            }
-            return modelService.create(
-                    ModelEntity.builder()
-                            .name(modelUploadForm.getModelName().getValue().trim())
-                            .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
-                            .fullMainTexture(
-                                TextureEntity.builder()
-                                .textureFile(
-                                    modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst()
-                                ).build()
-                            )
-                            .fullOtherTextures(
-                                modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles()
-                                    .stream()
-                                    .map(file -> TextureEntity.builder().textureFile(file).build())
-                                    .collect(java.util.stream.Collectors.toList())
-                            )
-                            .csvFiles(modelUploadForm.getCsvFileUpload().getUploadedFiles())
-                            .isAdvanced(true)
-                            .build()
-            );
-        } else {
-            return modelService.create(
-                    ModelEntity.builder()
-                            .name(modelUploadForm.getModelName().getValue().trim())
-                            .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
-                            .isAdvanced(false)
-                            .build()
-            );
         }
     }
 
@@ -135,7 +121,7 @@ public class ModelCreateView extends AbstractModelView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelCreateEvent.class,
-                event -> handleModelUpload()
+                event ->  uploadModel()
         ));
     }
 }

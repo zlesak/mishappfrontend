@@ -3,7 +3,6 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
-import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.QuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -11,11 +10,10 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotificatio
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.CreateQuizEvent;
-import cz.uhk.zlesak.threejslearningapp.services.ModelService;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
-import cz.uhk.zlesak.threejslearningapp.services.TextureService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
@@ -38,17 +36,13 @@ import java.util.Map;
 @RolesAllowed(value = "TEACHER")
 public class QuizCreateView extends AbstractQuizView {
     private final QuizService quizService;
-    private final ModelService modelService;
-    private final TextureService textureService;
     private final QuizForm quizForm;
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
 
     @Autowired
-    public QuizCreateView(QuizService quizService, ModelService modelService, TextureService textureService) {
+    public QuizCreateView(QuizService quizService) {
         super("page.title.createQuizView", false);
         this.quizService = quizService;
-        this.modelService = modelService;
-        this.textureService = textureService;
 
         quizForm = new QuizForm();
         quizForm.setAddQuestionListener(this::addQuestion);
@@ -69,7 +63,7 @@ public class QuizCreateView extends AbstractQuizView {
         if (component instanceof TextureClickQuestionEditor textureEditor) {
             QuickModelEntity selectedModel = textureEditor.getSelectedModel();
             if (selectedModel != null) {
-                modelDiv.renderer.showModel(selectedModel.getModel().getId());
+                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), selectedModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL));
             }
         }
     }
@@ -97,7 +91,7 @@ public class QuizCreateView extends AbstractQuizView {
             case OPEN_TEXT -> new OpenTextQuestionEditor();
             case MATCHING -> new MatchingQuestionEditor();
             case ORDERING -> new OrderingQuestionEditor();
-            case TEXTURE_CLICK -> new TextureClickQuestionEditor(modelDiv.renderer, quickModelEntity -> {
+            case TEXTURE_CLICK -> new TextureClickQuestionEditor(quickModelEntity -> {
                 try {
                     loadModelsIntoRenderer(quickModelEntity);
                 } catch (IOException e) {
@@ -169,37 +163,4 @@ public class QuizCreateView extends AbstractQuizView {
             loadSingleModelWithTextures(quickModelEntity);
         }
     }
-
-    private void loadSingleModelWithTextures(QuickModelEntity quickModelEntity) throws IOException {
-        String modelUrl = modelService.getModelFileBeEndpointUrl(
-                quickModelEntity.getModel().getId()
-        );
-
-        String textureUrl = getMainTextureUrl(quickModelEntity);
-        modelDiv.renderer.loadModel(modelUrl, textureUrl, quickModelEntity.getModel().getId());
-
-        if (textureUrl != null) {
-            loadOtherTextures(quickModelEntity);
-        }
-    }
-
-    private String getMainTextureUrl(QuickModelEntity quickModelEntity) {
-        if (quickModelEntity.getMainTexture() != null) {
-            return textureService.getTextureFileBeEndpointUrl(
-                    quickModelEntity.getMainTexture().getTextureFileId()
-            );
-        }
-        return null;
-    }
-
-    private void loadOtherTextures(QuickModelEntity quickModelEntity) throws IOException {
-        List<QuickTextureEntity> allTextures = new ArrayList<>(quickModelEntity.getOtherTextures());
-        Map<String, String> texturesMap = TextureMapHelper.otherTexturesMap(allTextures, textureService);
-        modelDiv.renderer.addOtherTextures(texturesMap, quickModelEntity.getModel().getId());
-    }
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) { }
-
-    @Override
-    protected void afterNavigationActions() { }
 }

@@ -1,9 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.components.containers;
 
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * ModelDiv is a custom Div component that contains a ThreeJsComponent for rendering 3D models,
@@ -17,6 +26,7 @@ public class ModelContainer extends Div {
     private final Span actionDescription;
     public final ThreeJs renderer;
     public final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer;
+    protected final List<Registration> registrations = new ArrayList<>();
 
     /**
      * Constructor for ModelDiv component.
@@ -30,7 +40,7 @@ public class ModelContainer extends Div {
         getStyle().set("overflow", "hidden");
 
         renderer = new ThreeJs();
-        modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer(renderer);
+        modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
         overlayBackground = getOverlayBackgroundDiv();
         overlayProgressBar = getOverlayProgressBar();
         actionDescription = getActionDescriptionSpan();
@@ -56,12 +66,6 @@ public class ModelContainer extends Div {
         rendererContainer.getStyle().set("position", "relative");
         rendererContainer.getStyle().set("overflow", "hidden");
         rendererContainer.getStyle().remove("z-index");
-
-        renderer.addThreeJsDoingActionsListener(e -> {
-            actionDescription.setText(e.getDescription());
-            showOverlayProgressBar();
-        });
-        renderer.addThreeJsFinishedActionsListener(e -> hideOverlayProgressBar());
 
         return rendererContainer;
     }
@@ -125,7 +129,8 @@ public class ModelContainer extends Div {
      * Shows the overlay progress bar and action description.
      * This method makes the overlay background, progress bar, and action description visible.
      */
-    private void showOverlayProgressBar() {
+    private void showOverlayProgressBar(String description) {
+        actionDescription.setText(description);
         overlayBackground.setVisible(true);
         overlayProgressBar.setVisible(true);
         actionDescription.setVisible(true);
@@ -139,5 +144,28 @@ public class ModelContainer extends Div {
         overlayBackground.setVisible(false);
         overlayProgressBar.setVisible(false);
         actionDescription.setVisible(false);
+    }
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ThreeJsDoingActions.class,
+                event -> showOverlayProgressBar(event.getDescription())
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ThreeJsFinishedActions.class,
+                event -> hideOverlayProgressBar()
+        ));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        registrations.forEach(Registration::remove);
+        registrations.clear();
     }
 }

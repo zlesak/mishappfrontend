@@ -3,14 +3,9 @@ package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
-import cz.uhk.zlesak.threejslearningapp.events.model.ModelClearEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelTextureChangeEvent;
-import cz.uhk.zlesak.threejslearningapp.events.model.ModelUploadEvent;
-import cz.uhk.zlesak.threejslearningapp.events.texture.OtherTextureLoadedEvent;
-import cz.uhk.zlesak.threejslearningapp.events.texture.OtherTextureRemovedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
@@ -57,43 +52,6 @@ public abstract class AbstractModelView extends AbstractEntityView {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-
-        // ModelUploadEvent listener
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                ModelUploadEvent.class,
-                event -> {
-                    quickModelEntity = Map.of(event.getModelId(), QuickModelEntity.builder()
-                            .model(ModelFileEntity.builder().id(event.getModelId()).name(event.getModelName()).build())
-                            .mainTexture(QuickTextureEntity.builder().textureFileId(event.getTextureName()).name(event.getTextureName()).build())
-                            .build());
-                    modelDiv.renderer.loadModel(event.getModel(), event.getTexture(), event.getModelId());
-                    if (!event.isAdvanced()) {
-                        modelDiv.renderer.showModel(event.getModelId());
-                    }
-                }
-        ));
-
-        // ModelClearEvent listener
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                ModelClearEvent.class,
-                event -> modelDiv.renderer.clear()
-        ));
-
-        // OtherTextureLoadedEvent listener
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                OtherTextureLoadedEvent.class,
-                event -> modelDiv.renderer.addOtherTextures(event.getBase64Textures(), "modelId")
-        ));
-
-        // OtherTextureRemovedEvent listener
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                OtherTextureRemovedEvent.class,
-                event -> modelDiv.renderer.removeOtherTexture("modelId", event.getName())
-        ));
 
         // ModelTextureChangeEvent listener
         registrations.add(ComponentUtil.addListener(
