@@ -9,18 +9,19 @@ import {
 } from './scene-setup.js';
 
 import {
-  loadBasicModel,
-  loadAdvancedModel,
+  loadModel,
   showModelById
 } from './model-loader.js';
 
 import {
-  addOtherTextures,
+  addOtherTexture,
   removeOtherTexture,
   switchOtherTexture,
   switchToMainTexture,
   applyMaskToMainTexture,
-  getSurfaceNormal
+  getSurfaceNormal,
+  addMainTexture,
+  removeMainTexture
 } from './texture-manager.js';
 
 import {
@@ -197,15 +198,9 @@ class ThreeTest {
   };
 
 
-  loadModel = async (modelUrl, modelId) => {
+  loadModel = async (modelUrl, modelId, questionId, isAdvanced) => {
     this.doingActions('Loading model');
-    await loadBasicModel(modelUrl, modelId, this.models);
-    this.finishedActions();
-  };
-
-  loadAdvancedModel = async (objUrl, mainTextureUrl, modelId, questionId) => {
-    this.doingActions('Loading advanced model');
-    await loadAdvancedModel(objUrl, mainTextureUrl, modelId, this.models, questionId);
+    await loadModel(modelUrl, modelId, this.models, questionId, isAdvanced);
     this.finishedActions();
   };
 
@@ -236,9 +231,21 @@ class ThreeTest {
     }
   };
 
-  addOtherTextures = async (textureMap, modelId) => {
+  addMainTexture = async (textureUrl, modelId) => {
+    this.doingActions('Adding main texture');
+    await addMainTexture(textureUrl, modelId, this.models);
+    this.finishedActions();
+  }
+
+  removeMainTexture = async (modelId) => {
+    this.doingActions('Removing main texture');
+    this.lastSelectedTextureId = await removeMainTexture(modelId, this.models);
+    this.finishedActions();
+  }
+
+  addOtherTexture = async (textureUrl, textureId, modelId) => {
     this.doingActions('Adding other textures');
-    await addOtherTextures(textureMap, modelId, this.models);
+    await addOtherTexture(textureUrl, textureId, modelId, this.models);
     this.finishedActions();
   };
 

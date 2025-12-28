@@ -40,17 +40,10 @@ window.disposeThree = function(element) {
   });
 };
 
-window.loadModel = async function(element, modelUrl, modelId) {
+window.loadModel = async function(element, modelUrl, modelId, questionId, isAdvanced) {
   const inst = getInstance(element);
   if (inst) {
-    await inst.loadModel(modelUrl, modelId);
-  }
-};
-
-window.loadAdvancedModel = async function(element, objUrl, textureUrl, modelId, questionId) {
-  const inst = getInstance(element);
-  if (inst) {
-    await inst.loadAdvancedModel(objUrl, textureUrl, modelId, questionId);
+    await inst.loadModel(modelUrl, modelId, questionId, isAdvanced);
   }
 };
 
@@ -61,10 +54,10 @@ window.clear = async function(element) {
   }
 };
 
-window.addOtherTextures = async function(element, textureJson, modelId) {
+window.addOtherTexture = async function(element, textureUrl, textureId, modelId) {
   const inst = getInstance(element);
   if (inst) {
-    await inst.addOtherTextures(textureJson, modelId);
+    await inst.addOtherTexture(textureUrl, textureId, modelId);
   }
 };
 
@@ -72,6 +65,27 @@ window.removeOtherTexture = async function(element, modelId, textureId) {
   const inst = getInstance(element);
   if (inst) {
     await inst.removeOtherTexture(modelId, textureId);
+  }
+};
+
+window.addMainTexture = async function(element, texture, modelId) {
+  const inst = getInstance(element);
+  if (inst) {
+    await inst.addMainTexture(texture, modelId);
+  }
+};
+
+window.removeMainTexture = async function(element, modelId) {
+  const inst = getInstance(element);
+  if (inst) {
+    await inst.removeMainTexture(modelId);
+  }
+};
+
+window.switchToMainTexture = async function(element, modelId) {
+  const inst = getInstance(element);
+  if (inst) {
+    await inst.switchToMainTexture(modelId);
   }
 };
 
