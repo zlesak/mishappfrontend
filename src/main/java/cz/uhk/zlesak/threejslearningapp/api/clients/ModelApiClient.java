@@ -53,6 +53,7 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
                 .name(fileEntity.getName())
                 .fullMainTexture(null)
                 .fullOtherTextures(List.of())
+                .inputStreamMultipartFile(fileEntity)
                 .build();
     }
     //endregion

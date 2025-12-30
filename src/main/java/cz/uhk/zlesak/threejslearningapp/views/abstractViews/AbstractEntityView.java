@@ -98,20 +98,20 @@ public abstract class AbstractEntityView extends AbstractView {
     protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity) {
 
         ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MODEL, quickModelEntity.getModel().getId(),
-                AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId(), "model"),
-                quickModelEntity.getName(), quickModelEntity.getMainTexture() != null));
+                AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId()),
+                quickModelEntity.getModel().getName(), quickModelEntity.getMainTexture() != null));
 
 
         if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
             for (var texture : quickModelEntity.getOtherTextures()) {
-                String otherTextureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(texture.getTextureFileId(), "texture");
+                String otherTextureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(texture.getTextureFileId());
                 ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), true));
             }
         }
 
         if (quickModelEntity.getMainTexture() != null) {
             ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MAIN, quickModelEntity.getMainTexture().getTextureFileId(),
-                    AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId(), "texture"),
+                    AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId()),
                     quickModelEntity.getMainTexture().getName(), true));
         }
     }

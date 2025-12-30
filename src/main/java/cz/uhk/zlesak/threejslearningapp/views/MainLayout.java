@@ -25,11 +25,11 @@ import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizListingView;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,9 +80,8 @@ public class MainLayout extends AppLayout {
             }
         });
 
-        /// Login user basic information avatar item TODO in phase where ogin is implemented via BE API react to these changes and change accordingly to use the appropriate APIs
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
-            String username = authentication.getName();
+            String username = authentication.getPrincipal() instanceof OidcUser oidcUser ? oidcUser.getPreferredUsername() : authentication.getName();
             AvatarItem avatarItem = new AvatarItem(username, getUserRoleName(authentication), new Avatar(username));
             layout.add(avatarItem);
             LogoutButton logoutButton = new LogoutButton(authenticationContext);
@@ -128,9 +127,13 @@ public class MainLayout extends AppLayout {
                         return "Student";
                 }
             }
-            throw new ApplicationContextException("Role uživatele nejsou mezi známými rolemi systému" + authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+            log.warn("User {} has no recognized roles. Authorities: {}",
+                authentication.getName(),
+                authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+            return "Uživatel";
         }
-        throw new ApplicationContextException("Neplatné role uživatele, authentication není nastavena!");
+        log.warn("Authentication is null or has no authorities");
+        return "Uživatel";
     }
 
 

@@ -1,26 +1,43 @@
 import * as THREE from 'three';
 
+export function loadFileOfTextureWithAuth(url, auth, onload) {
+    const fileLoader = new THREE.FileLoader();
+    fileLoader.setResponseType('blob');
+    fileLoader.setRequestHeader(auth)
+
+    return new Promise((resolve, reject) => {
+        fileLoader.load(url, (data) => {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(data);
+            const texture = new THREE.Texture();
+            texture.image = img;
+            texture.needsUpdate = true;
+            if (onload !== undefined) {
+                onload(texture);
+            }
+            resolve(texture);
+        }, undefined, (error) => {
+            console.error('Error loading texture:', error);
+            reject(error);
+        })
+    });
+}
+
 /**
  * Přidá hlavní texturu k modelu
  */
-export async function addMainTexture(textureUrl, modelId, models) {
+export async function addMainTexture(textureUrl, modelId, models, auth) {
     const modelObject = models.find(m => m.id === modelId);
 
     if (!modelObject) {
         console.error('addMainTexture: model not found for id', modelId);
         return;
     }
-
-    return new Promise((resolve) => {
-        new THREE.TextureLoader().load(textureUrl, (texture) => {
-            modelObject.mainTexture = textureUrl;
-            modelObject.loadedMainTexture = texture;
-            resolve();
-        }, undefined, (error) => {
-            console.error('Error loading main texture:', error);
-            resolve();
-        });
-    });
+    modelObject.mainTexture = textureUrl;
+    return loadFileOfTextureWithAuth(textureUrl, auth, (texture) => {
+            modelObject.loadedMainTexture = texture
+        }
+    )
 }
 
 /**
@@ -47,34 +64,24 @@ export async function removeMainTexture(modelId, models) {
 /**
  * Přidá další textury k modelu
  */
-export async function addOtherTexture(textureUrl, textureId, modelId, models) {
+export async function addOtherTexture(textureUrl, textureId, modelId, models, auth) {
     const modelObject = models.find(m => m.id === modelId);
 
     if (!modelObject) {
         console.error('addOtherTextures: model not found for id', modelId);
         return;
     }
-    return new Promise((resolve) => {
-        new THREE.TextureLoader().load(textureUrl, (texture) => {
+    return loadFileOfTextureWithAuth(textureUrl, auth, (texture) => {
             modelObject.otherTextures.push({textureId, texture});
-            resolve();
-        }, undefined, (error) => {
-            console.error(`Error loading texture with id ${textureId}:`, error);
-            resolve();
-        });
-    });
+        }
+    );
 }
 
 /**
  * Odstraní texturu z modelu
  */
-export async function removeOtherTexture(modelId, textureId, models, lastSelectedTextureId, switchToMainTextureFn) {
+export async function removeOtherTexture(modelId, textureId, models) {
     const modelObject = models.find(m => m.id === modelId);
-
-    if (!modelObject) {
-        console.error('removeOtherTexture: model not found for id', modelId);
-        return lastSelectedTextureId;
-    }
 
     const index = modelObject.otherTextures.findIndex(t => t.textureId === textureId);
     if (index !== -1) {
@@ -85,93 +92,46 @@ export async function removeOtherTexture(modelId, textureId, models, lastSelecte
             } catch (e) { /* ignore */
             }
         }
-
-        if (lastSelectedTextureId === textureId) {
-            await switchToMainTextureFn(modelId);
-            return null;
-        }
     }
-
-    return lastSelectedTextureId;
 }
 
 /**
  * Přepne na jinou texturu
  */
-export async function switchOtherTexture(modelId, textureId, currentModel, models, showModelByIdFn) {
-    if (!currentModel || currentModel.id !== modelId || !currentModel.modelLoader) {
-        const result = await showModelByIdFn(modelId);
-        currentModel = result.model;
-    }
-
-    if (!currentModel || currentModel.id !== modelId || !currentModel.modelLoader) {
-        console.error('switchOtherTexture: model not available after showModelById', modelId);
-        return {model: currentModel, lastSelectedTextureId: null};
-    }
-
+export async function switchOtherTexture(textureId, currentModel) {
     const textureObject = currentModel.otherTextures.find(t => t.textureId === textureId);
     if (textureObject && textureObject.texture) {
-        const texture = textureObject.texture;
-        currentModel.modelLoader.traverse((child) => {
-            if (child.isMesh && texture) {
-                child.material = new THREE.MeshStandardMaterial({map: texture});
-                child.material.needsUpdate = true;
-            }
-        });
-        await new Promise(resolve => setTimeout(resolve, 50));
-        return {model: currentModel, lastSelectedTextureId: textureId};
+        return await switchTexture(currentModel, textureObject.texture, textureId);
     } else {
-        await switchToMainTexture(modelId, currentModel, showModelByIdFn);
-        return {model: currentModel, lastSelectedTextureId: null};
+        return await switchToMainTexture(currentModel);
     }
 }
 
 /**
  * Přepne na hlavní texturu
  */
-export async function switchToMainTexture(modelId, currentModel, showModelByIdFn) {
-    if (!currentModel || currentModel.id !== modelId || !currentModel.modelLoader) {
-        const result = await showModelByIdFn(modelId);
-        currentModel = result.model;
-    }
+export async function switchToMainTexture(currentModel) {
+    let texture = currentModel.loadedMainTexture;
+    return await switchTexture(currentModel, texture, null)
+}
 
-    if (!currentModel || currentModel.id !== modelId || !currentModel.modelLoader) {
-        console.error('switchToMainTexture: model not available', modelId);
-        return {model: currentModel, lastSelectedTextureId: null};
-    }
-
-    const mainTextureUrl = currentModel.mainTexture;
-    if (mainTextureUrl) {
-        if (!currentModel.loadedMainTexture) {
-            const textureLoader = new THREE.TextureLoader();
-            try {
-                currentModel.loadedMainTexture = await new Promise((resolve, reject) => {
-                    textureLoader.load(mainTextureUrl, (tex) => {
-                        tex.needsUpdate = true;
-                        resolve(tex);
-                    }, undefined, (err) => {
-                        console.error('Error loading main texture in switchToMainTexture:', err);
-                        reject(err);
-                    });
-                });
-            } catch (e) {
-                console.error('switchToMainTexture: failed to load main texture', e);
-                return {model: currentModel, lastSelectedTextureId: null};
-            }
+/**
+ * Přepne texturu na modelu
+ * @param model
+ * @param texture
+ * @param textureId
+ * @returns {Promise<{model: *, lastSelectedTextureId: *}>}
+ */
+async function switchTexture(model, texture, textureId) {
+    model.modelLoader.traverse((child) => {
+        if (child.isMesh) {
+            child.material = new THREE.MeshStandardMaterial({map: texture});
+            child.material.needsUpdate = true;
         }
+    });
 
-        currentModel.modelLoader.traverse((child) => {
-            if (child.isMesh) {
-                child.material = new THREE.MeshStandardMaterial({map: currentModel.loadedMainTexture});
-                child.material.needsUpdate = true;
-            }
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 50));
-        return {model: currentModel, lastSelectedTextureId: null};
-    }
-
-    return {model: currentModel, lastSelectedTextureId: null};
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return {model: model, lastSelectedTextureId: textureId};
 }
 
 /**
@@ -372,24 +332,16 @@ export function getSurfaceNormal(model, worldPosition) {
     return closestNormal;
 }
 
-
 /**
  * Aplikuje masku na hlavní texturu
  */
-export async function applyMaskToMainTexture(modelId, textureId, maskColor, currentModel, showModelByIdFn, renderFn) {
-    if (!currentModel || currentModel.id !== modelId || !currentModel.modelLoader) {
-        const result = await showModelByIdFn(modelId);
-        currentModel = result.model;
-    }
+export async function applyMaskToMainTexture(modelId, textureId, maskColor, currentModel, renderFn) {
+    if (modelId == null || textureId == null || maskColor == null) return null;
 
     let mainImage;
     let maskImage;
 
     try {
-        if (!currentModel.loadedMainTexture) {
-            const textureLoader = new THREE.TextureLoader();
-            currentModel.loadedMainTexture = textureLoader.load(currentModel.mainTexture);
-        }
         mainImage = currentModel.loadedMainTexture.image;
 
         const textureObject = currentModel.otherTextures.find(t => t.textureId === textureId);

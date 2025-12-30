@@ -153,7 +153,7 @@ public class ChapterNavigationContainer extends VerticalLayout {
      */
     public void initializeSubChapterData(JsonValue subChaptersContent) {
         DomEventListener scrollClickListener = event -> {
-            String dataIdToScroll = event.getSource().getAttribute("data-target-id");
+            String dataIdToScroll = event.getSource().getAttribute("data-target-textureId");
             UI.getCurrent().getPage().executeJs("window.scrollToDataId($0)", dataIdToScroll);
         };
 

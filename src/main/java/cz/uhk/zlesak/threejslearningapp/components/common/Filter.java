@@ -132,7 +132,7 @@ public class Filter extends HorizontalLayout implements I18nAware {
 
     /**
      * Extracts field names from the given class (i.e.Entity class) and its superclasses.
-     * Only includes fields of allowed types and excludes synthetic fields and fields named "id".
+     * Only includes fields of allowed types and excludes synthetic fields and fields named "textureId".
      *
      * @param clazz the class to extract field names from
      * @return a list of field names

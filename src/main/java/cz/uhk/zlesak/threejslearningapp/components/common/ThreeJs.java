@@ -5,6 +5,7 @@ import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.function.SerializableRunnable;
 import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
 import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
@@ -12,6 +13,7 @@ import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
+import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
@@ -28,6 +30,7 @@ import java.util.List;
 @NpmPackage(value = "three", version = "0.172.0")
 @Tag("canvas")
 @Scope("prototype")
+@org.springframework.stereotype.Component
 public class ThreeJs extends Component {
 
     private Runnable onDisposedCallback;
@@ -102,7 +105,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.loadModel === 'function') {
-                        window.loadModel($0, $1, $2, $3, $4);
+                        window.loadModel($0, $1, $2, $3, $4).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in loadAdvancedModel:', e);
@@ -140,13 +143,12 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.addMainTexture === 'function') {
-                        window.addMainTexture($0, $1, $2).then(r => window.switchToMainTexture($0, $2));
+                        window.addMainTexture($0, $1, $2).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
                 }
                 """, getElement(), mainTexture, modelId);
-        switchToMainTexture(modelId);
     }
 
     /**
@@ -160,7 +162,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.removeMainTexture === 'function') {
-                        window.removeMainTexture($0, $1);
+                        window.removeMainTexture($0, $1).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
@@ -182,7 +184,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.addOtherTexture === 'function') {
-                        window.addOtherTexture($0, $1, $2, $3).then(r => window.switchOtherTexture($0, $3));
+                        window.addOtherTexture($0, $1, $2, $3).then(_ =>{});
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
@@ -204,7 +206,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.removeOtherTexture === 'function') {
-                        window.removeOtherTexture($0, $1, $2);
+                        window.removeOtherTexture($0, $1, $2).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in removeOtherTexture:', e);
@@ -225,7 +227,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.switchOtherTexture === 'function') {
-                        window.switchOtherTexture($0, $1, $2);
+                        window.switchOtherTexture($0, $1, $2).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in switchOtherTexture:', e);
@@ -244,8 +246,8 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.showModel === 'function') {
-                        window.showModel($0, $1);
-                        window.showModel($0, $1);
+                        window.showModel($0, $1).then(_ => {});
+//                        window.showModel($0, $1);
                     }
                 } catch (e) {
                     console.error('[JS] Error in switchOtherModel:', e);
@@ -257,7 +259,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.switchToMainTexture === 'function') {
-                        window.switchToMainTexture($0, $1);
+                        window.switchToMainTexture($0, $1).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in switchOtherTexture:', e);
@@ -270,7 +272,7 @@ public class ThreeJs extends Component {
      * This method calls the JavaScript function applyMaskToMainTexture to handle the masking process.
      * The maskColor parameter is expected to be a string representing the color to be applied as a mask.
      * This is used to visually modify the main texture by applying a color mask.
-     * This is needed as the user can choose a color to be applied as a mask to the main texture based on the provided colours defining parts of the model.
+     * This is needed as the user can choose a color to be applied as a mask to the main texture based on the provided colors defining parts of the model.
      *
      * @param modelId   identification of the model to which the texture belongs.
      * @param textureId identification of the texture to which the mask will be applied.
@@ -281,7 +283,7 @@ public class ThreeJs extends Component {
         getElement().executeJs("""
                 try {
                     if (typeof window.applyMaskToMainTexture === 'function') {
-                        window.applyMaskToMainTexture($0, $1, $2, $3, $4);
+                        window.applyMaskToMainTexture($0, $1, $2, $3, $4).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in applyMaskToMainTexture:', e);
@@ -321,6 +323,17 @@ public class ThreeJs extends Component {
     @ClientCallable
     public void finishedActions() {
         ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsFinishedActions(this));
+    }
+
+    /**
+     * This method is called from the JavaScript side to retrieve a valid access token for authentication.
+     * Token is provided dynamicaly not saved in JS for security reasons
+     *
+     * @return a valid access token as a String.
+     */
+    @ClientCallable
+    public String getToken() {
+        return SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
     }
 
     @Override

@@ -12,8 +12,6 @@ import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
-import java.util.Map;
-
 /**
  * ModelDetailView for displaying a 3D model entity detail
  * It is accessible at the route "/model/:modelId?".
@@ -70,10 +68,6 @@ public class ModelDetailView extends AbstractModelView {
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         loadSingleModelWithTextures(quickModelEntity);
-
-        if (quickModelEntity.getMainTexture() != null) {
-            modelDiv.modelTextureAreaSelectContainer.initializeData(Map.of(quickModelEntity.getModel().getId(), quickModelEntity));
-        }
 
         modelUploadForm.listingMode();
     }

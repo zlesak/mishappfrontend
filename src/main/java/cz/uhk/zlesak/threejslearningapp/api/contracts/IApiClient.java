@@ -1,7 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.api.contracts;
 
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
+import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 
 /**
  * Interface for generic API Client
@@ -17,13 +19,18 @@ public interface IApiClient <E, Q, F> {
                 .getInputArguments().stream()
                 .anyMatch(arg -> arg.contains("hotswap-agent.jar"));
         if (isHotswap) {
-            return "http://localhost:8080/api/";
+            return "http://localhost:8050/api/";
         }
-        return "http://kotlin-backend:8080/api/";
+        return "http://kotlin-backend:8050/api/";
     }
 
-    static  String getLocalBaseBeUrl() {
-        return "http://localhost:8080/api/";
+    /**
+     * Gets the JWT token from the current OIDC user.
+     *
+     * @return JWT token string, or null if not authenticated via OIDC
+     */
+    default String getJwtToken() {
+        return SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
     }
 
     /**

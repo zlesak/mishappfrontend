@@ -1,15 +1,10 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.ComponentUtil;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
-import cz.uhk.zlesak.threejslearningapp.events.model.ModelTextureChangeEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -41,33 +36,5 @@ public abstract class AbstractModelView extends AbstractEntityView {
         modelUploadForm = new ModelUploadForm();
         modelUploadForm.setWidthFull();
         entityContent.add(modelUploadForm);
-    }
-
-    /**
-     * Called when the component is attached to the UI.
-     * Registers event listeners for various model and texture events.
-     *
-     * @param attachEvent the attach event
-     */
-    @Override
-    protected void onAttach(AttachEvent attachEvent) {
-        super.onAttach(attachEvent);
-
-        // ModelTextureChangeEvent listener
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                ModelTextureChangeEvent.class,
-                event -> {
-                    QuickModelEntity model = quickModelEntity.get("modelId");
-                    model.setMainTexture(event.getQuickTextureEntity().get("main"));
-
-                    List<QuickTextureEntity> textures = event.getQuickTextureEntity().entrySet().stream()
-                            .filter(e -> !e.getKey().equals("main")).map(Map.Entry::getValue)
-                            .toList();
-
-                    model.setOtherTextures(textures);
-                    modelDiv.modelTextureAreaSelectContainer.initializeData(quickModelEntity);
-                }
-        ));
     }
 }

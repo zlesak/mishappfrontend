@@ -253,10 +253,13 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     private void sendDeleteRequest(String url, String errorMessage, String entityId) throws Exception {
+        HttpHeaders headers = createJsonHeaders();
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
         try {
-            restTemplate.exchange(url, HttpMethod.DELETE, null, Void.class);
+            restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, Void.class);
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, null, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, requestEntity.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }
@@ -304,24 +307,36 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
     }
 
     /**
-     * Creates HTTP headers with JSON content type.
+     * Creates HTTP headers with JSON content type and Bearer token.
      *
-     * @return HttpHeaders with JSON content type
+     * @return HttpHeaders with JSON content type and Authorization header
      */
     private HttpHeaders createJsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+
+        String token = getJwtToken();
+        if (token != null) {
+            headers.setBearerAuth(token);
+        }
+
         return headers;
     }
 
     /**
-     * Creates HTTP headers with JSON accept type.
+     * Creates HTTP headers with JSON accept type and Bearer token.
      *
-     * @return HttpHeaders with JSON accept type
+     * @return HttpHeaders with JSON accept type and Authorization header
      */
     private HttpHeaders createAcceptJsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+
+        String token = getJwtToken();
+        if (token != null) {
+            headers.setBearerAuth(token);
+        }
+
         return headers;
     }
 

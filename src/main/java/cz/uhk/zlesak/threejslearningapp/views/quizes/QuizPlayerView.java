@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizPlayerComponent;
@@ -44,7 +45,7 @@ public class QuizPlayerView extends AbstractQuizView {
      * Handles actions to be performed after navigation to this view.
      */
     @Override
-    protected void afterNavigationActions() {
+    public void afterNavigation(AfterNavigationEvent event) {
         try {
             QuizEntity quiz = quizService.getQuizForStudent(quizId);
             displayQuiz(quiz);

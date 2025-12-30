@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -31,7 +32,7 @@ public class QuizDetailView extends AbstractQuizView {
     }
 
     @Override
-    protected void afterNavigationActions() {
+    public void afterNavigation(AfterNavigationEvent event) {
         try {
             QuickQuizEntity quiz = quizService.readQuick(quizId);
             displayQuizDetails(quiz);
