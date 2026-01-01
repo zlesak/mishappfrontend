@@ -17,6 +17,8 @@ import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.ModelListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.TextureListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import elemental.json.JsonValue;
 import org.springframework.context.annotation.Scope;
@@ -45,6 +47,7 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
      * Does not take any parameters as they are not needed at the time of instantiation.
      */
     public EditorJs() {
+        addModelTextureColorAreaClickListener();
     }
 
     /**
@@ -138,19 +141,18 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
      * When a texture color area is clicked in the Editor.js instance, this listener will be triggered.
      * The listener receives the texture ID, hex color, and associated text as parameters.
      *
-     * @param listener the listener to be added
      */
-    public void addModelTextureColorAreaClickListener(ModelTextureAreaClickListener listener) {
+    public void addModelTextureColorAreaClickListener() {
         getElement().addEventListener("texturecolorareaclick", event -> {
                     String modelId = event.getEventData().getString("event.detail.modelId");
                     String textureId = event.getEventData().getString("event.detail.textureId");
                     String hexColor = event.getEventData().getString("event.detail.hexColor");
-                    String text = event.getEventData().getString("event.detail.text");
-                    listener.onTextureColorAreaClick(modelId, textureId, hexColor, text);
+                    ComponentUtil.fireEvent(UI.getCurrent(),  new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, hexColor));
                 }).addEventData("event.detail.modelId")
                 .addEventData("event.detail.textureId")
                 .addEventData("event.detail.hexColor")
                 .addEventData("event.detail.text");
+
     }
 
     /**
@@ -167,14 +169,6 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                     throw new RuntimeException("Chyba při vyhledávání " + error.getMessage());
                 })
                 .thenApply(ignore -> null);
-    }
-
-    /**
-     * Listener interface for handling texture color area click events.
-     * Implement this interface to define custom behavior when a texture color area is clicked.
-     */
-    public interface ModelTextureAreaClickListener {
-        void onTextureColorAreaClick(String modelId, String textureId, String hexColor, String text);
     }
 
     /**

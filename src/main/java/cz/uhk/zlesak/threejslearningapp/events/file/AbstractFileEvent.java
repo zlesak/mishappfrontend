@@ -14,8 +14,8 @@ public abstract class AbstractFileEvent extends ComponentEvent<UI> {
     private final FileType fileType;
     private final String entityId;
 
-    public AbstractFileEvent(UI source, String modelId, FileType fileType, String entityId) {
-        super(source, false);
+    public AbstractFileEvent(UI source, String modelId, FileType fileType, String entityId, boolean fromClient) {
+        super(source, fromClient);
         this.modelId = modelId;
         this.fileType = fileType;
         this.entityId = entityId;

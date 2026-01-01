@@ -29,7 +29,8 @@ public abstract class ModelListingDataParser {
             uniqueModels.put(mainEntity.getModel().getId(), new ModelForSelect(
                     mainEntity.getModel().getId(),
                     "main",
-                    mainEntity.getModel().getName()
+                    mainEntity.getModel().getName(),
+                    true
             ));
         }
 
@@ -41,7 +42,8 @@ public abstract class ModelListingDataParser {
                         uniqueModels.put(modelId, new ModelForSelect(
                                 modelId,
                                 entry.getKey(),
-                                entry.getValue().getModel().getName()
+                                entry.getValue().getModel().getName(),
+                                false
                         ));
                     }
                 });

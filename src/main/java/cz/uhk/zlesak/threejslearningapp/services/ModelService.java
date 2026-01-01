@@ -34,7 +34,6 @@ import java.util.stream.Collectors;
 @Scope("prototype")
 public class ModelService extends AbstractService<ModelEntity, QuickModelEntity, ModelFilter> {
     private final TextureService textureService;
-    private final ModelApiClient modelApiClient;
 
     /**
      * Constructor for ModelService.
@@ -47,7 +46,6 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
     public ModelService(TextureService textureService, ModelApiClient modelApiClient) {
         super(modelApiClient);
         this.textureService = textureService;
-        this.modelApiClient = modelApiClient;
     }
 
     /**
@@ -112,16 +110,6 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
             }
         }
         return quickModelEntity;
-    }
-
-    /**
-     * Retrieves the URL for texture file BE endpoint by texture ID.
-     *
-     * @param textureId the ID of the texture whose URL is to be retrieved.
-     * @return the URL for the texture file BE endpoint.
-     */
-    public String getModelFileBeEndpointUrl(String textureId) {
-        return modelApiClient.getStreamBeEndpointUrl(textureId);
     }
 
     /**

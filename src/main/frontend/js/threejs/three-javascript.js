@@ -47,6 +47,13 @@ window.loadModel = async function(element, modelUrl, modelId, questionId, isAdva
   }
 };
 
+window.removeModel = async function(element, modelId) {
+    const inst = getInstance(element);
+    if (inst) {
+      await inst.removeModel(modelId);
+    }
+}
+
 window.clear = async function(element) {
   const inst = getInstance(element);
   if (inst) {

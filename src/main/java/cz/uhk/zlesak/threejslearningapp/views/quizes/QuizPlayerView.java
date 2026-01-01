@@ -2,7 +2,9 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizResultComponent;
@@ -81,10 +83,20 @@ public class QuizPlayerView extends AbstractQuizView {
 
             entityContent.removeAll();
             entityContent.add(new QuizResultComponent(result));
+            splitLayout.setSplitterPosition(100);
 
         } catch (Exception e) {
             log.error("Error při odeslání odpovědí kvízu", e);
             new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage(), 5000);
         }
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        RouteParameters parameters = event.getRouteParameters();
+        if (parameters.getParameterNames().isEmpty() || parameters.get("quizId").isEmpty()) {
+            event.forwardTo(QuizListingView.class);
+        }
+        quizId = parameters.get("quizId").get();
     }
 }

@@ -2,7 +2,9 @@ package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.api.contracts.IQuizApiClient;
-import cz.uhk.zlesak.threejslearningapp.domain.quiz.*;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
@@ -27,19 +29,6 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
     }
 
     /**
-     * Validates user's quiz answers.
-     * Sends answers to backend for validation without exposing correct answers to frontend.
-     *
-     * @param submissionRequest User's submitted answers
-     * @return Validation results with score and per-question correctness
-     * @throws Exception if API call fails
-     */
-    @Override
-    public QuizValidationResult validateAnswers(QuizSubmissionRequest submissionRequest) throws Exception {
-        return sendPostRequest(baseUrl + "validate", submissionRequest, QuizValidationResult.class, "Chyba při validaci odpovědí kvízu", submissionRequest.getQuizId(), null);
-    }
-
-    /**
      * Gets a quiz without answers for student.
      *
      * @param quizId Quiz ID
@@ -48,10 +37,7 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
      */
     @Override
     public QuizEntity readQuizStudent(String quizId) throws Exception {
-        QuizEntity quiz = read(quizId);
-        quiz.setAnswers(null);
-        return quiz;
-
+        return sendGetRequest(baseUrl + quizId + "/questions", getEntityClass(), "Chyba při získávání entity dle ID", quizId, "startQuiz", "true");
     }
 
     //region Overridden operations from AbstractApiClient

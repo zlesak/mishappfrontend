@@ -105,5 +105,8 @@
   "quiz.detail.startButton": "Spustit kvíz",
   "page.title.createQuizView": "Vytvořit kvíz",
   "page.title.quizView": "Kvíz",
-  "page.title.quizListView": "Seznam kvízů"
+  "page.title.quizListView": "Seznam kvízů",
+  "quiz.result.maxScore.label": "Maximální skóre",
+  "quiz.result.totalScore.label":  "Celkové skóre",
+  "quiz.result.percentage.label": "Procentuální hodnocení"
 }

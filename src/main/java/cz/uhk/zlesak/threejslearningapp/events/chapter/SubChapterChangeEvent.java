@@ -15,8 +15,8 @@ public class SubChapterChangeEvent extends ComponentEvent<UI> {
     private final SubChapterForSelect oldValue;
     private final SubChapterForSelect newValue;
 
-    public SubChapterChangeEvent(UI source, SubChapterForSelect oldValue, SubChapterForSelect newValue) {
-        super(source, false);
+    public SubChapterChangeEvent(UI source, SubChapterForSelect oldValue, SubChapterForSelect newValue, boolean fromClient) {
+        super(source, fromClient);
         this.oldValue = oldValue;
         this.newValue = newValue;
     }

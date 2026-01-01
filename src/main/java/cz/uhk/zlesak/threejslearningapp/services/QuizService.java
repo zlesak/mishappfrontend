@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
 import cz.uhk.zlesak.threejslearningapp.api.clients.QuizApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.clients.QuizResultApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.*;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
@@ -11,6 +12,7 @@ import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,13 +25,15 @@ import java.util.List;
 @Scope("prototype")
 public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, QuizFilter> {
     private final QuizApiClient quizApiClient;
+    private final QuizResultApiClient quizResultApiClient;
     private final List<AbstractQuestionData> questions = new ArrayList<>();
     private final List<AbstractAnswerData> answers = new ArrayList<>();
 
     @Autowired
-    public QuizService(QuizApiClient quizApiClient) {
+    public QuizService(QuizApiClient quizApiClient, QuizResultApiClient quizResultApiClient) {
         super(quizApiClient);
         this.quizApiClient = quizApiClient;
+        this.quizResultApiClient = quizResultApiClient;
     }
 
     /**
@@ -50,7 +54,7 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      */
     public QuizValidationResult validateAnswers(String quizId, List<AbstractSubmissionData> answers) throws Exception {
         QuizSubmissionRequest request = new QuizSubmissionRequest(quizId, answers);
-        return quizApiClient.validateAnswers(request);
+        return quizResultApiClient.validateAnswers(request);
     }
 
     /**
@@ -127,6 +131,7 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         return createEntity.toBuilder()
                 .questions(questions)
                 .answers(answers)
+                .created(Instant.now())
                 .build();
     }
 }

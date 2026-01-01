@@ -14,7 +14,7 @@ import lombok.experimental.SuperBuilder;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(
-        use = JsonTypeInfo.Id.CLASS,
+        use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
         property = "_class"
 )

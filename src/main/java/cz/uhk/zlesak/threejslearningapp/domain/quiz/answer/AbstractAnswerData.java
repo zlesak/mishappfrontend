@@ -12,7 +12,7 @@ import lombok.experimental.SuperBuilder;
  * Base class for all answer types.
  */
 @JsonTypeInfo(
-  use = JsonTypeInfo.Id.CLASS,
+  use = JsonTypeInfo.Id.NAME,
   include = JsonTypeInfo.As.PROPERTY,
   property = "_class"
 )

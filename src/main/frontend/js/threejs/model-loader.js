@@ -21,18 +21,45 @@ export async function loadModel(modelUrl, modelId, models, questionId, isAdvance
         });
     } else if (questionId) {
         modelExists.question = questionId;
+    } else {
+        modelExists.model = modelUrl;
+        modelExists.advanced = isAdvanced;
     }
+}
+
+export async function removeModel(modelId, models, scene, disposeObjectFn){
+    const modelExists = models.find(m => m.id === modelId);
+    if (modelExists) {
+        if (modelExists) {
+            disposeObjectFn(modelExists.modelLoader);
+            try {
+                scene.remove(modelExists.modelLoader);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    }
+}
+
+function getObjLoader(auth) {
+    const objLoader = new OBJLoader();
+    objLoader.crossOrigin = 'anonymous';
+        objLoader.requestHeader = auth;
+    return objLoader;
+}
+
+function getGltfLoader(auth) {
+    const loader = new GLTFLoader();
+    loader.crossOrigin = 'anonymous';
+    loader.requestHeader = auth;
+    return loader;
 }
 
 /**
  * Zobrazí model podle ID
  */
-export async function showModelById(modelId, models, currentModel, scene, disposeObjectFn, centerCameraFn) {
+export async function showModelById(modelId, models, currentModel, scene, disposeObjectFn, centerCameraFn, auth) {
     const modelObject = models.find(m => m.id === modelId);
-
-    if (currentModel && currentModel === modelObject) {
-        return {model: currentModel, lastSelectedTextureId: null};
-    }
 
     if (!modelObject) {
         return {model: currentModel, lastSelectedTextureId: null};
@@ -50,29 +77,10 @@ export async function showModelById(modelId, models, currentModel, scene, dispos
     let lastSelectedTextureId = null;
 
     if (modelObject.advanced) {
-        if (!modelObject.loadedMainTexture && modelObject.mainTexture) {
-            const textureLoader = new THREE.TextureLoader();
-            try {
-                if (modelObject.mainTexture) {
-                    modelObject.loadedMainTexture = await new Promise((resolve, reject) => {
-                        textureLoader.load(modelObject.mainTexture, (texture) => {
-                            texture.needsUpdate = true;
-                            resolve(texture);
-                        }, undefined, (err) => {
-                            console.error('Error loading main texture:', err);
-                            reject(err);
-                        });
-                    });
-                }
-            } catch (e) {
-                console.error('Failed to load main texture for advanced model:', e);
-                modelObject.loadedMainTexture = null;
-            }
-        }
 
-        const objLoader = new OBJLoader();
+
         await new Promise((resolve, reject) => {
-            objLoader.load(modelObject.model, (obj) => {
+            getObjLoader(auth).load(modelObject.model, (obj) => {
                 obj.traverse((child) => {
                     if (child.isMesh && modelObject.loadedMainTexture) {
                         child.material = new THREE.MeshStandardMaterial({map: modelObject.loadedMainTexture});
@@ -89,9 +97,9 @@ export async function showModelById(modelId, models, currentModel, scene, dispos
             });
         });
     } else {
-        const loader = new GLTFLoader();
+
         await new Promise((resolve, reject) => {
-            loader.load(modelObject.model,
+            getGltfLoader(auth).load(modelObject.model,
                 (gltf) => {
                     newModel.modelLoader = gltf.scene;
                     if (newModel.modelLoader && newModel.modelLoader.children[0]?.geometry) {

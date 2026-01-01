@@ -9,7 +9,7 @@ import {
     createScene
 } from './scene-setup.js';
 
-import {loadModel, showModelById} from './model-loader.js';
+import {loadModel, showModelById, removeModel} from './model-loader.js';
 
 import {
     addMainTexture,
@@ -183,6 +183,13 @@ class ThreeTest {
         await loadModel(modelUrl, modelId, this.models, questionId, isAdvanced);
         this.finishedActions();
     };
+
+    removeModel = async (modelId) => {
+        await this.doingActions('Removing model');
+        await removeModel(modelId, this.models, this.scene, (obj) => disposeObject(obj))
+        this.finishedActions();
+        this.render();
+    }
 
     showModelById = async (modelId) => {
         await this.doingActions('Switching model');

@@ -11,7 +11,7 @@ export function attachTextureColorListeners() {
         let customElement = link.closest('editor-js');
         if (customElement) {
           customElement.dispatchEvent(new CustomEvent('texturecolorareaclick', {
-            bubbles: true,
+            bubbles: false,
             composed: true,
             detail: {
               modelId: link.getAttribute('data-model-id'),

@@ -75,7 +75,6 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * If an error occurs during the parsing, it logs the error and throws an Exception.
      *
      * @return a list of SubChapterForComboBoxRecord objects containing sub-chapter IDs and names
-     * @throws Exception if there is an error retrieving the sub-chapter names or if the chapter does not exist
      * @see SubChapterForSelect
      */
     public List<SubChapterForSelect> getSubChaptersNames(String chapterId) {
@@ -106,7 +105,6 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * It parses the chapter content to extract sub-chapter headers (level 1 headers)
      *
      * @return a JsonArray containing sub-chapter content, where each sub-chapter is represented by its header and content blocks
-     * @throws Exception if there is an error retrieving the sub-chapter content or if the chapter does not exist
      */
     public JsonArray getSubChaptersContent(String chapterId) {
         read(chapterId);
@@ -344,6 +342,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
         return ChapterEntity.builder()
                 .name(chapterCreateEntity.getName())
                 .created(Instant.now())
+                .description("")
                 .content(content)
                 .models(uploadedModels)
                 .build();

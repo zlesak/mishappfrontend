@@ -3,11 +3,8 @@ package cz.uhk.zlesak.threejslearningapp.common;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import cz.uhk.zlesak.threejslearningapp.services.TextureService;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,37 +38,22 @@ public abstract class TextureMapHelper {
                 String textureId = textureEntity.getTextureFileId();
                 String csvContent = textureEntity.getCsvContent();
                 if (csvContent == null || csvContent.isEmpty()) continue;
-                String[] rows = csvContent.split("\\r?\\n|\\r");
-                for (String row : rows) {
-                    row = row.trim();
-                    if (row.isEmpty()) continue;
-                    String[] parts = row.split(";");
-                    if (parts.length != 2) {
-                        throw new IllegalArgumentException("Invalid CSV format for TextureAreaForComboBoxRecord: " + row);
-                    }
-                    records.add(new TextureAreaForSelect(textureId, parts[0].trim(), parts[1].trim(), modelEntity.getModel().getId()));
-                }
+                csvParse(modelEntity.getModel().getId(), csvContent, records, textureId);
             }
         }
         return records;
     }
 
-    /**
-     * Creates a map of texture file IDs to their corresponding texture stream endpoint URLs.
-     * Uses the provided textureService to generate the URLs.
-     * TODO Should be removed after BE provides endpoints in the QuickTextureEntity
-     *
-     * @param quickTextureEntityList the list of QuickTextureEntity objects
-     * @param textureService         the textureService used to get the texture stream endpoint URLs
-     * @return a map where the key is the texture file ID and the value is the texture stream endpoint URL
-     * @throws IOException if an I/O error occurs while retrieving the texture stream endpoint URL
-     */
-    public static Map<String, String> otherTexturesMap(List<QuickTextureEntity> quickTextureEntityList, TextureService textureService) throws IOException {
-        Map<String, String> otherTextures = new HashMap<>();
-        for (QuickTextureEntity texture : quickTextureEntityList) {
-            String textureUrl = textureService.getTextureFileBeEndpointUrl(texture.getTextureFileId());
-            otherTextures.put(texture.getTextureFileId(), textureUrl);
+    public static void csvParse(String modelId, String csvContent, List<TextureAreaForSelect> records, String textureId) {
+        String[] rows = csvContent.split("\\r?\\n|\\r");
+        for (String row : rows) {
+            row = row.trim();
+            if (row.isEmpty()) continue;
+            String[] parts = row.split(";");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Invalid CSV format for TextureAreaForComboBoxRecord: " + row);
+            }
+            records.add(new TextureAreaForSelect(textureId, parts[0].trim(), parts[1].trim(), modelId));
         }
-        return otherTextures;
     }
 }

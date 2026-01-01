@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
-import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.QuizForm;
@@ -63,7 +62,7 @@ public class QuizCreateView extends AbstractQuizView {
         if (component instanceof TextureClickQuestionEditor textureEditor) {
             QuickModelEntity selectedModel = textureEditor.getSelectedModel();
             if (selectedModel != null) {
-                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), selectedModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL));
+                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), selectedModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL, false));
             }
         }
     }
@@ -160,7 +159,7 @@ public class QuizCreateView extends AbstractQuizView {
 
     private void loadModelsIntoRenderer(Map<String, QuickModelEntity> quickModelEntityMap) throws IOException {
         for (QuickModelEntity quickModelEntity : quickModelEntityMap.values()) {
-            loadSingleModelWithTextures(quickModelEntity);
+            loadSingleModelWithTextures(quickModelEntity, quickModelEntity.getModel().getId(), true);
         }
     }
 }

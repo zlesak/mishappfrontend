@@ -33,10 +33,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 "Select Model",
                 "model-select",
                 false,
-                e -> {
-                    loadModelDataConsumer.accept(e);
-                    modelTextureAreaSelectContainer.initializeData(e);
-                }
+                loadModelDataConsumer
         );
         actionsLayout.remove(addOptionButton);
         actionsLayout.addComponentAtIndex(1, modelSelectContainer);
@@ -91,7 +88,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 .questionText(getQuestionText())
                 .points(getPoints())
                 .modelId(modelTextureAreaSelectContainer.getModelListingSelect().getValue().id())
-                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id())
+                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId())
                 .build();
 
     }
@@ -106,7 +103,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 .questionId(questionId)
                 .type(questionType)
                 .modelId(modelTextureAreaSelectContainer.getModelListingSelect().getValue().id())
-                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id())
+                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId())
                 .hexColor(modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().hexColor())
                 .build();
     }
@@ -123,7 +120,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         if (modelTextureAreaSelectContainer.getModelListingSelect().getValue() == null || modelTextureAreaSelectContainer.getModelListingSelect().getValue().id().isEmpty()) {
             return false;
         }
-        if (modelTextureAreaSelectContainer.getTextureListingSelect().getValue() == null || modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id().isEmpty()) {
+        if (modelTextureAreaSelectContainer.getTextureListingSelect().getValue() == null || modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId().isEmpty()) {
             return false;
         }
         return modelTextureAreaSelectContainer.getTextureAreaSelect().getValue() != null && !modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().textureId().isEmpty();

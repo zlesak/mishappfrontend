@@ -73,6 +73,11 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
+        String token = getJwtToken();
+        if (token != null) {
+            headers.setBearerAuth(token);
+        }
+
         MultiValueMap<String, Object> body = prepareFileUploadBody(entity);
 
         String metadataJson = objectMapper.writeValueAsString(entity);
@@ -93,21 +98,12 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
 
     public InputStreamMultipartFile downloadFileEntity(String fileId) throws Exception {
         String url = baseUrl + "download/" + fileId;
-        ResponseEntity<byte[]> response = sendGetRequestRaw(url, byte[].class, "Chyba při stahování " + type + " dle ID", fileId, false);
+        ResponseEntity<byte[]> response = sendGetRequestRaw(url, byte[].class, "Chyba při stahování " + type + " dle ID", fileId, true);
         return parseFileResponse(response, "Nenalezeno nebo chyba při stahování." + getEntityClass().getSimpleName(), fileId);
     }
     //endregion
 
-    /**
-     * Constructs the streaming backend endpoint URL for downloading a file by ID.
-     *
-     * @param id ID of the file
-     * @return streaming backend endpoint URL
-     */
-    public String getStreamBeEndpointUrl(String id) {
-        return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
-    }
     public static String getStreamBeEndpointUrl(String id, String type) {
-        return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
+        return IApiClient.getBaseUrl() + type + "/download/" + id;
     }
 }

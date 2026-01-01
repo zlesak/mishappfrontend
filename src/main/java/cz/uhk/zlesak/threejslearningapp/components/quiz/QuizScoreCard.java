@@ -32,12 +32,12 @@ public class QuizScoreCard extends VerticalLayout implements I18nAware {
         H1 scoreValue = new H1(result.getTotalScore() + " / " + result.getMaxScore());
         scoreValue.getStyle().set("color", "var(--lumo-primary-color)");
 
-        Span percentage = new Span(String.format("%.1f%%", result.getPercentage() * 100));
+        Span percentage = new Span(String.format("%.1f%%", result.getPercentage()));
         percentage.getStyle()
                 .set("font-size", "var(--lumo-font-size-xl)")
                 .set("font-weight", "bold");
 
-        String resultMessage = getResultMessage(result.getPercentage() * 100);
+        String resultMessage = getResultMessage(result.getPercentage());
         Span message = new Span(resultMessage);
         message.getStyle()
                 .set("font-size", "var(--lumo-font-size-l)")

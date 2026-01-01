@@ -1,12 +1,16 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
@@ -26,9 +30,16 @@ public class QuizDetailView extends AbstractQuizView {
     private final QuizService quizService;
 
     @Autowired
-    public QuizDetailView(QuizService quizService) {
+    public QuizDetailView(QuizService quizService, QuizResultService quizResultService) {
         super("page.title.quizView");
         this.quizService = quizService;
+        modelDiv.renderer.dispose(null);
+        modelDiv.setHeight("0");
+        modelDiv.setWidth("0");
+
+        Div resultHistoryListingDiv = new Div(new QuizResultsListingView(quizResultService));
+        resultHistoryListingDiv.setSizeFull();
+        modelSide.add(resultHistoryListingDiv);
     }
 
     @Override
@@ -44,6 +55,7 @@ public class QuizDetailView extends AbstractQuizView {
 
     /**
      * Displays the quiz details in the view.
+     *
      * @param quiz Quiz entity to display
      */
     private void displayQuizDetails(QuickQuizEntity quiz) {
@@ -56,4 +68,12 @@ public class QuizDetailView extends AbstractQuizView {
         entityContent.add(detailContainer);
     }
 
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        RouteParameters parameters = event.getRouteParameters();
+        if (parameters.getParameterNames().isEmpty() || parameters.get("quizId").isEmpty()) {
+            event.forwardTo(QuizListingView.class);
+        }
+        quizId = parameters.get("quizId").get();
+    }
 }
