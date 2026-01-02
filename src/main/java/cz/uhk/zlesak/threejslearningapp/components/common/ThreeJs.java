@@ -130,6 +130,18 @@ public class ThreeJs extends Component {
                 """, getElement());
     }
 
+    private void removeModel(String modelId) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.removeModel === 'function') {
+                        window.removeModel($0, $1);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in clearModel:', e);
+                }
+                """, getElement(), modelId);
+    }
+
     /**
      * Adds the main texture to the Three.js scene.
      * This method expects a base64 encoded string of the texture data.
@@ -346,11 +358,23 @@ public class ThreeJs extends Component {
                 event -> {
                     switch (event.getFileType()) {
                         case MODEL -> {
-                            loadModel(event.getBase64File(), event.getModelId(), event.isAdvanced());
-                            showModel(event.getModelId());
+                            loadModel(event.getBase64File(), event.getModelId(), event.isAdvanced(), event.getQuestionId());
+                            if (event.isFromClient()){
+                                showModel(event.getModelId());
+                            }
                         }
-                        case OTHER -> addOtherTexture(event.getBase64File(), event.getEntityId(), event.getModelId());
-                        case MAIN -> addMainTexture(event.getBase64File(), event.getModelId());
+                        case OTHER -> {
+                            addOtherTexture(event.getBase64File(), event.getEntityId(), event.getModelId());
+                            if (event.isFromClient()){
+                                switchOtherTexture(event.getModelId(), event.getEntityId());
+                            }
+                        }
+                        case MAIN -> {
+                            addMainTexture(event.getBase64File(), event.getModelId());
+                            if (event.isFromClient()){
+                                switchToMainTexture(event.getModelId());
+                            }
+                        }
                         case CSV -> { /* CSV files are not handled in ThreeJs component */ }
                         default -> log.warn("Unsupported file type for upload: {}", event.getFileType());
                     }
@@ -362,7 +386,7 @@ public class ThreeJs extends Component {
                 RemoveFileEvent.class,
                 event -> {
                     switch (event.getFileType()) {
-                        case MODEL -> clear();
+                        case MODEL -> removeModel(event.getModelId());
                         case OTHER -> removeOtherTexture(event.getModelId(), event.getEntityId());
                         case MAIN -> removeMainTexture(event.getModelId());
                         case CSV -> { /* CSV files are not handled in ThreeJs component */ }
@@ -375,6 +399,7 @@ public class ThreeJs extends Component {
                 attachEvent.getUI(),
                 ThreeJsActionEvent.class,
                 event -> {
+                    if (!event.isFromClient()) return;
                     switch (event.getAction()) {
                         case SWITCH_MAIN_TEXTURE -> switchToMainTexture(event.getModelId());
                         case SWITCH_OTHER_TEXTURE -> switchOtherTexture(event.getModelId(), event.getTextureId());

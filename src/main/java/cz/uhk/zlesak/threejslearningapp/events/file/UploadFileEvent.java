@@ -12,13 +12,15 @@ import lombok.Getter;
 public class UploadFileEvent extends AbstractFileEvent{
     private final String base64File;
     private final String fileName;
+    private final String questionId;
     private final boolean isAdvanced;
     private final boolean main;
 
-    public UploadFileEvent(UI source, String modelId, FileType fileType, String entityId, String base64File, String fileName, boolean fromClient, boolean... isAdvanced) {
+    public UploadFileEvent(UI source, String modelId, FileType fileType, String entityId, String base64File, String fileName, boolean fromClient, String questionId, boolean... isAdvanced) {
         super(source, modelId, fileType, entityId, fromClient);
         this.base64File = base64File;
         this.fileName = fileName;
+        this.questionId = questionId;
         this.isAdvanced = isAdvanced.length > 0 && isAdvanced[0];
         this.main = isAdvanced.length > 1 && isAdvanced[1];
 

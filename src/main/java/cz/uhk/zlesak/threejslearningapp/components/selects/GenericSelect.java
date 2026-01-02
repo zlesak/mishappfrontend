@@ -1,87 +1,57 @@
 package cz.uhk.zlesak.threejslearningapp.components.selects;
 
-import com.vaadin.flow.component.ComponentEvent;
-import com.vaadin.flow.component.ComponentEventListener;
-import com.vaadin.flow.component.ItemLabelGenerator;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.renderer.TextRenderer;
-import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.common.ObservableMap;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import lombok.Getter;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import org.springframework.context.annotation.Scope;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * GenericSelect abstract class extending Vaadin Select component.
  * It provides a generic implementation for select components with custom event handling.
  *
  * @param <T>
- * @param <E>
  */
 @Scope("prototype")
-public abstract class GenericSelect<T, E extends ComponentEvent<?>> extends Select<T> implements I18nAware {
-    protected final ItemLabelGenerator<T> itemLabelGenerator;
-    private final BiFunction<GenericSelect<T, E>, ValueChangeEvent<T>, E> eventFactory;
-    private final Class<E> eventType;
-    @Getter
-    private List<T> items;
+public abstract class GenericSelect<T> extends Select<T> implements I18nAware {
+    protected final List<Registration> registrations = new ArrayList<>();
+    protected final Function<T, String> idGenerator;
+
+    protected ObservableMap<String, T> items;
+
+    protected static String model = null;
+    protected static String texture = null;
+    protected static String area = null;
 
     /**
      * Constructor for GenericSelect.
      *
-     * @param label              Select label
-     * @param itemLabelGenerator label generator for items
-     * @param eventType          event class type
-     * @param eventFactory       event factory function to create events
+     * @param label                  Select label
+     * @param itemLabelGenerator     label generator for items
+     * @param itemType               class type of the items
+     * @param setFirstItemAsSelected whether to set the first item as selected
      */
-    public GenericSelect(String label, com.vaadin.flow.component.ItemLabelGenerator<T> itemLabelGenerator,
-                         Class<E> eventType,
-                         BiFunction<GenericSelect<T, E>, ValueChangeEvent<T>, E> eventFactory) {
+    public GenericSelect(String label, ItemLabelGenerator<T> itemLabelGenerator, Class<T> itemType, boolean setFirstItemAsSelected, Function<T, String> idGenerator) {
         super();
+        this.idGenerator = idGenerator;
+
         setLabel(label);
         setWidthFull();
         setRenderer(new TextRenderer<>(itemLabelGenerator));
-        this.itemLabelGenerator = itemLabelGenerator;
-        this.eventFactory = eventFactory;
-        this.eventType = eventType;
-        addValueChangeListener(this::fireGenericChangeEvent);
-    }
-
-    /**
-     * Fires a generic change event if the value has changed.
-     *
-     * @param event value change event
-     */
-    private void fireGenericChangeEvent(ValueChangeEvent<T> event) {
-        if ((event.getOldValue() == null && event.getValue() != null) ||
-                (event.getOldValue() != null && !event.getOldValue().equals(event.getValue()))) {
-            fireEvent(eventFactory.apply(this, event));
-        }
-    }
-
-    /**
-     * Registers a generic change listener for the select component.
-     *
-     * @param listener the listener to be added
-     */
-    public void addGenericChangeListener(ComponentEventListener<E> listener) {
-        addListener(eventType, listener);
-    }
-
-    /**
-     * Sets the items for the select component and optionally sets the first item as the selected value.
-     *
-     * @param items           list of items to set
-     * @param setFirstAsValue if true, sets the first item as the selected value
-     */
-    protected void initialize(List<T> items, boolean setFirstAsValue) {
-        this.items = items;
-
-        if (!items.isEmpty() && items.getFirst() instanceof TextureAreaForSelect) {
+        if (itemType == TextureAreaForSelect.class) {
             setRenderer(new ComponentRenderer<>(item -> {
                 Span span = new Span(itemLabelGenerator.apply(item));
                 String color = ((TextureAreaForSelect) item).hexColor();
@@ -90,12 +60,72 @@ public abstract class GenericSelect<T, E extends ComponentEvent<?>> extends Sele
                 }
                 return span;
             }));
-        } else {
-            setRenderer(new TextRenderer<>(itemLabelGenerator));
         }
-        setItems(this.items);
-        if (!items.isEmpty() && setFirstAsValue) {
-            setValue(items.getFirst());
+        items = new ObservableMap<>((value, fromClient) -> showRelevantItemsBasedOnContext(null, value, fromClient)
+        );
+        addValueChangeListener(e ->
+                ComponentUtil.fireEvent(UI.getCurrent(), createChangeEvent(e))
+        );
+    }
+
+    abstract protected ComponentEvent<?> createChangeEvent(ValueChangeEvent<T> event);
+
+    abstract protected void handleFileUploadIngoingChangeEventAction(UploadFileEvent fileType);
+
+    abstract protected void handleFileRemoveIngoingChangeEventAction(RemoveFileEvent fileType);
+
+    abstract protected void handleIngoingActionChangeEventAction(ThreeJsActionEvent threeJsActionEvent);
+
+    abstract protected void handleSubChapterChangeEventAction(SubChapterChangeEvent subChapterChangeEvent);
+
+    abstract protected void showRelevantItemsBasedOnContext(String entityId, T additionalContext, boolean fromClient, String... specificEntityId);
+
+    protected void initialize(List<T> itemsToInitialize) {
+        items.clear();
+        clear();
+        for (T item : itemsToInitialize) {
+            String key = idGenerator.apply(item);
+            items.putExtended(key, item, false);
         }
+        setItems(items.values());
+        setEmptySelectionAllowed(true);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                UploadFileEvent.class,
+                this::handleFileUploadIngoingChangeEventAction
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                RemoveFileEvent.class,
+                this::handleFileRemoveIngoingChangeEventAction
+
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ThreeJsActionEvent.class,
+                this::handleIngoingActionChangeEventAction
+
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                SubChapterChangeEvent.class,
+                this::handleSubChapterChangeEventAction
+        ));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        registrations.forEach(Registration::remove);
+        registrations.clear();
     }
 }

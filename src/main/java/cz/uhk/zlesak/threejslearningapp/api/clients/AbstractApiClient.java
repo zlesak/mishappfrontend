@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * AbstractApiClient provides common functionality for API clients.
+ *
  * @param <E> entity type
  * @param <Q> quick entity type
  * @param <F> filter type
@@ -34,9 +35,10 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Constructor for AbstractApiClient.
+     *
      * @param restTemplate rest template
      * @param objectMapper object mapper
-     * @param endpoint API endpoint
+     * @param endpoint     API endpoint
      */
     public AbstractApiClient(RestTemplate restTemplate, ObjectMapper objectMapper, String endpoint) {
         this.restTemplate = restTemplate;
@@ -46,12 +48,14 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Gets the entity class.
+     *
      * @return entity class
      */
     protected abstract Class<E> getEntityClass();
 
     /**
      * Gets the quick entity class.
+     *
      * @return quick entity class
      */
     protected abstract Class<Q> getQuicEntityClass();
@@ -61,6 +65,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Creates a new entity.
+     *
      * @param entity entity to create
      * @return created entity
      * @throws Exception if API call fails
@@ -72,6 +77,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Reads an entity by ID.
+     *
      * @param id ID of the entity to read
      * @return entity
      * @throws Exception if API call fails
@@ -83,24 +89,26 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Reads a quick entity by ID.
+     *
      * @param id ID of the entity to read
      * @return quick entity
      * @throws Exception if API call fails
      */
     @Override
     public Q readQuick(String id) throws Exception {
-        return sendGetRequest(baseUrl + "quick/" + id, getQuicEntityClass(), "Chyba při získávání quick entity dle ID", id);
+        return sendGetRequest(baseUrl + id + "/quick", getQuicEntityClass(), "Chyba při získávání quick entity dle ID", id);
     }
 
     /**
      * Reads paginated entities without filtering.
+     *
      * @param filterParameters FilterParameters<F> object containing pagination info and filter
      * @return PageResult of quick entities
      * @throws Exception if API call fails
      */
     @Override
     public PageResult<Q> readEntities(FilterParameters<F> filterParameters) throws Exception {
-        String url = pageRequestToQueryParams(filterParameters.getPageRequest(), null);//ß + filterToQueryParams(filterParameters.getFilter());
+        String url = pageRequestToQueryParams(filterParameters, null);
         ResponseEntity<String> response = sendGetRequestRaw(url, String.class, "Chyba při získávání seznamu entity typu: " + getQuicEntityClass().getSimpleName(), null, true);
         JavaType type = objectMapper.getTypeFactory().constructParametricType(PageResult.class, getQuicEntityClass());
         return parseResponse(response, type, "Chyba při získávání seznamu entit typu: " + getQuicEntityClass().getSimpleName(), null);
@@ -108,7 +116,8 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Updates an entity by ID.
-     * @param id ID of the entity to update
+     *
+     * @param id     ID of the entity to update
      * @param entity entity with updated data
      * @return updated entity
      * @throws Exception if API call fails
@@ -120,6 +129,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
 
     /**
      * Deletes an entity by ID.
+     *
      * @param id ID of the entity to delete
      * @return true if deletion was successful
      * @throws Exception if API call fails
@@ -172,9 +182,10 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @return Response body
      * @throws Exception if request fails
      */
-    private <R> R sendGetRequest(String url, Class<R> responseType, String errorMessage, String entityId) throws Exception {
+    protected <R> R sendGetRequest(String url, Class<R> responseType, String errorMessage, String entityId, String... params) throws Exception {
         HttpHeaders headers = createJsonHeaders();
         HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+        url = parameterUrlBuilder(url, params);
 
         try {
             ResponseEntity<R> response = restTemplate.exchange(
@@ -376,22 +387,51 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
     /**
      * Converts a PageRequest to URL query parameters.
      *
-     * @param pageRequest PageRequest object
+     * @param filterParameters FilterParameters<F> object containing pagination info and filter
      * @return query string
      */
-    protected String pageRequestToQueryParams(PageRequest pageRequest, String customBaseUrl) {
+    protected String pageRequestToQueryParams(FilterParameters<F> filterParameters, String customBaseUrl) {
         customBaseUrl = customBaseUrl == null ? "list" : customBaseUrl;
+        PageRequest pageRequest = filterParameters.getPageRequest();
         String orderBy = pageRequest.getSort().isSorted()
                 ? pageRequest.getSort().iterator().next().getProperty()
                 : "id";
         String sortDirection = pageRequest.getSort().isSorted()
                 ? pageRequest.getSort().iterator().next().getDirection().name()
                 : "ASC";
-        return baseUrl + customBaseUrl +
+        customBaseUrl =  customBaseUrl +
                 "?limit=" + pageRequest.getPageSize() +
                 "&page=" + pageRequest.getPageNumber() +
                 "&orderBy=" + orderBy +
                 "&sortDirection=" + sortDirection;
+        customBaseUrl = customBaseUrl + filterToQueryParams(filterParameters.getFilter());
+        return baseUrl + customBaseUrl;
     }
 
+    private String parameterUrlBuilder(String url, String... params) throws Exception{
+        if (params != null && params.length > 0) {
+            StringBuilder urlBuilder = new StringBuilder(url);
+            if (!url.contains("?")) {
+                urlBuilder.append("?");
+            } else {
+                urlBuilder.append("&");
+            }
+            for (int i = 0; i < params.length; i += 2) {
+                if (i + 1 < params.length) {
+                    try {
+                        urlBuilder.append(URLEncoder.encode(params[i], StandardCharsets.UTF_8))
+                                .append("=")
+                                .append(URLEncoder.encode(params[i + 1], StandardCharsets.UTF_8));
+                        if (i + 2 < params.length) {
+                            urlBuilder.append("&");
+                        }
+                    } catch (Exception e) {
+                        throw new ApiCallException("Chyba při kódování URL parametru: " + params[i], null, null, null, null, e);
+                    }
+                }
+            }
+            return urlBuilder.toString();
+        }
+        return url;
+    }
 }

@@ -35,6 +35,7 @@ public abstract class AbstractChapterView extends AbstractEntityView {
     protected final EditorJs editorjs = new EditorJs();
     protected final NameTextField nameTextField = new NameTextField("Název kapitoly");
     protected ChapterTabSheetContainer secondaryNavigation = null;
+    private final boolean createMode;
 
 
     /**
@@ -50,6 +51,7 @@ public abstract class AbstractChapterView extends AbstractEntityView {
         super(pageTitleKey, skipBeforeLeaveDialog);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs, mdEditor);
         ModelsSelectScroller modelsScroller = new ModelsSelectScroller();
+        this.createMode = createChapterMode;
 
         if (createChapterMode) {
             secondaryNavigation = new ChapterTabSheetContainer(nameTextField, chapterContentScroller, modelsScroller);
@@ -75,14 +77,9 @@ public abstract class AbstractChapterView extends AbstractEntityView {
      */
     protected void setupData(Map<String, QuickModelEntity> quickModelEntityMap) {
         loadModelsWithTextures(quickModelEntityMap);
-
-        editorjs.addModelTextureColorAreaClickListener((modelId, textureId, hexColor, text) -> {
-            modelDiv.modelTextureAreaSelectContainer.getModelListingSelect().setSelectedModelById(modelId);
-            modelDiv.modelTextureAreaSelectContainer.getTextureListingSelect().setSelectedTextureById(textureId);
-            modelDiv.modelTextureAreaSelectContainer.getTextureAreaSelect().setSelectedAreaByHexColor(hexColor, textureId);
-        });
-        editorjs.initializeTextureSelects(quickModelEntityMap);
-        modelDiv.modelTextureAreaSelectContainer.initializeData(quickModelEntityMap);
+        if (createMode) {
+            editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
+        }
     }
 
     /**

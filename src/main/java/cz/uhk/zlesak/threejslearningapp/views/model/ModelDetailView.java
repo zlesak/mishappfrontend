@@ -67,8 +67,8 @@ public class ModelDetailView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        loadSingleModelWithTextures(quickModelEntity);
+        loadSingleModelWithTextures(quickModelEntity, "main", null, true);
 
-        modelUploadForm.listingMode();
+        modelUploadForm.listingMode(); // todo show the files when edit mode
     }
 }

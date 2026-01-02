@@ -197,6 +197,15 @@ public class QuizForm extends VerticalLayout implements I18nAware {
         return chapterSelect.getValue() != null ? chapterSelect.getValue().getId() : null;
     }
 
+    public void setQuizData(String name, String description, Integer timeLimit, ChapterEntity chapter) {
+        nameField.setValue(name != null ? name : "");
+        descriptionField.setValue(description != null ? description : "");
+        timeLimitField.setValue(timeLimit != null ? timeLimit : 0);
+        if (chapter != null) {
+            chapterSelect.setItems(chapter);
+            chapterSelect.setValue(chapter);
+        }
+    }
 
 }
 

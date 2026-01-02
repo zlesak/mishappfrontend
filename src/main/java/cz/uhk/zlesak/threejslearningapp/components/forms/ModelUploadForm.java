@@ -101,7 +101,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
 
                     modelFileName = fileName;
 
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MODEL, "modelId", modelUrl, modelFileName, true, isAdvanced.getValue(), true));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MODEL, "modelId", modelUrl, modelFileName, true, null, isAdvanced.getValue(), true));
                 }
         );
 
@@ -123,7 +123,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
                     textureUrl = registerStreamUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
                     textureName = fileName;
 
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MAIN, "modelId", textureUrl, textureName, true, isAdvanced.getValue(), true));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MAIN, "modelId", textureUrl, textureName, true, null, isAdvanced.getValue(), true));
 
                     this.quickTextureEntityMap.put("main",
                             QuickTextureEntity.builder()
@@ -150,7 +150,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
                     Map<String, String> otherTextures = new HashMap<>();
                     otherTextures.put(fileName, textureUrl);
 
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.OTHER, fileName, textureUrl, fileName, true, isAdvanced.getValue()));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.OTHER, fileName, textureUrl, fileName, true, null, isAdvanced.getValue()));
 
                     this.quickTextureEntityMap.put(fileName,
                             QuickTextureEntity.builder()
@@ -175,7 +175,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
                         csvBase64.add(base64);
                         String csvContent = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
                         csvUploaded(fileName, csvContent);
-                        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.CSV, toJpgName(fileName), csvContent, fileName, true, isAdvanced.getValue()));
+                        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.CSV, toJpgName(fileName), csvContent, fileName, true,null,  isAdvanced.getValue()));
 
                     } catch (IOException e) {
                         throw new RuntimeException(e);

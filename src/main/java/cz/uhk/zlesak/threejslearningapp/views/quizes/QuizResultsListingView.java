@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
 import cz.uhk.zlesak.threejslearningapp.components.lists.QuizResultListItem;
@@ -24,6 +25,7 @@ import org.springframework.context.annotation.Scope;
 @Tag("quizes-results-listing-view")
 @PermitAll
 public class QuizResultsListingView extends AbstractListingView<QuickQuizResult, QuizResultFilter, QuizValidationResult, QuizResultService> {
+    private String quizId;
 
     /**
      * Constructor for QuizListingView.
@@ -42,7 +44,7 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      */
     @Override
     protected AbstractListItem createListItem(QuickQuizResult quiz) {
-        return new QuizResultListItem(quiz);
+        return new QuizResultListItem(quiz, administrationView);
     }
 
     /**
@@ -52,7 +54,18 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      * @return a QuizFilter object
      */
     @Override
-    protected QuizResultFilter createFilter(String searchText) {
-        return new QuizResultFilter();
+    protected QuizResultFilter createFilter(String searchText) { //TODO wait for BE part to use quizId in request param to filter, then check for correct implementation
+        return QuizResultFilter.builder()
+                .Name(searchText)
+                .quizId(quizId)
+                .build();
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        quizId = event.getRouteParameters().get("quizId").orElse("");
+        filterParameters.getFilter().setQuizId(quizId);
+        filter.setSearchFieldValue("");
+        listEntities();
     }
 }

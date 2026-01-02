@@ -1,53 +1,39 @@
 package cz.uhk.zlesak.threejslearningapp.components.selects;
 
-import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.ComponentEvent;
+import com.vaadin.flow.component.UI;
 import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import cz.uhk.zlesak.threejslearningapp.events.texture.TextureAreaChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
+import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * TextureAreaSelect is a custom select implementation for selecting texture areas to be shown in the renderer.
  * It extends GenericSelect to provide functionality for handling texture area selection changes.
  */
 @Scope("prototype")
-public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect, TextureAreaChangeEvent> {
+public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
+    String wantedAreaHexColor = null;
+
     /**
      * Constructor for TextureAreaSelect.
      * It initializes the select with an empty label, a text generator for items, and sets up the event handling for texture area changes.
      */
     public TextureAreaSelect() {
-        super("", TextureAreaForSelect::areaName,
-                TextureAreaChangeEvent.class,
-                (select, event) -> new TextureAreaChangeEvent((TextureAreaSelect) select, event.isFromClient(), event.getOldValue(), event.getValue()));
+        super("", area -> area.areaName() != null ? area.areaName() : "", TextureAreaForSelect.class, false, TextureAreaForSelect::textureId);
         setEmptySelectionAllowed(true);
         setEmptySelectionCaption(text("textureAreaSelect.caption"));
         setWidthFull();
-    }
-
-    /**
-     * Adds a listener for texture area change events.
-     * Calls the addGenericChangeListener method from the parent class to register the listener.
-     *
-     * @param listener the listener to be added
-     */
-    public void addTextureAreaChangeListener(ComponentEventListener<TextureAreaChangeEvent> listener) {
-        addGenericChangeListener(listener);
-    }
-
-    /**
-     * This method is used to populate the select with texture area records.
-     * Calls the initialize method from the parent class to set the items.
-     *
-     * @param models a map of model IDs to QuickModelEntity objects used to generate the texture area records
-     */
-    public void initializeTextureAreaSelect(Map<String, QuickModelEntity> models) {
-        initialize(TextureMapHelper.createTextureAreaForSelectRecordList(models), false);
+        setEnabled(false);
     }
 
     /**
@@ -56,30 +42,90 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect, Textu
      *
      * @param textureId the ID of the texture to filter by
      */
-    public void showSelectedTextureAreas(String textureId) {
+    @Override
+    public void showRelevantItemsBasedOnContext(String textureId, TextureAreaForSelect additionalContext, boolean fromClient, String... specificEntityId) {
         List<TextureAreaForSelect> itemsToShow = new ArrayList<>();
-        for (TextureAreaForSelect item : this.getItems()) {
-            if (item.textureId().equals(textureId)) {
-                itemsToShow.add(item);
-            }
-        }
-        setItems(itemsToShow);
-    }
 
-    /**
-     * Sets the selected area based on the provided hex color and texture ID.
-     * If no matching area is found, the selection remains unchanged.
-     *
-     * @param hexColor  the hex color of the area to select
-     * @param textureId the ID of the texture associated with the area
-     */
-    public void setSelectedAreaByHexColor(String hexColor, String textureId) {
-        if (hexColor == null) return;
-        for (TextureAreaForSelect item : getItems()) {
-            if (item.hexColor().equals(hexColor) && item.textureId().equals(textureId)) {
-                setValue(item);
+        if (fromClient) {
+            textureId = textureId != null ? textureId : additionalContext != null ? additionalContext.textureId() : null;
+
+            if ((textureId != null && !Objects.equals(textureId, texture))) {
+                wantedAreaHexColor = (specificEntityId != null && specificEntityId.length > 0 && specificEntityId[0] != null) ? specificEntityId[0] : null;
                 return;
             }
+
+            if (textureId == null) {
+                wantedAreaHexColor = getValue() != null ? getValue().hexColor() : null;
+            }
+
+            String finalTextureId = textureId != null ? textureId : texture;
+
+            area = null;
+            clear();
+
+            itemsToShow = items.values().stream().filter(e -> e.textureId().equals(finalTextureId)).toList();
+            setItems(itemsToShow);
+
+            String areaId = wantedAreaHexColor != null ? wantedAreaHexColor : (specificEntityId.length > 0 && specificEntityId[0] != null) ? specificEntityId[0] : null;
+            if (areaId != null) {
+                TextureAreaForSelect specific = itemsToShow.stream().filter(e -> Objects.equals(e.hexColor(), areaId)).findFirst().orElse(null);
+                if (specific != null) {
+                    area = specific.hexColor();
+                    setValue(specific);
+                }
+                wantedAreaHexColor = null;
+            }
         }
+        setEnabled(!itemsToShow.isEmpty());
+    }
+
+    @Override
+    protected ComponentEvent<?> createChangeEvent(ValueChangeEvent<TextureAreaForSelect> event) {
+        return new ThreeJsActionEvent(UI.getCurrent(),
+                event.getValue() != null ? event.getValue().modelId() : event.getOldValue().modelId(),
+                event.getValue() != null ? event.getValue().textureId() : event.getOldValue().modelId(),
+                ThreeJsActions.APPLY_MASK_TO_TEXTURE,
+                event.isFromClient(),
+                event.getValue() != null ? event.getValue().hexColor() : null);
+    }
+
+    @Override
+    protected void handleFileUploadIngoingChangeEventAction(UploadFileEvent uploadFileEvent) {
+        if (Objects.requireNonNull(uploadFileEvent.getFileType()) == FileType.CSV) {
+            List<TextureAreaForSelect> records = new ArrayList<>();
+            TextureMapHelper.csvParse(
+                    uploadFileEvent.getModelId(),
+                    uploadFileEvent.getBase64File(),
+                    records,
+                    uploadFileEvent.getEntityId()
+            );
+            String commonPart = uploadFileEvent.getFileName() + uploadFileEvent.getModelId();
+            for (TextureAreaForSelect record : records) {
+                String key = commonPart + "_" + record.hexColor();
+                items.putMultiple(key, record);
+            }
+            items.notifyChange(items.keySet().stream().filter(e -> e.contains(commonPart)).findFirst().map(items::get).orElse(null), uploadFileEvent.isFromClient());
+        }
+    }
+
+    @Override
+    protected void handleFileRemoveIngoingChangeEventAction(RemoveFileEvent removeFileEvent) {
+        if (Objects.requireNonNull(removeFileEvent.getFileType()) == FileType.CSV) {
+            String commonPart = removeFileEvent.getEntityId() + removeFileEvent.getModelId();
+            items.keySet().removeIf(k -> k.startsWith(commonPart + "_"));
+            items.notifyChange(null, removeFileEvent.isFromClient());
+        }
+    }
+
+    @Override
+    protected void handleIngoingActionChangeEventAction(ThreeJsActionEvent threeJsActionEvent) {
+        if (threeJsActionEvent.isFromClient() || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_OTHER_TEXTURE || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_MAIN_TEXTURE) {
+            showRelevantItemsBasedOnContext(threeJsActionEvent.getTextureId(), null, true, threeJsActionEvent.getMaskColor());
+        }
+    }
+
+    @Override
+    protected void handleSubChapterChangeEventAction(SubChapterChangeEvent subChapterChangeEvent) {
+
     }
 }

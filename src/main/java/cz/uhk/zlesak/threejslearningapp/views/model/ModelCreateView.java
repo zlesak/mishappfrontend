@@ -4,7 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
@@ -22,12 +22,14 @@ import org.springframework.context.annotation.Scope;
  * View for creating a new 3D model.
  */
 @Slf4j
-@Route("createModel")
+@Route("createModel/:modelId?")
 @Tag("create-model")
 @Scope("prototype")
 @RolesAllowed(value = "TEACHER")
 public class ModelCreateView extends AbstractModelView {
     private final ModelService modelService;
+    private String modelId;
+    private QuickModelEntity quickModelEntity;
 
     /**
      * Constructor for ModelCreateView.
@@ -39,6 +41,34 @@ public class ModelCreateView extends AbstractModelView {
         super("page.title.createModelView", false);
         this.modelService = modelService;
     }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        RouteParameters parameters = event.getRouteParameters();
+        modelId = parameters.get("modelId").orElse(null);
+
+        //TODO remove after BE implementation of geting model by modelEntityId
+        if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
+            this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
+            if(modelId == null || !modelId.equals(quickModelEntity.getModel().getId())) {
+                log.error("Error loading model for editing, modelId mismatch: {}", modelId);
+                skipBeforeLeaveDialog = true;
+                throw new NotFoundException("Model identification and session data mismatch");
+            }
+        } else {
+            log.error("Error loading model for editing, not in session: {}", modelId);
+            skipBeforeLeaveDialog = true;
+            throw new NotFoundException("Model not in session");
+        }
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        if (modelId != null && quickModelEntity != null) {
+            loadSingleModelWithTextures(quickModelEntity, "main", null, true);
+        }
+    }
+
 
     /**
      * Uploads the model based on the form data.

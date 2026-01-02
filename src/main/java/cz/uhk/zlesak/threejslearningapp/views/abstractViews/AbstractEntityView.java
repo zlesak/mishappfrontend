@@ -94,7 +94,7 @@ public abstract class AbstractEntityView extends AbstractView {
      */
     protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
 
-        quickModelEntityMap.forEach((key, quickModelEntity) -> loadSingleModelWithTextures(quickModelEntity, key));
+        quickModelEntityMap.forEach((key, quickModelEntity) -> loadSingleModelWithTextures(quickModelEntity, null, key));
 
         String modelToShow = quickModelEntityMap.get("main") != null ? quickModelEntityMap.get("main").getModel().getId() : quickModelEntityMap.values().stream().toList().getFirst().getModel().getId();
 
@@ -106,19 +106,19 @@ public abstract class AbstractEntityView extends AbstractView {
      *
      * @param quickModelEntity the QuickModelEntity containing the model and texture information
      */
-    protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity, String key, boolean... showImmediately) {
+    protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity, String questionId, String key, boolean... showImmediately) {
 
         ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MODEL, quickModelEntity.getModel().getId(),
                 AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId(), "model"),
-                quickModelEntity.getModel().getName(), false, quickModelEntity.getMainTexture() != null, Objects.equals(key, "main")));
+                quickModelEntity.getModel().getName(), false, questionId, quickModelEntity.getMainTexture() != null, Objects.equals(key, "main")));
 
 
         if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
             for (var texture : quickModelEntity.getOtherTextures()) {
                 String otherTextureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(texture.getTextureFileId(), "texture");
-                ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), false, true));
+                ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), false, questionId, true));
                 if (!texture.getCsvContent().isEmpty()) {
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.CSV, texture.getTextureFileId(), texture.getCsvContent(), texture.getName(), false, true));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.CSV, texture.getTextureFileId(), texture.getCsvContent(), texture.getName(), false, questionId, true));
                 }
             }
         }
@@ -126,7 +126,7 @@ public abstract class AbstractEntityView extends AbstractView {
         if (quickModelEntity.getMainTexture() != null) {
             ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MAIN, quickModelEntity.getMainTexture().getTextureFileId(),
                     AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId(), "texture"),
-                    quickModelEntity.getMainTexture().getName(), false, true));
+                    quickModelEntity.getMainTexture().getName(), false, questionId, true));
         }
         if (showImmediately.length > 0 && showImmediately[0]) {
             ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), "main", ThreeJsActions.SHOW_MODEL, true));
