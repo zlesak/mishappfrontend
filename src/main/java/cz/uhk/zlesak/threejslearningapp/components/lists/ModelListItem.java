@@ -16,8 +16,8 @@ import java.util.List;
 @Tag("div")
 public class ModelListItem extends AbstractListItem {
 
-    public ModelListItem(QuickModelEntity model, boolean listView) {
-        super(listView);
+    public ModelListItem(QuickModelEntity model, boolean listView, boolean administrationView) {
+        super(listView, administrationView);
 
 
         HorizontalLayout modelName = new HorizontalLayout();
@@ -50,6 +50,13 @@ public class ModelListItem extends AbstractListItem {
                 UI.getCurrent().navigate("model/" + model.getModel().getId());
             } else {
                 UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getId());
+            }
+        });
+
+        setEditButtonClickListener(e -> {
+            if (administrationView) {
+                VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
+                UI.getCurrent().navigate("createModel/" + model.getModel().getId());
             }
         });
     }

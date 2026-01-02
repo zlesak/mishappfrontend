@@ -9,5 +9,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 public interface IQuizApiClient {
 
     QuizEntity readQuizStudent(String quizId) throws Exception;
+    QuizEntity readAll(String quizId) throws Exception;
 
 }

@@ -19,17 +19,23 @@ import lombok.extern.slf4j.Slf4j;
 @AnonymousAllowed
 @ParentLayout(MainLayout.class)
 public class NotFoundView extends VerticalLayout implements HasErrorParameter<NotFoundException> {
+    private final ErrorDialog errorDialog;
 
     public NotFoundView() {
         super();
         setSizeFull();
         getStyle().set("display", "block");
-
-        add(new ErrorDialog(VaadinIcon.FILE_REMOVE, "Stránka nenalezena", "Stránka nebyla nalezena.", "Zkontrolujte adresu nebo se vraťte na hlavní stránku."));
+        errorDialog = new ErrorDialog(VaadinIcon.FILE_REMOVE, "Stránka nenalezena", "Stránka nebyla nalezena.", "Zkontrolujte adresu nebo se vraťte na hlavní stránku.");
+        add(errorDialog);
     }
 
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<NotFoundException> parameter) {
+        log.info("Navigated to NotFoundView for path: {}", event.getLocation().getPath());
+        String message = parameter.getException().getMessage();
+        if (message != null && !message.isEmpty()) {
+            errorDialog.setMessage(message);
+        }
         return HttpServletResponse.SC_NOT_FOUND;
     }
 }

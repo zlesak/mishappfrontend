@@ -42,6 +42,8 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     protected final Filter filter = new Filter();
     protected final boolean listView;
     @Setter
+    protected boolean administrationView;
+    @Setter
     private Consumer<Q> entitySelectedListener;
     protected FilterParameters<F> filterParameters;
     protected final S service;
@@ -68,7 +70,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
         this.secondaryFilterLayout = new VerticalLayout(filter);
         this.service = service;
 
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), createFilter(""));
+        filterParameters = new FilterParameters<>(PageRequest.of(0, 10, Sort.Direction.ASC, "Name"), createFilter(""));
 
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
         itemListLayout.setSpacing(false);

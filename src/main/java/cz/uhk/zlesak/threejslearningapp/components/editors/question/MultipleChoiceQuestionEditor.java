@@ -43,8 +43,8 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
      * @return the created QuestionOption
      */
     @Override
-    protected QuestionOption createOption(int index) {
-        return new QuestionOption(index, "quiz.option.label");
+    protected QuestionOption createOption(int index, String... value) {
+        return new QuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -60,6 +60,21 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
         }
 
         correctAnswersGroup.setItems(indices);
+    }
+
+    @Override
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+        if (questionData instanceof MultipleChoiceQuestionData data) {
+            addOptions(data.getOptions());
+        }
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
+        if (answerData instanceof MultipleChoiceAnswerData data) {
+            correctAnswersGroup.setValue(new java.util.HashSet<>(data.getCorrectItems()));
+        }
     }
 
     /**
@@ -114,7 +129,6 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
                 return false;
             }
         }
-        return !correctAnswersGroup.getValue().isEmpty();
+        return correctAnswersGroup.getValue() != null && !correctAnswersGroup.getValue().isEmpty();
     }
 }
-

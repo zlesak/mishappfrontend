@@ -14,8 +14,8 @@ public class QuizListItem extends AbstractListItem {
      *
      * @param quiz the quiz entity to represent
      */
-    public QuizListItem(QuickQuizEntity quiz) {
-        super(true);
+    public QuizListItem(QuickQuizEntity quiz, boolean administrationView) {
+        super(true, administrationView);
 
         HorizontalLayout quizName = new HorizontalLayout();
         Span nameLabel = new Span(text("quiz.name.label") + ": ");
@@ -26,6 +26,7 @@ public class QuizListItem extends AbstractListItem {
 
 
         setOpenButtonClickListener(e -> UI.getCurrent().navigate("quiz/" + quiz.getId()));
+        setEditButtonClickListener(e -> UI.getCurrent().navigate("createQuiz/" + quiz.getId()));
     }
 }
 

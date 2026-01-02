@@ -17,8 +17,8 @@ import java.time.format.DateTimeFormatter;
 @Tag("div")
 public class ChapterListItem extends AbstractListItem {
 
-    public ChapterListItem(ChapterEntity chapter, boolean listView) {
-        super(listView);
+    public ChapterListItem(ChapterEntity chapter, boolean listView, boolean administrationView) {
+        super(listView, administrationView);
 
         HorizontalLayout chapterName = new HorizontalLayout();
         Span nameLabel = new Span(text("chapter.title") + ": ");

@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.views.chapter;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
@@ -11,6 +12,8 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.PermitAll;
@@ -89,27 +92,23 @@ public class ChapterDetailView extends AbstractChapterView {
      *
      * @param event the sub-chapter change event
      */
-    private void handleSubChapterChange(SubChapterChangeEvent event) {
+    private void handleSubChapterChange(SubChapterChangeEvent event, String chapterId) {
         try {
             SubChapterForSelect newValue = event.getNewValue();
 
             if (newValue == null) {
                 editorjs.showWholeChapterData();
-                if (modelsMap.containsKey("main")) {
-                    modelDiv.modelTextureAreaSelectContainer.getModelListingSelect()
-                            .setSelectedModelById(modelsMap.get("main").getModel().getId());
-                }
+                var mainModel = chapterService.getChaptersModels(chapterId).get("main");
+                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), mainModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL, true));
                 return;
             }
 
             String subChapterId = newValue.id();
             editorjs.setSelectedSubchapterData(chapterService.getSelectedSubChapterContent(subChapterId));
 
-            QuickModelEntity modelToShow = modelsMap.getOrDefault(subChapterId, modelsMap.get("main"));
-            if (modelToShow != null) {
-                modelDiv.modelTextureAreaSelectContainer.getModelListingSelect()
-                        .setSelectedModelById(modelToShow.getModel().getId());
-            }
+            String modelId = modelsMap != null ? modelsMap.getOrDefault(subChapterId, modelsMap.get("main")).getModel().getId(): "main";
+            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, null, ThreeJsActions.SHOW_MODEL, true));
+
         } catch (Exception e) {
             log.error("Error changing sub-chapter: {}", e.getMessage(), e);
             new ErrorNotification(text("error.subChapterLoadFailed") + ": " + e.getMessage(), 5000);
@@ -144,7 +143,7 @@ public class ChapterDetailView extends AbstractChapterView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 SubChapterChangeEvent.class,
-                this::handleSubChapterChange
+                e -> handleSubChapterChange(e, chapterId)
         ));
     }
 }

@@ -9,6 +9,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 
 public class ErrorDialog extends Div {
+    private final Paragraph detailsParagraph = new Paragraph();
 
     public ErrorDialog(VaadinIcon icon, String title, String message, String details) {
         getStyle().set("display", "flex");
@@ -26,7 +27,11 @@ public class ErrorDialog extends Div {
         Button backButton = new Button("Zpět na hlavní stránku", new Icon(VaadinIcon.HOME));
         backButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         backButton.addClickListener(e -> backButton.getUI().ifPresent(ui -> ui.navigate("")));
+        detailsParagraph.setText(message);
+        add(errorIcon, new H1(title), detailsParagraph, new Paragraph(details), backButton);
+    }
 
-        add(errorIcon, new H1(title), new Paragraph(message), new Paragraph(details), backButton);
+    public void setMessage(String message) {
+        detailsParagraph.setText(message);
     }
 }

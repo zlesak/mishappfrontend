@@ -15,6 +15,7 @@ import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
  */
 public class AbstractListItem extends HorizontalLayout implements I18nAware {
     VerticalLayout details = new VerticalLayout();
+    private final Button editButton;
     private final Button selectButton;
     private final Button openButton;
 
@@ -23,7 +24,7 @@ public class AbstractListItem extends HorizontalLayout implements I18nAware {
      * Initializes the layout and components for list items.
      * @param listView indicates whether the item is displayed in list view mode or select mode
      */
-    public AbstractListItem(boolean listView) {
+    public AbstractListItem(boolean listView, boolean administrationView) {
         setWidthFull();
         setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);
         setAlignItems(HorizontalLayout.Alignment.CENTER);
@@ -32,8 +33,9 @@ public class AbstractListItem extends HorizontalLayout implements I18nAware {
 
         openButton = getOpenButton(listView);
         selectButton = getSeletButton(listView);
+        editButton = getEditButton(administrationView);
 
-        add(details, openButton, selectButton);
+        add(details, openButton, selectButton, editButton);
     }
 
     /**
@@ -65,6 +67,13 @@ public class AbstractListItem extends HorizontalLayout implements I18nAware {
         return button;
     }
 
+    private Button getEditButton(boolean administrationView) {
+        Button editButton = new Button(text("button.edit"));
+        editButton.getStyle().set("margin", "12px").set("padding", "8px 24px");
+        editButton.setVisible(administrationView);
+        return editButton;
+    }
+
     /**
      * Sets the click listener for the select button.
      * @param listener the click event listener
@@ -79,5 +88,9 @@ public class AbstractListItem extends HorizontalLayout implements I18nAware {
      */
     public void setOpenButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
         openButton.addClickListener(listener);
+    }
+
+    public void setEditButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
+        editButton.addClickListener(listener);
     }
 }

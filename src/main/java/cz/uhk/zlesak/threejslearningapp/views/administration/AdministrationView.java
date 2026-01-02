@@ -59,6 +59,10 @@ public class AdministrationView extends AbstractView {
         modelListingView = new ModelListingView(modelService);
         quizListingView = new QuizListingView(quizService);
 
+        chapterListingView.setAdministrationView(true);
+        modelListingView.setAdministrationView(true);
+        quizListingView.setAdministrationView(true);
+
         navigationTabs = new TabSheet();
         navigationTabs.add(chaptersTab, chapterListingView);
         navigationTabs.add(modelsTab, modelListingView);

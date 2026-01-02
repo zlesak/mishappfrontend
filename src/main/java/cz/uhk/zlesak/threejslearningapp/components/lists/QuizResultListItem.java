@@ -12,8 +12,8 @@ public class QuizResultListItem extends AbstractListItem {
     /**
      * Constructs a QuizListItem for the given quiz.
      */
-    public QuizResultListItem(QuickQuizResult result) {
-        super(true);
+    public QuizResultListItem(QuickQuizResult result, boolean administrationView) {
+        super(true, administrationView);
         HorizontalLayout quizName = new HorizontalLayout();
         Span maxScoreLabel = new Span(text("quiz.result.maxScore.label") + ": ");
         Span maxScore = new Span(String.valueOf(result.getMaxScore()));

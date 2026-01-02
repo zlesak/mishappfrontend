@@ -57,6 +57,15 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         return quizResultApiClient.validateAnswers(request);
     }
 
+    public QuizEntity getQuizWithAnswers(String quizId) {
+        try {
+            return quizApiClient.readAll(quizId);
+        } catch (Exception e) {
+            log.error("Nepodařilo se naříst kvíz s odpověďmi: {}", String.valueOf(e));
+            throw new ApplicationContextException("Nepodařilo se naříst kvíz s odpověďmi");
+        }
+    }
+
     /**
      * Gets quiz data for student view (without correct answers).
      *

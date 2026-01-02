@@ -57,7 +57,7 @@ public class ModelListingView extends AbstractListingView<QuickModelEntity, Mode
      */
     @Override
     protected AbstractListItem createListItem(QuickModelEntity model) {
-        return new ModelListItem(model, listView);
+        return new ModelListItem(model, listView, administrationView);
     }
 
     /**

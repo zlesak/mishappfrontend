@@ -30,8 +30,8 @@ public class OrderingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      * @return the created QuestionOption
      */
     @Override
-    protected QuestionOption createOption(int index) {
-        return new QuestionOption(index, "quiz.option.label");
+    protected QuestionOption createOption(int index, String... value) {
+        return new QuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -45,6 +45,18 @@ public class OrderingQuestionEditor extends QuestionEditorBase<QuestionOption> {
             indices.add(index);
             option.update(index);
         }
+    }
+
+    @Override
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+        if (questionData instanceof OrderingQuestionData data) {
+            addOptions(data.getItems());
+        }
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
     }
 
     /**
@@ -104,4 +116,3 @@ public class OrderingQuestionEditor extends QuestionEditorBase<QuestionOption> {
         return true;
     }
 }
-

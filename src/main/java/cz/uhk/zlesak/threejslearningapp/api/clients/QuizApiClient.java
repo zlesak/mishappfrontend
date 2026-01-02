@@ -40,6 +40,11 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
         return sendGetRequest(baseUrl + quizId + "/questions", getEntityClass(), "Chyba při získávání entity dle ID", quizId, "startQuiz", "true");
     }
 
+    @Override
+    public QuizEntity readAll(String quizId) throws Exception {
+        return sendGetRequest(baseUrl + quizId + "/all", getEntityClass(), "Chyba při získávání entity dle ID", quizId, "startQuiz", "true");
+    }
+
     //region Overridden operations from AbstractApiClient
     /**
      * Gets the entity class for Quiz

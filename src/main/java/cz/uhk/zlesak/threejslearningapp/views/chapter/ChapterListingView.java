@@ -54,7 +54,7 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      */
     @Override
     protected AbstractListItem createListItem(ChapterEntity chapter) {
-        return new ChapterListItem(chapter, listView);
+        return new ChapterListItem(chapter, listView, administrationView);
     }
 
     /**
