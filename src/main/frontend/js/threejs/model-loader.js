@@ -14,20 +14,27 @@ export async function loadModel(modelUrl, modelId, models, questionId, isAdvance
             model: modelUrl,
             mainTexture: null,
             otherTextures: [],
-            question: questionId,
+            question: [questionId],
             modelLoader: null,
             textureLoader: null,
             loadedMainTexture: null
         });
     } else if (questionId) {
-        modelExists.question = questionId;
+        modelExists.question.push(questionId);
     } else {
         modelExists.model = modelUrl;
         modelExists.advanced = isAdvanced;
     }
 }
 
-export async function removeModel(modelId, models, scene, disposeObjectFn){
+export async function removeQuestionId(modelId, models, questionId) {
+    const modelExists = models.find(m => m.id === modelId);
+    if (modelExists) {
+        modelExists.question = modelExists.question.filter(qId => qId !== questionId);
+    }
+}
+
+export async function removeModel(modelId, models, scene, disposeObjectFn) {
     const modelExists = models.find(m => m.id === modelId);
     if (modelExists) {
         if (modelExists) {
@@ -44,7 +51,7 @@ export async function removeModel(modelId, models, scene, disposeObjectFn){
 function getObjLoader(auth) {
     const objLoader = new OBJLoader();
     objLoader.crossOrigin = 'anonymous';
-        objLoader.requestHeader = auth;
+    objLoader.requestHeader = auth;
     return objLoader;
 }
 

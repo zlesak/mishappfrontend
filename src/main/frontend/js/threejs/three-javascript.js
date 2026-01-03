@@ -54,10 +54,10 @@ window.removeModel = async function(element, modelId) {
     }
 }
 
-window.clear = async function(element) {
+window.clearModel = async function(element, modelId, questionId, force) {
   const inst = getInstance(element);
   if (inst) {
-    await inst.clear();
+    await inst.clearModel(modelId, questionId, force);
   }
 };
 

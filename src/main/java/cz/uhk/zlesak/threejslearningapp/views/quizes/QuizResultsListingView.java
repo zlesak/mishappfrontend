@@ -44,7 +44,7 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      */
     @Override
     protected AbstractListItem createListItem(QuickQuizResult quiz) {
-        return new QuizResultListItem(quiz, administrationView);
+        return new QuizResultListItem(quiz, administrationView, quizId);
     }
 
     /**

@@ -147,7 +147,7 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                     String modelId = event.getEventData().getString("event.detail.modelId");
                     String textureId = event.getEventData().getString("event.detail.textureId");
                     String hexColor = event.getEventData().getString("event.detail.hexColor");
-                    ComponentUtil.fireEvent(UI.getCurrent(),  new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, hexColor));
+                    ComponentUtil.fireEvent(UI.getCurrent(),  new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, null, hexColor));
                 }).addEventData("event.detail.modelId")
                 .addEventData("event.detail.textureId")
                 .addEventData("event.detail.hexColor")

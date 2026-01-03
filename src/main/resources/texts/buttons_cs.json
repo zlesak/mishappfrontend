@@ -12,5 +12,7 @@
   "loginButton.label": "Přihlásit se",
   "logoutButton.label": "Odhlásit se",
   "button.edit": "Upravit",
-  "button.delete": "Smazat"
+  "button.delete": "Smazat",
+  "button.back" :  "Zpět"
+
 }

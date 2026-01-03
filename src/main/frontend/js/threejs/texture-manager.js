@@ -96,6 +96,23 @@ export async function removeOtherTexture(modelId, textureId, models) {
 }
 
 /**
+ * Odstraní všechny další textury z modelu
+ */
+export async function removeOtherTextures(modelId, models) {
+    const modelObject = models.find(m => m.id === modelId);
+
+    if (!modelObject) {
+        console.error('removeOtherTextures: model not found for id', modelId);
+        return;
+    }
+
+    const textureIds = modelObject.otherTextures.map(t => t.textureId);
+    for (const textureId of textureIds) {
+        await removeOtherTexture(modelId, textureId, models);
+    }
+}
+
+/**
  * Přepne na jinou texturu
  */
 export async function switchOtherTexture(textureId, currentModel) {

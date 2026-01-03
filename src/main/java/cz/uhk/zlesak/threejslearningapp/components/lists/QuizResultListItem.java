@@ -3,7 +3,10 @@ package cz.uhk.zlesak.threejslearningapp.components.lists;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.router.RouteParam;
+import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
+import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizResultView;
 
 /**
  * A list item representing a quiz for listigng purposes.
@@ -12,7 +15,7 @@ public class QuizResultListItem extends AbstractListItem {
     /**
      * Constructs a QuizListItem for the given quiz.
      */
-    public QuizResultListItem(QuickQuizResult result, boolean administrationView) {
+    public QuizResultListItem(QuickQuizResult result, boolean administrationView, String redirect) {
         super(true, administrationView);
         HorizontalLayout quizName = new HorizontalLayout();
         Span maxScoreLabel = new Span(text("quiz.result.maxScore.label") + ": ");
@@ -31,7 +34,10 @@ public class QuizResultListItem extends AbstractListItem {
         details.add(quizName);
 
 
-        setOpenButtonClickListener(e -> UI.getCurrent().navigate("quiz-result/" + result.getId()));
+        setOpenButtonClickListener(e ->
+                UI.getCurrent().navigate(QuizResultView.class,
+                        new RouteParameters(new RouteParam("quizId", result.getId()),new RouteParam("back", redirect)))
+        );
     }
 }
 

@@ -31,7 +31,7 @@ public class QuizResultDetailCard extends VerticalLayout implements I18nAware {
                 Boolean isCorrect = entry.getValue();
                 Integer score = result.getQuestionScores().get(questionId);
 
-                QuizQuestionResultCard questionResult = new QuizQuestionResultCard(questionNumber, isCorrect, score);
+                QuizQuestionResultCard questionResult = new QuizQuestionResultCard(questionNumber, questionId, isCorrect, score);
                 add(questionResult);
                 questionNumber++;
             }

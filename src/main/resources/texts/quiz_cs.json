@@ -108,5 +108,6 @@
   "page.title.quizListView": "Seznam kvízů",
   "quiz.result.maxScore.label": "Maximální skóre",
   "quiz.result.totalScore.label":  "Celkové skóre",
-  "quiz.result.percentage.label": "Procentuální hodnocení"
+  "quiz.result.percentage.label": "Procentuální hodnocení",
+  "quiz.question.selected": "Vybráná odpověď"
 }

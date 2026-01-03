@@ -18,13 +18,21 @@ import org.springframework.context.annotation.Scope;
 @Getter
 @Slf4j
 public class ModelTextureAreaSelectContainer extends HorizontalLayout {
-
     ModelListingSelect modelListingSelect = new ModelListingSelect();
     TextureListingSelect textureListingSelect = new TextureListingSelect();
     TextureAreaSelect textureAreaSelect = new TextureAreaSelect();
 
+    String questionId;
+
     public ModelTextureAreaSelectContainer() {
         add(modelListingSelect, textureListingSelect, textureAreaSelect);
         setWidthFull();
+    }
+
+    public void setQuestionId(String questionId) {
+        this.questionId = questionId;
+        modelListingSelect.setQuestionId(questionId);
+        textureListingSelect.setQuestionId(questionId);
+        textureAreaSelect.setQuestionId(questionId);
     }
 }

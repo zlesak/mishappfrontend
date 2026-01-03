@@ -54,14 +54,9 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
                 return;
             }
 
-            if (textureId == null) {
-                wantedAreaHexColor = getValue() != null ? getValue().hexColor() : null;
-            }
-
             String finalTextureId = textureId != null ? textureId : texture;
 
             area = null;
-            clear();
 
             itemsToShow = items.values().stream().filter(e -> e.textureId().equals(finalTextureId)).toList();
             setItems(itemsToShow);
@@ -72,8 +67,8 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
                 if (specific != null) {
                     area = specific.hexColor();
                     setValue(specific);
+                    wantedAreaHexColor = null;
                 }
-                wantedAreaHexColor = null;
             }
         }
         setEnabled(!itemsToShow.isEmpty());
@@ -86,6 +81,7 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
                 event.getValue() != null ? event.getValue().textureId() : event.getOldValue().modelId(),
                 ThreeJsActions.APPLY_MASK_TO_TEXTURE,
                 event.isFromClient(),
+                questionId,
                 event.getValue() != null ? event.getValue().hexColor() : null);
     }
 
@@ -119,8 +115,17 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
 
     @Override
     protected void handleIngoingActionChangeEventAction(ThreeJsActionEvent threeJsActionEvent) {
-        if (threeJsActionEvent.isFromClient() || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_OTHER_TEXTURE || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_MAIN_TEXTURE) {
-            showRelevantItemsBasedOnContext(threeJsActionEvent.getTextureId(), null, true, threeJsActionEvent.getMaskColor());
+        if(questionId == null || Objects.equals(threeJsActionEvent.getQuestionId(), questionId)) {
+            if (threeJsActionEvent.getAction() == ThreeJsActions.REMOVE)
+            {
+                String commonPart = threeJsActionEvent.getModelId();
+                items.keySet().removeIf(k -> k.contains(commonPart));
+                items.notifyChange(null, threeJsActionEvent.isFromClient());
+                return;
+            }
+            if (threeJsActionEvent.isFromClient() || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_OTHER_TEXTURE || threeJsActionEvent.getAction() == ThreeJsActions.SWITCH_MAIN_TEXTURE) {
+                showRelevantItemsBasedOnContext(threeJsActionEvent.getTextureId(), null, true, threeJsActionEvent.getMaskColor());
+            }
         }
     }
 

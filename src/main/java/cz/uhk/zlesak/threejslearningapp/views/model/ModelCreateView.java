@@ -65,7 +65,7 @@ public class ModelCreateView extends AbstractModelView {
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         if (modelId != null && quickModelEntity != null) {
-            loadSingleModelWithTextures(quickModelEntity, "main", null, true);
+            loadSingleModelWithTextures(quickModelEntity, null, null, true);
         }
     }
 

@@ -13,13 +13,15 @@ public class ThreeJsActionEvent extends ComponentEvent<UI> {
     private final String modelId;
     private final String textureId;
     private final String maskColor;
+    private final String questionId;
     private final ThreeJsActions action;
     private final boolean forceClient;
 
-    public ThreeJsActionEvent(UI source, String modelId, String textureId, ThreeJsActions action, boolean fromClient, String... maskColor) {
+    public ThreeJsActionEvent(UI source, String modelId, String textureId, ThreeJsActions action, boolean fromClient, String questionId, String... maskColor) {
         super(source, fromClient);
         this.modelId = modelId;
         this.textureId = textureId;
+        this.questionId = questionId;
         this.action = action;
         this.maskColor = maskColor.length > 0 ? maskColor[0] : null;
         this.forceClient = maskColor.length > 1;

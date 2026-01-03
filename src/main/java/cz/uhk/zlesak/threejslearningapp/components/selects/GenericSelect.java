@@ -13,6 +13,7 @@ import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import lombok.Setter;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ import java.util.function.Function;
 public abstract class GenericSelect<T> extends Select<T> implements I18nAware {
     protected final List<Registration> registrations = new ArrayList<>();
     protected final Function<T, String> idGenerator;
+    @Setter
+    protected String questionId;
 
     protected ObservableMap<String, T> items;
 

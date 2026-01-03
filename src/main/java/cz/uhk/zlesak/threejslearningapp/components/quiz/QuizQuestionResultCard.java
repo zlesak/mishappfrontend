@@ -15,7 +15,7 @@ public class QuizQuestionResultCard extends HorizontalLayout implements I18nAwar
      * @param isCorrect whether the answer was correct
      * @param score score obtained for the question
      */
-    public QuizQuestionResultCard(int questionNumber, Boolean isCorrect, Integer score) {
+    public QuizQuestionResultCard(int questionNumber, String selected, Boolean isCorrect, Integer score) {
         super();
         setSpacing(true);
         setPadding(true);
@@ -23,6 +23,9 @@ public class QuizQuestionResultCard extends HorizontalLayout implements I18nAwar
                 .set("border-left", "3px solid " + (isCorrect ? "var(--lumo-success-color)" : "var(--lumo-error-color)"));
 
         Span questionLabel = new Span(text("quiz.question.number") + " " + questionNumber + ": ");
+        questionLabel.getStyle().set("font-weight", "bold");
+
+        Span selectedAnswer = new Span(text("quiz.question.selected") + ": " + selected);
         questionLabel.getStyle().set("font-weight", "bold");
 
         Span statusLabel = new Span(isCorrect ? "✓ " + text("quiz.result.correct") : "✗ " + text("quiz.result.incorrect"));
@@ -33,6 +36,6 @@ public class QuizQuestionResultCard extends HorizontalLayout implements I18nAwar
                 .set("font-size", "var(--lumo-font-size-s)")
                 .set("color", "var(--lumo-secondary-text-color)");
 
-        add(questionLabel, statusLabel, scoreLabel);
+        add(questionLabel, statusLabel, selectedAnswer, scoreLabel);
     }
 }

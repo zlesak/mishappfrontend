@@ -43,7 +43,6 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect>
             return;
 
         texture = null;
-        clear();
         List<TextureListingForSelect> itemsToShow = new ArrayList<>();
         modelId = modelId != null ? modelId : additionalContext != null ? additionalContext.modelId() : null;
 
@@ -53,7 +52,7 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect>
                 itemsToShow = items.values().stream().filter(e -> e.modelId().equals(finalModelId)).toList();
                 setItems(itemsToShow);
                 if (specificEntityId != null && specificEntityId.length > 0 && specificEntityId[0] != null && !specificEntityId[0].equals("main")) {
-                    TextureListingForSelect specific = items.values().stream().filter(e -> Objects.equals(e.textureId(), specificEntityId[0])).findFirst().orElse(null);
+                    TextureListingForSelect specific = itemsToShow.stream().filter(e -> Objects.equals(e.textureId(), specificEntityId[0])).findFirst().orElse(null);
                     if (specific != null) {
                         texture = specific.textureId();
                         setValue(specific);
@@ -62,7 +61,7 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect>
                     texture = additionalContext.textureId();
                     setValue(additionalContext);
                 } else {
-                    TextureListingForSelect mainTexture = items.values().stream().filter(e -> e.main()[0]).findFirst().orElse(null);
+                    TextureListingForSelect mainTexture = itemsToShow.stream().filter(e -> e.main()[0]).findFirst().orElse(null);
                     if (mainTexture != null) {
                         texture = mainTexture.textureId();
                         setValue(mainTexture);
@@ -76,7 +75,7 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect>
     @Override
     protected ComponentEvent<?> createChangeEvent(ValueChangeEvent<TextureListingForSelect> event) {
         TextureListingForSelect e = event.getValue() != null ? event.getValue() : null;
-        return new ThreeJsActionEvent(UI.getCurrent(), e != null ? e.modelId() : null, e != null ? e.textureId() : null, ThreeJsActions.SWITCH_OTHER_TEXTURE, event.isFromClient());
+        return new ThreeJsActionEvent(UI.getCurrent(), e != null ? e.modelId() : null, e != null ? e.textureId() : null, ThreeJsActions.SWITCH_OTHER_TEXTURE, event.isFromClient(), questionId);
     }
 
     @Override
@@ -96,8 +95,14 @@ public class TextureListingSelect extends GenericSelect<TextureListingForSelect>
 
     @Override
     protected void handleIngoingActionChangeEventAction(ThreeJsActionEvent threeJsActionEvent) {
-        if (threeJsActionEvent.isFromClient() || threeJsActionEvent.isForceClient()) {
-            showRelevantItemsBasedOnContext(threeJsActionEvent.getModelId(), null, true, threeJsActionEvent.getTextureId());
+        if(questionId == null || Objects.equals(threeJsActionEvent.getQuestionId(), questionId)) {
+            if (threeJsActionEvent.getAction() == ThreeJsActions.REMOVE) {
+                items.remove(threeJsActionEvent.getModelId());
+                return;
+            }
+            if (threeJsActionEvent.isFromClient() || threeJsActionEvent.isForceClient()) {
+                showRelevantItemsBasedOnContext(threeJsActionEvent.getModelId(), null, true, threeJsActionEvent.getTextureId());
+            }
         }
     }
 

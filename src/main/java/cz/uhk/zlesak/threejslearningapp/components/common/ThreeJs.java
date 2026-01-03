@@ -304,6 +304,22 @@ public class ThreeJs extends Component {
     }
 
     /**
+     * Clears the specified model from the Three.js memory.
+     * @param modelId identification of the model to be cleared
+     */
+    private void clearModel(String modelId, String questionId, boolean forceClear) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.clearModel === 'function') {
+                        window.clearModel($0, $1, $2, $3).then(_ => {});
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in clearModel:', e);
+                }
+                """, getElement(), modelId, questionId, forceClear);
+    }
+
+    /**
      * This method is called from the JavaScript side when a color is picked by the user.
      * As of now it logs the selected color to the console and can be used to trigger further actions based on the chosen color.
      * This is a precondition to functionality of exercises
@@ -406,6 +422,7 @@ public class ThreeJs extends Component {
                         case SHOW_MODEL -> showModel(event.getModelId());
                         case APPLY_MASK_TO_TEXTURE ->
                                 applyMaskToMainTexture(event.getModelId(), event.getTextureId(), event.getMaskColor());
+                        case REMOVE -> clearModel(event.getModelId(), event.getQuestionId(), false);
                         default -> { /* No action */}
                     }
                 }
