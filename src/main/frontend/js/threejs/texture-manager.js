@@ -71,10 +71,13 @@ export async function addOtherTexture(textureUrl, textureId, modelId, models, au
         console.error('addOtherTextures: model not found for id', modelId);
         return;
     }
+    if (modelObject.otherTextures.some(t => t.textureId === textureId)) {
+        console.error('addOtherTextures: textureId already present', textureId);
+        return;
+    }
     return loadFileOfTextureWithAuth(textureUrl, auth, (texture) => {
-            modelObject.otherTextures.push({textureId, texture});
-        }
-    );
+        modelObject.otherTextures.push({textureId, texture});
+    });
 }
 
 /**

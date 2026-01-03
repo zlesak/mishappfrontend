@@ -1,5 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -13,6 +14,7 @@ import cz.uhk.zlesak.threejslearningapp.components.dialogs.leaveDialogs.BeforeLe
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
+import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 
@@ -29,6 +31,7 @@ public abstract class AbstractEntityView extends AbstractView {
     protected VerticalLayout entityContent = new VerticalLayout();
     protected VerticalLayout modelSide = new VerticalLayout();
     protected SplitLayout splitLayout;
+    protected HorizontalLayout entitySide = new HorizontalLayout(entityContentNavigation, entityContent);
 
     protected ModelContainer modelDiv = new ModelContainer();
     protected boolean skipBeforeLeaveDialog;
@@ -51,7 +54,6 @@ public abstract class AbstractEntityView extends AbstractView {
         entityContent.setPadding(false);
         entityContent.addClassName(LumoUtility.Gap.MEDIUM);
 
-        HorizontalLayout entitySide = new HorizontalLayout(entityContentNavigation, entityContent);
         entitySide.setSizeFull();
         entitySide.setPadding(false);
         entitySide.addClassName(LumoUtility.Gap.MEDIUM);
@@ -70,6 +72,19 @@ public abstract class AbstractEntityView extends AbstractView {
 
         getContent().add(splitLayout);
     }
+
+    public AbstractEntityView(String pageTitleKey) {
+        super(pageTitleKey);
+        this.skipBeforeLeaveDialog = true;
+
+        modelSide.add(modelDiv);
+        modelSide.setSizeFull();
+        modelSide.setPadding(false);
+        modelSide.getStyle().set("flex-grow", "1");
+        modelSide.addClassName(LumoUtility.Gap.MEDIUM);
+        getContent().add(modelSide);
+    }
+
 
     /**
      * Called before leaving the view.
@@ -94,11 +109,10 @@ public abstract class AbstractEntityView extends AbstractView {
      */
     protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
 
-        quickModelEntityMap.forEach((key, quickModelEntity) -> loadSingleModelWithTextures(quickModelEntity, null, key));
-
-        String modelToShow = quickModelEntityMap.get("main") != null ? quickModelEntityMap.get("main").getModel().getId() : quickModelEntityMap.values().stream().toList().getFirst().getModel().getId();
-
-        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelToShow, "main", ThreeJsActions.SHOW_MODEL, true));
+        quickModelEntityMap.forEach((key, quickModelEntity) -> {
+            boolean show = Objects.equals(key, "main");
+            loadSingleModelWithTextures(quickModelEntity, null, key, show);
+        });
     }
 
     /**
@@ -107,29 +121,46 @@ public abstract class AbstractEntityView extends AbstractView {
      * @param quickModelEntity the QuickModelEntity containing the model and texture information
      */
     protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity, String questionId, String key, boolean... showImmediately) {
+        String modelId = quickModelEntity.getModel().getId();
+        if (questionId != null) {
+            ComponentUtil.fireEvent(
+                    UI.getCurrent(),
+                    new ThreeJsActionEvent(
+                            UI.getCurrent(),
+                            modelId,
+                            null,
+                            ThreeJsActions.REMOVE,
+                            true,
+                            questionId
+                    )
+            );
+        }
 
-        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MODEL, quickModelEntity.getModel().getId(),
+        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MODEL, quickModelEntity.getModel().getId(),
                 AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId(), "model"),
-                quickModelEntity.getModel().getName(), false, questionId, quickModelEntity.getMainTexture() != null, Objects.equals(key, "main")));
+                quickModelEntity.getModel().getName(), false, questionId, quickModelEntity.getMainTexture() != null || quickModelEntity.isAdvanced(), Objects.equals(key, "main")));
 
 
         if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
             for (var texture : quickModelEntity.getOtherTextures()) {
                 String otherTextureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(texture.getTextureFileId(), "texture");
-                ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), false, questionId, true));
-                if (!texture.getCsvContent().isEmpty()) {
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.CSV, texture.getTextureFileId(), texture.getCsvContent(), texture.getName(), false, questionId, true));
+                ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.OTHER, texture.getTextureFileId(), otherTextureUrl, texture.getName(), false, questionId, true));
+                if (texture.getCsvContent() != null && !texture.getCsvContent().isEmpty()) {
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.CSV, texture.getTextureFileId(), texture.getCsvContent(), texture.getName(), false, questionId, true));
                 }
             }
         }
 
         if (quickModelEntity.getMainTexture() != null) {
-            ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), FileType.MAIN, quickModelEntity.getMainTexture().getTextureFileId(),
+            ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MAIN, quickModelEntity.getMainTexture().getTextureFileId(),
                     AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId(), "texture"),
                     quickModelEntity.getMainTexture().getName(), false, questionId, true));
         }
         if (showImmediately.length > 0 && showImmediately[0]) {
-            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), quickModelEntity.getModel().getId(), "main", ThreeJsActions.SHOW_MODEL, true));
+            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, "main", ThreeJsActions.SHOW_MODEL, true, questionId));
+        }
+        if (quickModelEntity.getMainTexture() == null && quickModelEntity.isAdvanced() && questionId != null && quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()){
+            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, quickModelEntity.getOtherTextures().getFirst().getTextureFileId(), ThreeJsActions.SWITCH_OTHER_TEXTURE, true, questionId));
         }
     }
 
@@ -155,5 +186,17 @@ public abstract class AbstractEntityView extends AbstractView {
         } else {
             postponed.proceed();
         }
+    }
+
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ModelLoadEvent.class,
+                event -> loadSingleModelWithTextures(event.getQuickModelEntity(), event.getQuestionId(), event.getQuickModelEntity().getModel().getId(), true)
+        ));
     }
 }

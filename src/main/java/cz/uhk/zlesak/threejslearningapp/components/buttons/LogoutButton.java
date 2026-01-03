@@ -12,7 +12,7 @@ import cz.uhk.zlesak.threejslearningapp.views.MainPageView;
 public class LogoutButton extends AbstractButton<UI> {
 
     public LogoutButton(AuthenticationContext authenticationContext) {
-        super("logoutButton.label", null, VaadinIcon.SIGN_OUT, ButtonVariant.LUMO_CONTRAST);
+        super("", null, VaadinIcon.SIGN_OUT, ButtonVariant.LUMO_CONTRAST);
         addClickListener(e -> {
             authenticationContext.logout();
             UI.getCurrent().navigate(MainPageView.class);

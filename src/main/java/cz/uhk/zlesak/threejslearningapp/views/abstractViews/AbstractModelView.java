@@ -1,11 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
-
-import java.util.Map;
 
 /**
  * AbstractModelView, abstract view for displaying and managing 3D models.
@@ -13,8 +10,7 @@ import java.util.Map;
 @Slf4j
 @Scope("prototype")
 public abstract class AbstractModelView extends AbstractEntityView {
-    protected final ModelUploadForm modelUploadForm;
-    private Map<String, QuickModelEntity> quickModelEntity;
+    protected final ModelUploadForm modelUploadForm = new ModelUploadForm();
 
     /**
      * Constructor for AbstractModelView.
@@ -22,7 +18,7 @@ public abstract class AbstractModelView extends AbstractEntityView {
      * @param pageTitleKey the key for the page title
      */
     public AbstractModelView(String pageTitleKey) {
-        this(pageTitleKey, true);
+        super(pageTitleKey);
     }
 
     /**
@@ -33,7 +29,6 @@ public abstract class AbstractModelView extends AbstractEntityView {
      */
     public AbstractModelView(String pageTitleKey, boolean skipBeforeLeaveDialog) {
         super(pageTitleKey, skipBeforeLeaveDialog);
-        modelUploadForm = new ModelUploadForm();
         modelUploadForm.setWidthFull();
         entityContent.add(modelUploadForm);
     }

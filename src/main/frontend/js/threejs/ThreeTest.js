@@ -9,7 +9,7 @@ import {
     createScene
 } from './scene-setup.js';
 
-import {loadModel, showModelById, removeModel} from './model-loader.js';
+import {loadModel, removeModel, removeQuestionId, showModelById} from './model-loader.js';
 
 import {
     addMainTexture,
@@ -18,6 +18,7 @@ import {
     getSurfaceNormal,
     removeMainTexture,
     removeOtherTexture,
+    removeOtherTextures,
     switchOtherTexture,
     switchToMainTexture
 } from './texture-manager.js';
@@ -330,6 +331,28 @@ class ThreeTest {
             (obj) => disposeObject(obj)
         );
         await new Promise(resolve => setTimeout(resolve, 100));
+        this.finishedActions();
+        this.render();
+    };
+
+    clearModel = async (modelId, questionId, force) => {
+        await this.doingActions('Clearing model');
+
+        await removeQuestionId(modelId, this.models, questionId);
+
+        if (!force && this.models.find(m => m.id === modelId && m.question.length > 0)) {
+            this.finishedActions();
+            return;
+        }
+
+        await removeMainTexture(modelId, this.models);
+        await removeOtherTextures(modelId, this.models);
+        await removeModel(modelId, this.models, this.scene, (obj) => disposeObject(obj))
+
+        const index = this.models.findIndex(m => m.id === modelId);
+        if (index !== -1) {
+            this.models.splice(index, 1);
+        }
         this.finishedActions();
         this.render();
     };

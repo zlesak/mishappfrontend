@@ -3,7 +3,6 @@ package cz.uhk.zlesak.threejslearningapp.views;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.avatar.Avatar;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Header;
 import com.vaadin.flow.component.html.Nav;
@@ -17,8 +16,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility.*;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LoginButton;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LogoutButton;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.ThemeModeToggleButton;
-import cz.uhk.zlesak.threejslearningapp.components.common.MenuItemInfo;
 import cz.uhk.zlesak.threejslearningapp.components.common.AvatarItem;
+import cz.uhk.zlesak.threejslearningapp.components.common.MenuItemInfo;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.CookiesNotification;
 import cz.uhk.zlesak.threejslearningapp.views.administration.AdministrationView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
@@ -82,10 +81,7 @@ public class MainLayout extends AppLayout {
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
             String username = authentication.getPrincipal() instanceof OidcUser oidcUser ? oidcUser.getPreferredUsername() : authentication.getName();
-            AvatarItem avatarItem = new AvatarItem(username, getUserRoleName(authentication), new Avatar(username));
-            layout.add(avatarItem);
-            LogoutButton logoutButton = new LogoutButton(authenticationContext);
-            layout.add(logoutButton);
+            layout.add(new AvatarItem(username, getUserRoleName(authentication), new LogoutButton(authenticationContext)));
         } else {
             LoginButton loginButton = new LoginButton();
             layout.add(loginButton);
@@ -128,8 +124,8 @@ public class MainLayout extends AppLayout {
                 }
             }
             log.warn("User {} has no recognized roles. Authorities: {}",
-                authentication.getName(),
-                authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
+                    authentication.getName(),
+                    authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
             return "Uživatel";
         }
         log.warn("Authentication is null or has no authorities");

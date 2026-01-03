@@ -64,7 +64,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     public ModelUploadForm() {
         super(Scroller.ScrollDirection.VERTICAL);
         setContent(vl);
-        objFileUpload = new FileUpload(List.of(".glb"), true, true);
+        objFileUpload = new FileUpload(List.of(".glb"), true, false);
         mainTextureFileUpload = new FileUpload(List.of(".jpg"), true, true);
         otherTexturesFileUpload = new FileUpload(List.of(".jpg"), false, true);
         csvFileUpload = new FileUpload(List.of(".csv"), false, false);

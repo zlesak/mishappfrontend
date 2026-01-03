@@ -12,6 +12,8 @@ import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
+import java.util.Objects;
+
 /**
  * ModelDetailView for displaying a 3D model entity detail
  * It is accessible at the route "/model/:modelId?".
@@ -54,6 +56,10 @@ public class ModelDetailView extends AbstractModelView {
         //TODO remove after BE implementation of geting model by modelEntityId
         if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
             this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
+            if (!Objects.equals(this.quickModelEntity.getModel().getId(), parameters.get("modelId").get())) {
+                VaadinSession.getCurrent().setAttribute("quickModelEntity", null);
+                event.forwardTo(ModelListingView.class);
+            }
         } else {
             event.forwardTo(ModelListingView.class);
         }
@@ -67,8 +73,6 @@ public class ModelDetailView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        loadSingleModelWithTextures(quickModelEntity, "main", null, true);
-
-        modelUploadForm.listingMode(); // todo show the files when edit mode
+        loadSingleModelWithTextures(quickModelEntity, null, null, true);
     }
 }

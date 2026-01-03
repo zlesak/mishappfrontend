@@ -4,6 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -13,9 +14,6 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
  * Persists choice in a cookie (themeMode=light|dark) for 1 year.
  */
 public class ThemeModeToggleButton extends Button {
-
-    private static final String ICON_LIGHT = "🌑";
-    private static final String ICON_DARK = "☀️";
 
     public ThemeModeToggleButton() {
         addClassNames(LumoUtility.Display.FLEX, LumoUtility.Gap.MEDIUM, LumoUtility.Margin.MEDIUM, LumoUtility.Padding.MEDIUM);
@@ -35,10 +33,10 @@ public class ThemeModeToggleButton extends Button {
             ThemeList themeList = UI.getCurrent().getElement().getThemeList();
             if ("dark".equals(value)) {
                 themeList.add(Lumo.DARK);
-                setText(ICON_DARK);
+                setIcon(VaadinIcon.SUN_O.create());
             } else {
                 themeList.remove(Lumo.DARK);
-                setText(ICON_LIGHT);
+                setIcon(VaadinIcon.MOON.create());
             }
         });
     }
@@ -48,11 +46,11 @@ public class ThemeModeToggleButton extends Button {
         String mode;
         if (themeList.contains(Lumo.DARK)) {
             themeList.remove(Lumo.DARK);
-            setText(ICON_LIGHT);
+            setIcon(VaadinIcon.MOON.create());
             mode = "light";
         } else {
             themeList.add(Lumo.DARK);
-            setText(ICON_DARK);
+            setIcon(VaadinIcon.SUN_O.create());
             mode = "dark";
         }
         UI.getCurrent().getPage().executeJs(

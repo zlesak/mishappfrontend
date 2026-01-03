@@ -1,49 +1,41 @@
 package cz.uhk.zlesak.threejslearningapp.components.common;
 
-import com.vaadin.flow.component.Composite;
-import com.vaadin.flow.component.HasSize;
 import com.vaadin.flow.component.avatar.Avatar;
-import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.avatar.AvatarVariant;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.components.buttons.LogoutButton;
 
-public class AvatarItem extends Composite<HorizontalLayout> implements HasSize {
+public class AvatarItem extends Div {
 
-    private final Span heading = new Span();
+    public AvatarItem(String name, String description, LogoutButton logoutButton) {
+        HorizontalLayout userInfo = new HorizontalLayout();
+        userInfo.addClassName("userMenuHeader");
+        userInfo.setSpacing(false);
 
-    private final Span description = new Span();
+        Avatar userAvatar = new Avatar(name);
+        userAvatar.getElement().setAttribute("tabindex", "-1");
+        userAvatar.addThemeVariants(AvatarVariant.LUMO_SMALL);
 
-    public AvatarItem(String head, String desc, Avatar av) {
-        getContent().setAlignItems(FlexComponent.Alignment.CENTER);
+        VerticalLayout nameLayout = new VerticalLayout();
+        nameLayout.setSpacing(false);
+        nameLayout.setPadding(false);
 
-        description.getStyle().set("color", "var(--lumo-secondary-text-color)").set("font-size",
-                "var(--lumo-font-size-s)");
+        Div fullName = new Div(name);
+        fullName.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.BOLD);
 
-        VerticalLayout column = new VerticalLayout(heading, description);
-        column.setPadding(false);
-        column.setSpacing(false);
+        Div descriptionDiv = new Div(description);
+        descriptionDiv.addClassNames(LumoUtility.FontSize.SMALL);
 
-        getContent().add(column);
-        getContent().getStyle().set("line-height", "var(--lumo-line-height-m)");
+        nameLayout.addClassName(LumoUtility.Padding.SMALL);
 
-        setHeading(head);
-        setDescription(desc);
-        setAvatar(av);
-    }
+        nameLayout.add(fullName, descriptionDiv);
 
-    public void setHeading(String text) {
-        heading.setText(text);
-    }
-
-    public void setDescription(String text) {
-        description.setText(text);
-    }
-
-    public void setAvatar(Avatar avatar) {
-        if (getContent().getComponentAt(0) instanceof Avatar existing) {
-            existing.removeFromParent();
-        }
-        getContent().addComponentAsFirst(avatar);
+        userInfo.add(userAvatar, nameLayout, logoutButton);
+        userInfo.setAlignItems(FlexComponent.Alignment.CENTER);
+        add(userInfo);
     }
 }
