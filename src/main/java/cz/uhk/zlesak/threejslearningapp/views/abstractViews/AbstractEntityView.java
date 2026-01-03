@@ -196,7 +196,13 @@ public abstract class AbstractEntityView extends AbstractView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelLoadEvent.class,
-                event -> loadSingleModelWithTextures(event.getQuickModelEntity(), event.getQuestionId(), event.getQuickModelEntity().getModel().getId(), true)
+                event -> {
+                    if(event.getQuickModelEntity().getMainTexture() == null && event.getQuickModelEntity().getOtherTextures().isEmpty()){
+                        //TODO show model with all textures when edit mode is available
+                        return;
+                    }
+                    loadSingleModelWithTextures(event.getQuickModelEntity(), event.getQuestionId(), event.getQuickModelEntity().getModel().getId(), true);
+                }
         ));
     }
 }

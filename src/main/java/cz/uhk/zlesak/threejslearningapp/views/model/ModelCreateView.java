@@ -50,7 +50,7 @@ public class ModelCreateView extends AbstractModelView {
         //TODO remove after BE implementation of geting model by modelEntityId
         if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
             this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
-            if(modelId == null || !modelId.equals(quickModelEntity.getModel().getId())) {
+            if(modelId != null && !modelId.equals(quickModelEntity.getModel().getId())) {
                 log.error("Error loading model for editing, modelId mismatch: {}", modelId);
                 skipBeforeLeaveDialog = true;
                 throw new NotFoundException("Model identification and session data mismatch");
@@ -68,7 +68,6 @@ public class ModelCreateView extends AbstractModelView {
             loadSingleModelWithTextures(quickModelEntity, null, null, true);
         }
     }
-
 
     /**
      * Uploads the model based on the form data.

@@ -7,7 +7,7 @@ import com.vaadin.flow.component.UI;
  * It extends AbstractFileEvent and includes information about the model ID, file type, and entity ID.
  */
 public class RemoveFileEvent extends AbstractFileEvent{
-    public RemoveFileEvent(UI source, String modelId, FileType fileType, String entityId, boolean fromClient) {
-        super(source, modelId, fileType, entityId, fromClient);
+    public RemoveFileEvent(UI source, String modelId, FileType fileType, String entityId, boolean fromClient, String... questionId) {
+        super(source, modelId, fileType, entityId, fromClient, questionId != null && questionId.length > 0 ? questionId[0] : null);
     }
 }

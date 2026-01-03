@@ -1,13 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.components.quiz.questionRenderers;
 
-import com.vaadin.flow.component.*;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.shared.Registration;
-import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractFileApiClient;
+import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.TextureClickSubmissionData;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 
@@ -25,6 +30,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
 
     /**
      * Constructor for TextureClickQuestionRendererComponent.
+     *
      * @param question the TextureClickQuestionData containing question details
      */
     TextureClickQuestionRendererComponent(TextureClickQuestionData question) {
@@ -33,9 +39,19 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
                 text("quiz.textureClick.instruction") + ": " + question.getQuestionText()
         ));
         Button selectColorButton = new Button(text("Vybrat barvu"));
-        String modelUrl = AbstractFileApiClient.getStreamBeEndpointUrl(question.getModelId(), "model");
-        String textureUrl = AbstractFileApiClient.getStreamBeEndpointUrl(question.getTextureId(), "texture");
-        selectColorButton.addClickListener(e -> ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), modelUrl, textureUrl, question.getModelId(), question.getQuestionId())));
+        selectColorButton.addClickListener(e -> {
+
+                    var quickModelEntity = QuickModelEntity.builder()
+                            .model(ModelFileEntity.builder().id(question.getModelId()).build())
+                            .otherTextures(List.of(
+                                    QuickTextureEntity.builder().textureFileId(question.getTextureId()).build()
+                            ))
+                            .isAdvanced(true)
+                            .build();
+
+                    ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, question.getQuestionId()));
+                }
+        );
 
         colorPreview.getStyle()
                 .set("width", "100px")
@@ -52,6 +68,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
 
     /**
      * Generates submission data based on the user's interaction.
+     *
      * @return TextureClickSubmissionData containing the user's selected color and question details
      */
     @Override
@@ -67,6 +84,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
 
     /**
      * Handles component attachment to the UI.
+     *
      * @param attachEvent the attach event
      */
     @Override
@@ -76,6 +94,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
                 attachEvent.getUI(),
                 TextureClickedEvent.class,
                 event -> {
+                    if (!event.getQuestionId().equals(question.getQuestionId())) return;
                     clickedColor = event.getHexColor();
                     colorPreview.getStyle().set("background-color", clickedColor);
                     colorPreview.setVisible(true);
@@ -86,6 +105,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
 
     /**
      * Handles component detachment from the UI.
+     *
      * @param detachEvent the detach event
      */
     @Override

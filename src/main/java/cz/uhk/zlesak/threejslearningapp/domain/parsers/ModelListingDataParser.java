@@ -24,29 +24,16 @@ public abstract class ModelListingDataParser {
 
         Map<String, ModelForSelect> uniqueModels = new LinkedHashMap<>();
 
-        if (models.containsKey("main")) {
-            QuickModelEntity mainEntity = models.get("main");
-            uniqueModels.put(mainEntity.getModel().getId(), new ModelForSelect(
-                    mainEntity.getModel().getId(),
-                    "main",
-                    mainEntity.getModel().getName(),
-                    true
-            ));
-        }
-
-        models.entrySet().stream()
-                .filter(entry -> !entry.getKey().equals("main"))
-                .forEach(entry -> {
-                    String modelId = entry.getValue().getModel().getId();
-                    if (!uniqueModels.containsKey(modelId)) {
-                        uniqueModels.put(modelId, new ModelForSelect(
-                                modelId,
-                                entry.getKey(),
-                                entry.getValue().getModel().getName(),
-                                false
-                        ));
-                    }
-                });
+        models.forEach((key, entity) -> {
+            String modelId = entity.getModel().getId();
+            if (!uniqueModels.containsKey(modelId)) {
+                uniqueModels.put(modelId, new ModelForSelect(
+                        modelId,
+                        entity.getModel().getName(),
+                        "main".equals(key)
+                ));
+            }
+        });
 
         return new LinkedList<>(uniqueModels.values());
     }

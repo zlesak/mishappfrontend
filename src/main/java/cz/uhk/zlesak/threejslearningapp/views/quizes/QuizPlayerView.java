@@ -62,6 +62,7 @@ public class QuizPlayerView extends AbstractQuizView {
      * @param quiz the quiz entity to be displayed
      */
     private void displayQuiz(QuizEntity quiz) {
+        modelDiv.modelTextureAreaSelectContainer.setEnabled(false);
         playerComponent = new QuizPlayerComponent(quiz.getQuestions());
         playerComponent.setSubmitListener(this::submitQuiz);
 

@@ -1,17 +1,24 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.QuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.CreateQuizEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
+import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.RolesAllowed;
@@ -24,24 +31,27 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * View for creating new quizzes.
  */
 @Slf4j
-@Route("createQuiz")
+@Route("createQuiz/:quizId?")
 @Tag("create-quiz")
 @Scope("prototype")
 @RolesAllowed(value = "TEACHER")
 public class QuizCreateView extends AbstractQuizView {
     private final QuizService quizService;
+    private final ChapterService chapterService;
     private final QuizForm quizForm;
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
 
     @Autowired
-    public QuizCreateView(QuizService quizService) {
+    public QuizCreateView(QuizService quizService, ChapterService chapterService) {
         super("page.title.createQuizView", false);
         this.quizService = quizService;
+        this.chapterService = chapterService;
 
         quizForm = new QuizForm();
         quizForm.setAddQuestionListener(this::addQuestion);
@@ -51,6 +61,8 @@ public class QuizCreateView extends AbstractQuizView {
         quizForm.getScroller().setHeightFull();
         quizForm.getScroller().getStyle().set("overflow", "auto");
         entityContent.add(quizForm);
+
+        modelDiv.modelTextureAreaSelectContainer.setEnabled(false);
     }
 
     /**
@@ -60,14 +72,17 @@ public class QuizCreateView extends AbstractQuizView {
      */
     private void onAccordionPanelOpened(Component component) {
         if (component instanceof TextureClickQuestionEditor textureEditor) {
-            QuickModelEntity selectedModel = textureEditor.getSelectedModel();
+            String selectedModel = textureEditor.getSelectedModelId();
+            String selectedTexture = textureEditor.getSelectedTextureId();
+            String selectedArea = textureEditor.getSelectedAreaId();
             if (selectedModel != null) {
-                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), selectedModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL, false));
+                ComponentUtil.fireEvent(UI.getCurrent(),
+                        new ThreeJsActionEvent(UI.getCurrent(), selectedModel, selectedTexture, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, textureEditor.getQuestionId(), selectedArea));
             }
         }
     }
 
-    private void addQuestion(QuestionTypeEnum questionType) {
+    private QuestionEditorBase<?> addQuestion(QuestionTypeEnum questionType) {
         QuestionEditorBase<?> editor = createQuestionEditor(questionType);
         editor.getRemoveButton().addClickListener(e -> removeQuestion(editor));
         editor.getValidateButton().addClickListener(e -> {
@@ -81,6 +96,15 @@ public class QuizCreateView extends AbstractQuizView {
         questionEditors.add(editor);
         quizForm.questionsContainer.add(quizForm.getQuestionTypeLabel(questionType), editor);
         quizForm.questionsContainer.open((int) (quizForm.questionsContainer.getChildren().count() - 1));
+        return editor;
+    }
+
+    private void addQuestion(AbstractQuestionData questionData, AbstractAnswerData answerData) {
+        QuestionTypeEnum questionType = questionData.getType();
+
+        QuestionEditorBase<?> editor = addQuestion(questionType);
+        editor.initialize(questionData);
+        editor.setAnswerData(answerData);
     }
 
     private QuestionEditorBase<?> createQuestionEditor(QuestionTypeEnum questionType) {
@@ -158,8 +182,42 @@ public class QuizCreateView extends AbstractQuizView {
     }
 
     private void loadModelsIntoRenderer(Map<String, QuickModelEntity> quickModelEntityMap) throws IOException {
-        for (QuickModelEntity quickModelEntity : quickModelEntityMap.values()) {
-            loadSingleModelWithTextures(quickModelEntity, quickModelEntity.getModel().getId(), true);
+        for (Map.Entry<String, QuickModelEntity> entry : quickModelEntityMap.entrySet()) {
+            QuickModelEntity quickModelEntity = entry.getValue();
+            loadSingleModelWithTextures(quickModelEntity, entry.getKey(), null, true);
+        }
+    }
+
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        RouteParameters parameters = event.getRouteParameters();
+        quizId = parameters.get("quizId").orElse(null);
+
+        if (quizId != null) {
+            try {
+                var entity = quizService.getQuizWithAnswers(quizId);
+                if (entity == null) {
+                    log.error("Quiz not found for editing, quizId: {}", quizId);
+                } else {
+                    ChapterEntity chapterEntity = null;
+                    if (entity.getChapterId() != null) {
+                        chapterEntity = chapterService.read(entity.getChapterId());
+                    }
+                    quizForm.setQuizData(entity.getName(), entity.getDescription(), entity.getTimeLimit(), chapterEntity);
+
+                    var answersMap = entity.getAnswers().stream()
+                            .collect(Collectors.toMap(AbstractAnswerData::getQuestionId, answer -> answer));
+
+                    for (var question : entity.getQuestions()) {
+                        var answer = answersMap.get(question.getQuestionId());
+                        addQuestion(question, answer);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error getting quiz for editing, quizId: {}", quizId, e);
+                skipBeforeLeaveDialog = true;
+                throw new NotFoundException("Error initializing quiz editing");
+            }
         }
     }
 }
