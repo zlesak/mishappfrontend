@@ -1,8 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.domain.model;
 
-import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondary;
+import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
 
-public record ModelForSelect(String id, String mainTextureId, String modelName, boolean main) implements HasPrimarySecondary {
+public record ModelForSelect(String id, String mainTextureId, String modelName, boolean mainItem) implements HasPrimarySecondaryMain {
     /**
      * @return returns the primary value, which is the model ID.
      */

@@ -26,9 +26,11 @@ public abstract class ModelListingDataParser {
 
         models.forEach((key, entity) -> {
             String modelId = entity.getModel().getId();
+            String textureId = entity.getMainTexture() != null ? entity.getMainTexture().getTextureFileId() : null;
             if (!uniqueModels.containsKey(modelId)) {
                 uniqueModels.put(modelId, new ModelForSelect(
                         modelId,
+                        textureId,
                         entity.getModel().getName(),
                         "main".equals(key)
                 ));

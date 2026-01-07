@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.domain.texture;
 
-import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondary;
+import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
 
 /**
  * Record representing a texture area for a select component.
@@ -10,7 +10,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondary;
  * @param hexColor The hex color associated with the texture area.
  * @param areaName The name of the texture area.
  */
-public record TextureAreaForSelect(String textureId, String hexColor, String areaName, String modelId) implements HasPrimarySecondary {
+public record TextureAreaForSelect(String textureId, String hexColor, String areaName, String modelId) implements HasPrimarySecondaryMain {
     /**
      * @return returns the primary value, which is the texture ID.
      */
@@ -25,5 +25,13 @@ public record TextureAreaForSelect(String textureId, String hexColor, String are
     @Override
     public String secondary() {
         return hexColor;
+    }
+
+    /**
+     * @return returns if this is a main item, which is always false in this context.
+     */
+    @Override
+    public boolean mainItem() {
+        return false;
     }
 }

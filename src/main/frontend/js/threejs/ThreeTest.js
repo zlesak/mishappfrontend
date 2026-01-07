@@ -193,13 +193,22 @@ class ThreeTest {
     }
 
     showModelById = async (modelId) => {
+
+        if (this.model != null && this.model.id === modelId) {
+            await switchToMainTexture(this.model)
+            centerCameraOnModelFn(this.camera, this.controls, this.model)
+            return {
+                model: this.model,
+                lastSelectedTextureId: this.lastSelectedTextureId
+            };
+        }
+
         await this.doingActions('Switching model');
         const result = await showModelById(
             modelId,
             this.models,
             this.model,
             this.scene,
-            (obj) => disposeObject(obj),
             (model) => centerCameraOnModelFn(this.camera, this.controls, model),
             await this.authHeaders()
         );

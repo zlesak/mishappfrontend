@@ -12,13 +12,26 @@ import org.springframework.context.annotation.Scope;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * TextureAreaSelect is a specialized select component for choosing texture areas.
+ * It extends GenericSelect and handles texture area selection changes and file upload events.
+ */
 @Scope("prototype")
-public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
+public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect, UploadFileEvent> {
 
+    /**
+     * Constructor for TextureAreaSelect.
+     */
     public TextureAreaSelect() {
         super("textureAreaSelect.caption", area -> area.areaName() != null ? area.areaName() : "", TextureAreaForSelect.class, true);
     }
 
+    /**
+     * Creates a change event when the selected texture area changes.
+     *
+     * @param event the value change event
+     * @return a ThreeJsActionEvent representing the apply mask to texture action
+     */
     @Override
     protected ComponentEvent<?> createChangeEvent(ValueChangeEvent<TextureAreaForSelect> event) {
         return new ThreeJsActionEvent(UI.getCurrent(),
@@ -30,8 +43,13 @@ public class TextureAreaSelect extends GenericSelect<TextureAreaForSelect> {
                 event.getValue() != null ? event.getValue().hexColor() : null);
     }
 
+    /**
+     * Handles the addition of new texture areas when a file upload event occurs.
+     *
+     * @param uploadFileEvent the upload file event containing texture area information
+     */
     @Override
-    public void handleFileUploadIngoingChangeEventAction(UploadFileEvent uploadFileEvent) {
+    public void handleItemAdditionIngoingChangeEventAction(UploadFileEvent uploadFileEvent) {
         List<TextureAreaForSelect> records = new ArrayList<>();
         TextureMapHelper.csvParse(
                 uploadFileEvent.getModelId(),

@@ -12,6 +12,7 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.SubchapterInitEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
@@ -82,7 +83,9 @@ public class ChapterDetailView extends AbstractChapterView {
     private void loadChapterData() {
         nameTextField.setValue(chapterService.getChapterName(chapterId));
         editorjs.setChapterContentData(chapterService.getChapterContent(chapterId));
-        chapterSelect.initializeChapterSelectionSelect(chapterService.getSubChaptersNames(chapterId));
+
+        ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), chapterService.getSubChaptersNames(chapterId), false));
+
         navigationContentLayout.initializeSubChapterData(chapterService.getSubChaptersContent(chapterId));
     }
 

@@ -1,73 +1,69 @@
 package cz.uhk.zlesak.threejslearningapp.components.selects;
 
-import com.vaadin.flow.component.ComponentEvent;
-import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.*;
+import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
-import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
-import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
-import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.SubchapterInitEvent;
 import org.springframework.context.annotation.Scope;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ChapterSelect is a select box for selecting sub-chapters.
- * Fires UI-level SubChapterChangeEvent when selection changes.
+ * ChapterSelect is a specialized GenericSelect component for selecting sub-chapters.
+ * It handles the initialization and change events related to sub-chapters.
  */
 @Scope("prototype")
-public class ChapterSelect extends GenericSelect<SubChapterForSelect> {
+public class ChapterSelect extends GenericSelect<SubChapterForSelect, SubchapterInitEvent> {
+
+    protected final List<Registration> registrations = new ArrayList<>();
+
     /**
      * Constructor for ChapterSelect.
-     * It initializes the select with an empty label, a text generator for items, and sets up the event handling for sub-chapter changes.
-     * Calls the parent class constructor with the appropriate parameters.
      */
     public ChapterSelect() {
-        super("", SubChapterForSelect::text, SubChapterForSelect.class, false, SubChapterForSelect::id);
-        setEmptySelectionAllowed(true);
-        setEmptySelectionCaption(text("chapterSelect.caption"));
-        setWidthFull();
+        super("chapterSelect.caption", chapter -> chapter.text() != null ? chapter.text() : "", SubChapterForSelect.class, true);
     }
 
     /**
-     * This method is used to populate the select with sub-chapter records.
-     * Calls the initialize method from the parent class to set the items.
+     * Creates a change event for sub-chapter selection changes.
      *
-     * @param subChapters the list of sub-chapter records to be displayed in the select
+     * @param event the value change event containing old and new values
+     * @return a SubChapterChangeEvent representing the change
      */
-    public void initializeChapterSelectionSelect(List<SubChapterForSelect> subChapters) {
-        initialize(subChapters);
-    }
-
-    @Override
     protected ComponentEvent<?> createChangeEvent(ValueChangeEvent<SubChapterForSelect> event) {
         return new SubChapterChangeEvent(UI.getCurrent(), event.getOldValue(), event.getValue(), event.isFromClient());
     }
 
+    /**
+     * Handles the addition of items in response to a SubchapterInitEvent.
+     *
+     * @param subchapterInitEvent event with items to be added to the select component
+     */
     @Override
-    protected void handleFileUploadIngoingChangeEventAction(UploadFileEvent fileType) {
-
-    }
-
-    @Override
-    protected void handleFileRemoveIngoingChangeEventAction(RemoveFileEvent fileType) {
-
-    }
-
-    @Override
-    protected void handleIngoingActionChangeEventAction(ThreeJsActionEvent threeJsActionEvent) {
-
-    }
-
-    @Override
-    protected void handleSubChapterChangeEventAction(SubChapterChangeEvent subChapterChangeEvent) {
-        showRelevantItemsBasedOnContext(subChapterChangeEvent.getNewValue() != null ? subChapterChangeEvent.getNewValue().id() : "main", null, subChapterChangeEvent.isFromClient());
-    }
-
-    @Override
-    protected void showRelevantItemsBasedOnContext(String entityId, SubChapterForSelect firstItemToSelectIfAvailable, boolean fromClient, String... specificEntityId) {
-        if (items.containsKey(entityId)) {
-            setValue(items.get(entityId));
+    public void handleItemAdditionIngoingChangeEventAction(SubchapterInitEvent subchapterInitEvent) {
+        for (SubChapterForSelect record : subchapterInitEvent.getSubChapterForSelectList()) {
+            items.putMultiple(record.id(), record);
         }
+        items.notifyChange(null, false);
+        showRelevantItemsBasedOnContext("", "");
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                SubchapterInitEvent.class, this::handleItemAdditionIngoingChangeEventAction
+        ));
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        registrations.forEach(Registration::remove);
+        registrations.clear();
     }
 }

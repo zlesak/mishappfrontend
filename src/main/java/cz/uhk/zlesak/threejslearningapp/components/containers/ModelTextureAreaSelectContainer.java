@@ -62,14 +62,14 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
                         return;
                     switch (e.getFileType()) {
                         case MODEL -> {
-                            modelListingSelect.handleFileUploadIngoingChangeEventAction(e);
+                            modelListingSelect.handleItemAdditionIngoingChangeEventAction(e);
                             textureListingSelect.showRelevantItemsBasedOnContext(modelListingSelect.getValue() != null ? modelListingSelect.getValue().id() : "", "main"); //TODO MAIN
                         }
                         case MAIN, OTHER -> {
-                            textureListingSelect.handleFileUploadIngoingChangeEventAction(e);
+                            textureListingSelect.handleItemAdditionIngoingChangeEventAction(e);
                             modelListingSelect.showRelevantItemsBasedOnContext("", textureListingSelect.getValue() != null ? textureListingSelect.getValue().modelId() : "");
                         }
-                        case CSV -> textureAreaSelect.handleFileUploadIngoingChangeEventAction(e);
+                        case CSV -> textureAreaSelect.handleItemAdditionIngoingChangeEventAction(e);
                     }
                     textureAreaSelect.showRelevantItemsBasedOnContext(textureListingSelect.getValue() != null ? textureListingSelect.getValue().textureId() : "", "");
                 }
@@ -82,13 +82,13 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
                         return;
                     switch (e.getFileType()) {
                         case MODEL -> {
-                            modelListingSelect.handleFileRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
+                            modelListingSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
                             textureListingSelect.showRelevantItemsBasedOnContext(modelListingSelect.getValue() != null ? modelListingSelect.getValue().id() : "", "main"); //TODO MAIN
                         }
                         case MAIN, OTHER ->
-                                textureListingSelect.handleFileRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
+                                textureListingSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
                         case CSV ->
-                                textureAreaSelect.handleFileRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
+                                textureAreaSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
                     }
                     textureListingSelect.showRelevantItemsBasedOnContext(e.getModelId(), "main");
                     textureAreaSelect.showRelevantItemsBasedOnContext(textureListingSelect.getValue() != null ? textureListingSelect.getValue().textureId() : "", "");
@@ -102,9 +102,9 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
                     if ((e.getQuestionId() != null && this.questionId != null) && !e.getQuestionId().equals(this.questionId))
                         return;
                     if (Objects.requireNonNull(e.getAction()) == ThreeJsActions.REMOVE) {
-                        modelListingSelect.handleFileRemoveIngoingChangeEventAction(e.getModelId(), e.isFromClient());
-                        textureListingSelect.handleFileRemoveIngoingChangeEventAction(e.getModelId() + e.getTextureId(), e.isFromClient());
-                        textureAreaSelect.handleFileRemoveIngoingChangeEventAction(e.getTextureId() + e.getMaskColor(), e.isFromClient());
+                        modelListingSelect.handleItemRemoveIngoingChangeEventAction(e.getModelId(), e.isFromClient());
+                        textureListingSelect.handleItemRemoveIngoingChangeEventAction(e.getModelId() + e.getTextureId(), e.isFromClient());
+                        textureAreaSelect.handleItemRemoveIngoingChangeEventAction(e.getTextureId() + e.getMaskColor(), e.isFromClient());
                     } else if (e.isFromClient()) {
                         modelListingSelect.showRelevantItemsBasedOnContext("", e.getModelId());
                         textureListingSelect.showRelevantItemsBasedOnContext(e.getModelId(), e.getTextureId());

@@ -68,7 +68,7 @@ function getGltfLoader(auth) {
 /**
  * Zobrazí model podle ID
  */
-export async function showModelById(modelId, models, currentModel, scene, disposeObjectFn, centerCameraFn, auth) {
+export async function showModelById(modelId, models, currentModel, scene, centerCameraFn, auth) {
     const modelObject = models.find(m => m.id === modelId);
 
     if (!modelObject) {
@@ -76,7 +76,6 @@ export async function showModelById(modelId, models, currentModel, scene, dispos
     }
 
     if (currentModel) {
-        disposeObjectFn(currentModel.modelLoader);
         try {
             scene.remove(currentModel.modelLoader);
         } catch (e) { /* ignore */
@@ -87,8 +86,6 @@ export async function showModelById(modelId, models, currentModel, scene, dispos
     let lastSelectedTextureId = null;
 
     if (modelObject.advanced) {
-
-
         await new Promise((resolve, reject) => {
             getObjLoader(auth).load(modelObject.model, (obj) => {
                 obj.traverse((child) => {
