@@ -265,11 +265,13 @@ class ThreeTest {
         }
 
         await this.doingActions('Switching to main texture');
-        const result = await switchToMainTexture(
-            this.model
-        );
-        this.model = result.model;
-        this.lastSelectedTextureId = result.lastSelectedTextureId;
+        if(this.model.loadedMainTexture != null || this.model.mainTexture != null) {
+            const result = await switchToMainTexture(
+              this.model
+            );
+            this.model = result.model;
+            this.lastSelectedTextureId = result.lastSelectedTextureId;
+        }
         this.finishedActions();
         this.render();
     };
@@ -340,7 +342,7 @@ class ThreeTest {
 
         await removeQuestionId(modelId, this.models, questionId);
 
-        if (!force && this.models.find(m => m.id === modelId && m.question.length > 0)) {
+        if (!force && this.models.find(m => m.id === modelId && m.questions.length > 0)) {
             this.finishedActions();
             return;
         }

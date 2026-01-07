@@ -6,7 +6,6 @@ package cz.uhk.zlesak.threejslearningapp.events.threejs;
 public enum ThreeJsActions {
     SHOW_MODEL,
     SWITCH_OTHER_TEXTURE,
-    SWITCH_MAIN_TEXTURE,
     APPLY_MASK_TO_TEXTURE,
     REMOVE
 }

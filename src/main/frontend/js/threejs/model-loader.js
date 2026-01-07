@@ -14,13 +14,15 @@ export async function loadModel(modelUrl, modelId, models, questionId, isAdvance
             model: modelUrl,
             mainTexture: null,
             otherTextures: [],
-            question: [questionId],
+            questions: [questionId],
+            question : questionId,
             modelLoader: null,
             textureLoader: null,
             loadedMainTexture: null
         });
     } else if (questionId) {
-        modelExists.question.push(questionId);
+        modelExists.questions.push(questionId);
+        modelExists.question = questionId;
     } else {
         modelExists.model = modelUrl;
         modelExists.advanced = isAdvanced;
@@ -30,7 +32,8 @@ export async function loadModel(modelUrl, modelId, models, questionId, isAdvance
 export async function removeQuestionId(modelId, models, questionId) {
     const modelExists = models.find(m => m.id === modelId);
     if (modelExists) {
-        modelExists.question = modelExists.question.filter(qId => qId !== questionId);
+        modelExists.questions = modelExists.questions.filter(qId => qId !== questionId);
+        modelExists.question = null;
     }
 }
 

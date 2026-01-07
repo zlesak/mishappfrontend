@@ -417,9 +417,11 @@ public class ThreeJs extends Component {
                 event -> {
                     if (!event.isFromClient()) return;
                     switch (event.getAction()) {
-                        case SWITCH_MAIN_TEXTURE -> switchToMainTexture(event.getModelId());
                         case SWITCH_OTHER_TEXTURE -> switchOtherTexture(event.getModelId(), event.getTextureId());
-                        case SHOW_MODEL -> showModel(event.getModelId());
+                        case SHOW_MODEL -> {
+                            showModel(event.getModelId());
+                            switchToMainTexture(event.getModelId());
+                        }
                         case APPLY_MASK_TO_TEXTURE ->
                                 applyMaskToMainTexture(event.getModelId(), event.getTextureId(), event.getMaskColor());
                         case REMOVE -> clearModel(event.getModelId(), event.getQuestionId(), false);

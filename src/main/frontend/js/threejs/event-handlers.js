@@ -73,17 +73,21 @@ export function createClickHandler(camera, scene, renderer, getCurrentModel, get
         const canvas = document.createElement('canvas');
         canvas.width = image.width;
         canvas.height = image.height;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', {
+          willReadFrequently: true,
+          colorSpace: 'srgb',
+          alpha: false
+        });
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(image, 0, 0);
 
-        const x = Math.floor(uv.x * image.width);
-        const y = Math.floor((1 - uv.y) * image.height);
+        const x = Math.round(uv.x * image.width);
+        const y = Math.round((1 - uv.y) * image.height);
         const pixel = ctx.getImageData(x, y, 1, 1).data;
         const hex = '#' + ((1 << 24) | (pixel[0] << 16) | (pixel[1] << 8) | pixel[2]).toString(16).slice(1);
 
         if (element && element.$server && typeof element.$server.onColorPicked === 'function') {
           element.$server.onColorPicked(currentModel.id, lastSelectedTextureId, hex, currentModel.question);
-          currentModel.question = null;
         }
       }
     }

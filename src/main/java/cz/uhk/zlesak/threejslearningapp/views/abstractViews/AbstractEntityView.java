@@ -136,7 +136,8 @@ public abstract class AbstractEntityView extends AbstractView {
             );
         }
 
-        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MODEL, quickModelEntity.getModel().getId(),
+        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MODEL,
+                quickModelEntity.getMainTexture() != null ? quickModelEntity.getMainTexture().getTextureFileId() : "main",
                 AbstractFileApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId(), "model"),
                 quickModelEntity.getModel().getName(), false, questionId, quickModelEntity.getMainTexture() != null || quickModelEntity.isAdvanced(), Objects.equals(key, "main")));
 
@@ -157,7 +158,7 @@ public abstract class AbstractEntityView extends AbstractView {
                     quickModelEntity.getMainTexture().getName(), false, questionId, true));
         }
         if (showImmediately.length > 0 && showImmediately[0]) {
-            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, "main", ThreeJsActions.SHOW_MODEL, true, questionId));
+            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, quickModelEntity.getMainTexture() != null ? quickModelEntity.getMainTexture().getTextureFileId() : null, ThreeJsActions.SHOW_MODEL, true, questionId));
         }
         if (quickModelEntity.getMainTexture() == null && quickModelEntity.isAdvanced() && questionId != null && quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()){
             ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, quickModelEntity.getOtherTextures().getFirst().getTextureFileId(), ThreeJsActions.SWITCH_OTHER_TEXTURE, true, questionId));

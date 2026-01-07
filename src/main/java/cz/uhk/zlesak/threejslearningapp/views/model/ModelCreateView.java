@@ -46,19 +46,20 @@ public class ModelCreateView extends AbstractModelView {
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
         modelId = parameters.get("modelId").orElse(null);
-
-        //TODO remove after BE implementation of geting model by modelEntityId
-        if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
-            this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
-            if(modelId != null && !modelId.equals(quickModelEntity.getModel().getId())) {
-                log.error("Error loading model for editing, modelId mismatch: {}", modelId);
+        if(modelId != null) {
+            //TODO remove after BE implementation of geting model by modelEntityId
+            if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
+                this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
+                if (!modelId.equals(quickModelEntity.getModel().getId())) {
+                    log.error("Error loading model for editing, modelId mismatch: {}", modelId);
+                    skipBeforeLeaveDialog = true;
+                    throw new NotFoundException("Model identification and session data mismatch");
+                }
+            } else {
+                log.error("Error loading model for editing, not in session: {}", modelId);
                 skipBeforeLeaveDialog = true;
-                throw new NotFoundException("Model identification and session data mismatch");
+                throw new NotFoundException("Model not in session");
             }
-        } else {
-            log.error("Error loading model for editing, not in session: {}", modelId);
-            skipBeforeLeaveDialog = true;
-            throw new NotFoundException("Model not in session");
         }
     }
 

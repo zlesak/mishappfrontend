@@ -99,7 +99,7 @@ public class ChapterDetailView extends AbstractChapterView {
             if (newValue == null) {
                 editorjs.showWholeChapterData();
                 var mainModel = chapterService.getChaptersModels(chapterId).get("main");
-                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), mainModel.getModel().getId(), null, ThreeJsActions.SHOW_MODEL, true, null));
+                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), mainModel.getModel().getId(), "main", ThreeJsActions.SHOW_MODEL, true, null));
                 return;
             }
 
@@ -107,7 +107,7 @@ public class ChapterDetailView extends AbstractChapterView {
             editorjs.setSelectedSubchapterData(chapterService.getSelectedSubChapterContent(subChapterId));
 
             String modelId = modelsMap != null ? modelsMap.getOrDefault(subChapterId, modelsMap.get("main")).getModel().getId(): "main";
-            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, null, ThreeJsActions.SHOW_MODEL, true, null));
+            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, "main", ThreeJsActions.SHOW_MODEL, true, null));
 
         } catch (Exception e) {
             log.error("Error changing sub-chapter: {}", e.getMessage(), e);
