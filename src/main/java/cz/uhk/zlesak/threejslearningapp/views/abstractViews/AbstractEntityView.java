@@ -3,7 +3,6 @@ package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeLeaveEvent;
@@ -27,11 +26,9 @@ import java.util.Objects;
  *
  */
 public abstract class AbstractEntityView extends AbstractView {
-    protected VerticalLayout entityContentNavigation = new VerticalLayout();
     protected VerticalLayout entityContent = new VerticalLayout();
     protected VerticalLayout modelSide = new VerticalLayout();
     protected SplitLayout splitLayout;
-    protected HorizontalLayout entitySide = new HorizontalLayout(entityContentNavigation, entityContent);
 
     protected ModelContainer modelDiv = new ModelContainer();
     protected boolean skipBeforeLeaveDialog;
@@ -43,30 +40,17 @@ public abstract class AbstractEntityView extends AbstractView {
     public AbstractEntityView(String pageTitleKey, boolean skipBeforeLeaveDialog) {
         super(pageTitleKey);
         this.skipBeforeLeaveDialog = skipBeforeLeaveDialog;
-        entityContentNavigation.setPadding(false);
-        entityContentNavigation.addClassName(LumoUtility.Gap.MEDIUM);
-        entityContentNavigation.setVisible(false);
-        entityContentNavigation.getStyle().set("flex", "0 1 auto");
-        entityContentNavigation.getStyle().set("width", "fit-content");
-        entityContentNavigation.getStyle().set("max-width", "250px");
 
         entityContent.setSizeFull();
         entityContent.setPadding(false);
-        entityContent.addClassName(LumoUtility.Gap.MEDIUM);
-
-        entitySide.setSizeFull();
-        entitySide.setPadding(false);
-        entitySide.addClassName(LumoUtility.Gap.MEDIUM);
-        entitySide.setFlexGrow(0, entityContentNavigation);
-        entitySide.setFlexGrow(1, entityContent);
+        entityContent.addClassName(LumoUtility.Gap.XSMALL);
 
         modelSide.add(modelDiv);
         modelSide.setSizeFull();
         modelSide.setPadding(false);
-        modelSide.getStyle().set("flex-grow", "1");
-        modelSide.addClassName(LumoUtility.Gap.MEDIUM);
+        modelSide.addClassNames(LumoUtility.Flex.GROW, LumoUtility.Gap.MEDIUM);
 
-        splitLayout = new SplitLayout(entitySide, modelSide);
+        splitLayout = new SplitLayout(entityContent, modelSide);
         splitLayout.setSizeFull();
         splitLayout.addClassName(LumoUtility.Gap.MEDIUM);
 
@@ -80,8 +64,7 @@ public abstract class AbstractEntityView extends AbstractView {
         modelSide.add(modelDiv);
         modelSide.setSizeFull();
         modelSide.setPadding(false);
-        modelSide.getStyle().set("flex-grow", "1");
-        modelSide.addClassName(LumoUtility.Gap.MEDIUM);
+        modelSide.addClassNames(LumoUtility.Flex.GROW, LumoUtility.Gap.MEDIUM);
         getContent().add(modelSide);
     }
 
@@ -108,7 +91,6 @@ public abstract class AbstractEntityView extends AbstractView {
      * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects
      */
     protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
-
         quickModelEntityMap.forEach((key, quickModelEntity) -> {
             boolean show = Objects.equals(key, "main");
             loadSingleModelWithTextures(quickModelEntity, null, key, show);
@@ -160,7 +142,7 @@ public abstract class AbstractEntityView extends AbstractView {
         if (showImmediately.length > 0 && showImmediately[0]) {
             ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, quickModelEntity.getMainTexture() != null ? quickModelEntity.getMainTexture().getTextureFileId() : null, ThreeJsActions.SHOW_MODEL, true, questionId));
         }
-        if (quickModelEntity.getMainTexture() == null && quickModelEntity.isAdvanced() && questionId != null && quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()){
+        if (quickModelEntity.getMainTexture() == null && quickModelEntity.isAdvanced() && questionId != null && quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
             ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, quickModelEntity.getOtherTextures().getFirst().getTextureFileId(), ThreeJsActions.SWITCH_OTHER_TEXTURE, true, questionId));
         }
     }
@@ -198,7 +180,7 @@ public abstract class AbstractEntityView extends AbstractView {
                 attachEvent.getUI(),
                 ModelLoadEvent.class,
                 event -> {
-                    if(event.getQuickModelEntity().getMainTexture() == null && event.getQuickModelEntity().getOtherTextures().isEmpty()){
+                    if (event.getQuickModelEntity().getMainTexture() == null && event.getQuickModelEntity().getOtherTextures().isEmpty()) {
                         //TODO show model with all textures when edit mode is available
                         return;
                     }

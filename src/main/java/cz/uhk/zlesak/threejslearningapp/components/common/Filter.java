@@ -58,7 +58,7 @@ public class Filter extends HorizontalLayout implements I18nAware {
      * @return the configured search text field
      */
     private SearchTextField createSearchField() {
-        SearchTextField searchField = new SearchTextField(text("filter.search.placeholder"));
+        SearchTextField searchField = new SearchTextField("filter.search.placeholder");
         searchField.setWidthFull();
         searchField.setClearButtonVisible(true);
         searchField.addValueChangeListener(event -> {

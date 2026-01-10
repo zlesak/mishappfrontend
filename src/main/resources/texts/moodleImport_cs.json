@@ -1,0 +1,6 @@
+{
+    "moodleZipUploadButton.label": "Nahrát Moodle ZIP",
+    "moodleZipUpload.success": "Kapitola byla úspěšně importována",
+    "moodleZipUpload.error": "Chyba při importu Moodle ZIP",
+    "moodleZipUpload.rejected": "Soubor byl zamítnut"
+}

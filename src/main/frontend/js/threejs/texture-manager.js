@@ -131,6 +131,7 @@ export async function switchOtherTexture(textureId, currentModel) {
  * Přepne na hlavní texturu
  */
 export async function switchToMainTexture(currentModel) {
+    if(!currentModel.advanced) return;
     let texture = currentModel.loadedMainTexture;
     return await switchTexture(currentModel, texture, null)
 }

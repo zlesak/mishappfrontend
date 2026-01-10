@@ -101,16 +101,16 @@ public class ThreeJs extends Component {
      * @param modelUrl the base64 encoded string of the model data.
      * @param modelId  id of the loaded model.
      */
-    private void loadModel(String modelUrl, String modelId, boolean advanced, String... questionId) {
+    private void loadModel(String modelUrl, String modelId, boolean mainModel, boolean advanced, String... questionId) {
         getElement().executeJs("""
                 try {
                     if (typeof window.loadModel === 'function') {
-                        window.loadModel($0, $1, $2, $3, $4).then(_ => {});
+                        window.loadModel($0, $1, $2, $3, $4, $5).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in loadAdvancedModel:', e);
                 }
-                """, getElement(), modelUrl, modelId, questionId.length > 0 ? questionId[0] : null, advanced);
+                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null, advanced);
     }
 
     /**
@@ -374,7 +374,7 @@ public class ThreeJs extends Component {
                 event -> {
                     switch (event.getFileType()) {
                         case MODEL -> {
-                            loadModel(event.getBase64File(), event.getModelId(), event.isAdvanced(), event.getQuestionId());
+                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.isAdvanced(), event.getQuestionId());
                             if (event.isFromClient()){
                                 showModel(event.getModelId());
                             }

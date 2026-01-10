@@ -179,9 +179,9 @@ class ThreeTest {
         }
     };
 
-    loadModel = async (modelUrl, modelId, questionId, isAdvanced) => {
+    loadModel = async (modelUrl, modelId, mainModel, questionId, isAdvanced) => {
         await this.doingActions('Loading model');
-        await loadModel(modelUrl, modelId, this.models, questionId, isAdvanced);
+        await loadModel(modelUrl, modelId, mainModel, this.models, questionId, isAdvanced);
         this.finishedActions();
     };
 

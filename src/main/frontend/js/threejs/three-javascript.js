@@ -40,10 +40,10 @@ window.disposeThree = function(element) {
   });
 };
 
-window.loadModel = async function(element, modelUrl, modelId, questionId, isAdvanced) {
+window.loadModel = async function(element, modelUrl, modelId, mainModel, questionId, isAdvanced) {
   const inst = getInstance(element);
   if (inst) {
-    await inst.loadModel(modelUrl, modelId, questionId, isAdvanced);
+    await inst.loadModel(modelUrl, modelId, mainModel, questionId, isAdvanced);
   }
 };
 

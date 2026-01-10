@@ -1,9 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.common;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.function.BiConsumer;
 
-public class ObservableMap<K, V> extends HashMap<K, V> {
+public class ObservableMap<K, V> extends LinkedHashMap<K, V> {
     private final BiConsumer<V, Boolean> onChange;
 
     public ObservableMap(BiConsumer<V, Boolean> onChange) {

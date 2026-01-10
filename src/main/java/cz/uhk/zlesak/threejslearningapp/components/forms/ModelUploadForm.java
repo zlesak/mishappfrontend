@@ -69,7 +69,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
         otherTexturesFileUpload = new FileUpload(List.of(".jpg"), false, true);
         csvFileUpload = new FileUpload(List.of(".csv"), false, false);
 
-        modelName = new NameTextField(text("modelUploadForm.modelName.placeholder"));
+        modelName = new NameTextField("modelUploadForm.modelName.placeholder");
 
         isAdvanced = new Checkbox(text("modelUploadForm.isAdvanced.label"), false);
         isAdvanced.setTooltipText(text("modelUploadForm.isAdvanced.tooltip"));

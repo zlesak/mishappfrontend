@@ -7,16 +7,18 @@ import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownModeToggleEvent;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownValueChangedEvent;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelForSelect;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.ModelListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.TextureListingDataParser;
-import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.ScrollToElement;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.ShowSubchapterContentEvent;
+import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownModeToggleEvent;
+import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownValueChangedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
@@ -89,28 +91,22 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                 .thenApply(ignore -> null);
     }
 
-    /**
-     * Shows the whole chapter data in the Editor.js instance.
-     * This method is used to display all the content of the chapter, including subchapters.
-     * Used when no specific subchapter is selected.
-     */
-    public void showWholeChapterData() {
-        getElement().callJsFunction("showWholeChapterData")
+    public void filterContentByLevel1Header(String headerIdOrText) {
+        getElement().callJsFunction("filterContentByLevel1Header", headerIdOrText, false)
                 .toCompletableFuture()
                 .exceptionally(error -> {
-                    throw new RuntimeException("Chyba při zobrazování dat celé kapitoly " + error.getMessage());
+                    throw new RuntimeException("Chyba při zobrazování dat dle id kapitoly " + error.getMessage());
                 })
                 .thenApply(ignore -> null);
     }
 
-    /**
-     * Sets the selected subchapter data in the Editor.js instance.
-     * This method expects a JSON string that represents the subchapter data.
-     *
-     * @param jsonData JSON string containing the subchapter data.
-     */
-    public void setSelectedSubchapterData(String jsonData) {
-        getElement().callJsFunction("setSelectedSubchapterData", jsonData);
+    public void scrollToHeading(String headerIdOrText) {
+        getElement().callJsFunction("scrollToDataId", headerIdOrText)
+                .toCompletableFuture()
+                .exceptionally(error -> {
+                    throw new RuntimeException("Chyba při scrollování k prkvu " + error.getMessage());
+                })
+                .thenApply(ignore -> null);
     }
 
     /**
@@ -147,7 +143,7 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                     String modelId = event.getEventData().getString("event.detail.modelId");
                     String textureId = event.getEventData().getString("event.detail.textureId");
                     String hexColor = event.getEventData().getString("event.detail.hexColor");
-                    ComponentUtil.fireEvent(UI.getCurrent(),  new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, null, hexColor));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, null, hexColor));
                 }).addEventData("event.detail.modelId")
                 .addEventData("event.detail.textureId")
                 .addEventData("event.detail.hexColor")
@@ -172,12 +168,21 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
     }
 
     /**
-     * Loads provided Markdown string into the editor (converts it to EditorJS blocks).
+     * Loads provided Markdown string into the editor (converts Markdown -> EditorJS blocks).
      *
-     * @param markdown markdown content
+     * @param filePath Markdown content as string
      */
-    public void loadMarkdown(String markdown) {
-        getElement().callJsFunction("loadMarkdown", markdown);
+    public void loadMarkdown(String filePath) {
+        getElement().callJsFunction("loadMarkdown", filePath);
+    }
+
+    /**
+     * Loads provided Moodle HTML string into the editor (converts HTML -> Markdown -> EditorJS blocks).
+     *
+     * @param html HTML content from Moodle
+     */
+    public void loadMoodleHtml(String html) {
+        getElement().callJsFunction("loadMoodleHtml", html);
     }
 
     /**
@@ -248,6 +253,17 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                         }
                 )
         );
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ShowSubchapterContentEvent.class,
+                e -> filterContentByLevel1Header(e.getSubchapterId() != null ? e.getSubchapterId() : "")
+        ));
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ScrollToElement.class,
+                e -> scrollToHeading(e.getElement())
+        ));
     }
 
     @Override

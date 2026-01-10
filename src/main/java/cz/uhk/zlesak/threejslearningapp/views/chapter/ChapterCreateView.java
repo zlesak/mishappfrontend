@@ -52,9 +52,7 @@ public class ChapterCreateView extends AbstractChapterView {
      * Configures visibility of inherited components.
      */
     private void configureVisibility() {
-        chapterSelect.setVisible(false);
         searchTextField.setVisible(false);
-        navigationContentLayout.setVisible(false);
         editorjs.toggleReadOnlyMode(false);
     }
 

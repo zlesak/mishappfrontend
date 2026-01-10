@@ -15,8 +15,8 @@ import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Setter;
 import org.springframework.context.annotation.Scope;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * GenericSelect is an abstract class extending Vaadin's Select component.
@@ -106,13 +106,18 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
      * @param secondary secondary context
      */
     public void showRelevantItemsBasedOnContext(String primary, String secondary) {
-        var itemsToShow = items.entrySet().stream()
-                .filter(entry -> primary != null && entry.getKey().contains(primary))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        LinkedHashMap<String, T> itemsToShow = new LinkedHashMap<>();
+        if (primary != null) {
+            for (Map.Entry<String, T> entry : items.entrySet()) {
+                if (entry.getKey().contains(primary)) {
+                    itemsToShow.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
         setItems(itemsToShow.values());
         setEnabled(!itemsToShow.isEmpty());
         T item = itemsToShow.get(primary + secondary);
-        if(!isEmptySelectionAllowed() && item == null){
+        if (!isEmptySelectionAllowed() && item == null) {
             item = itemsToShow.values().stream().filter(HasPrimarySecondaryMain::mainItem).findFirst().orElse(null);
         }
         setValue(item);

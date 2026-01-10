@@ -1,20 +1,14 @@
 package cz.uhk.zlesak.threejslearningapp.views.chapter;
 
-import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.dependency.JavaScript;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.events.chapter.SubChapterChangeEvent;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubchapterInitEvent;
-import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
-import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.PermitAll;
@@ -30,7 +24,6 @@ import java.util.Map;
  */
 @Slf4j
 @Route("chapter/:chapterId?")
-@JavaScript("./js/scroll-to-element-data-id.js")
 @Tag("chapter-view")
 @Scope("prototype")
 @PermitAll
@@ -38,7 +31,6 @@ public class ChapterDetailView extends AbstractChapterView {
     private final ChapterService chapterService;
 
     private String chapterId;
-    private Map<String, QuickModelEntity> modelsMap;
 
     /**
      * ChapterView constructor - creates instance of chapter view instance that then accomplishes the goal of getting
@@ -84,37 +76,11 @@ public class ChapterDetailView extends AbstractChapterView {
         nameTextField.setValue(chapterService.getChapterName(chapterId));
         editorjs.setChapterContentData(chapterService.getChapterContent(chapterId));
 
-        ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), chapterService.getSubChaptersNames(chapterId), false));
-
-        navigationContentLayout.initializeSubChapterData(chapterService.getSubChaptersContent(chapterId));
-    }
-
-    /**
-     * Handles sub-chapter selection change.
-     * Updates the displayed content and 3D model based on the selected sub-chapter.
-     *
-     * @param event the sub-chapter change event
-     */
-    private void handleSubChapterChange(SubChapterChangeEvent event, String chapterId) {
         try {
-            SubChapterForSelect newValue = event.getNewValue();
-
-            if (newValue == null) {
-                editorjs.showWholeChapterData();
-                var mainModel = chapterService.getChaptersModels(chapterId).get("main");
-                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), mainModel.getModel().getId(), "main", ThreeJsActions.SHOW_MODEL, true, null));
-                return;
-            }
-
-            String subChapterId = newValue.id();
-            editorjs.setSelectedSubchapterData(chapterService.getSelectedSubChapterContent(subChapterId));
-
-            String modelId = modelsMap != null ? modelsMap.getOrDefault(subChapterId, modelsMap.get("main")).getModel().getId(): "main";
-            ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, "main", ThreeJsActions.SHOW_MODEL, true, null));
-
+            ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), chapterService.processHeaders(chapterId), false));
         } catch (Exception e) {
-            log.error("Error changing sub-chapter: {}", e.getMessage(), e);
-            new ErrorNotification(text("error.subChapterLoadFailed") + ": " + e.getMessage(), 5000);
+            log.error("Error loading chapter data", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -125,28 +91,11 @@ public class ChapterDetailView extends AbstractChapterView {
      */
     private void loadAndDisplay3DModels() {
         try {
-            modelsMap = chapterService.getChaptersModels(chapterId);
+            Map<String, QuickModelEntity> modelsMap = chapterService.getChaptersModels(chapterId);
             setupData(modelsMap);
         } catch (Exception e) {
             log.error("Failed to load 3D models: {}", e.getMessage(), e);
             new ErrorNotification(text("error.modelLoadFailed") + ": " + e.getMessage(), 5000);
         }
-    }
-
-    /**
-     * On attach function to register event listeners when the view is attached.
-     * Registers a listener for SubChapterChangeEvent to handle sub-chapter changes.
-     *
-     * @param attachEvent the attach event
-     */
-    @Override
-    protected void onAttach(AttachEvent attachEvent) {
-        super.onAttach(attachEvent);
-
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                SubChapterChangeEvent.class,
-                e -> handleSubChapterChange(e, chapterId)
-        ));
     }
 }

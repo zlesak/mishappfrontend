@@ -5,7 +5,7 @@ import {OBJLoader} from 'three/addons';
 /**
  * Načte model
  */
-export async function loadModel(modelUrl, modelId, models, questionId, isAdvanced) {
+export async function loadModel(modelUrl, modelId, mainModel, models, questionId, isAdvanced) {
     const modelExists = models.find(m => m.id === modelId);
     if (!modelExists) {
         models.push({
@@ -18,7 +18,8 @@ export async function loadModel(modelUrl, modelId, models, questionId, isAdvance
             question : questionId,
             modelLoader: null,
             textureLoader: null,
-            loadedMainTexture: null
+            loadedMainTexture: null,
+            main : mainModel
         });
     } else if (questionId) {
         modelExists.questions.push(questionId);
@@ -69,10 +70,11 @@ function getGltfLoader(auth) {
  * Zobrazí model podle ID
  */
 export async function showModelById(modelId, models, currentModel, scene, centerCameraFn, auth) {
-    const modelObject = models.find(m => m.id === modelId);
+    let modelObject = models.find(m => m.id === modelId);
 
     if (!modelObject) {
-        return {model: currentModel, lastSelectedTextureId: null};
+        modelObject = models.find(m => m.main === true);
+        if(!modelObject) return {model: currentModel, lastSelectedTextureId: null};
     }
 
     if (currentModel) {
