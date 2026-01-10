@@ -4,10 +4,10 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.common.Filter;
 import cz.uhk.zlesak.threejslearningapp.components.common.NoItemInfo;
 import cz.uhk.zlesak.threejslearningapp.components.common.Pagination;
@@ -72,17 +72,25 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
 
         filterParameters = new FilterParameters<>(PageRequest.of(0, 10, Sort.Direction.ASC, "Name"), createFilter(""));
 
+        itemListLayout.addClassNames(
+            LumoUtility.Display.GRID,
+            LumoUtility.Gap.MEDIUM,
+            LumoUtility.Padding.MEDIUM
+        );
+        itemListLayout.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(350px, 1fr))");
+
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
-        itemListLayout.setSpacing(false);
-        itemListLayout.getThemeList().add("spacing-s");
         listScroller.setSizeFull();
 
-        paginationLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-        paginationLayout.setPadding(false);
+        paginationLayout.addClassNames(
+            LumoUtility.AlignItems.CENTER,
+            LumoUtility.Padding.MEDIUM
+        );
 
         listingLayout.setFlexGrow(1, listScroller);
         listingLayout.setSizeFull();
         listingLayout.setSpacing(false);
+        listingLayout.setPadding(false);
         listingLayout.add(secondaryFilterLayout, listScroller, paginationLayout);
 
         getContent().setPadding(false);

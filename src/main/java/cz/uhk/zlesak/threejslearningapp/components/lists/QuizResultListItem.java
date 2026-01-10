@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.lists;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
@@ -16,7 +17,7 @@ public class QuizResultListItem extends AbstractListItem {
      * Constructs a QuizListItem for the given quiz.
      */
     public QuizResultListItem(QuickQuizResult result, boolean administrationView, String redirect) {
-        super(true, administrationView);
+        super(true, administrationView, VaadinIcon.CHECK_SQUARE);
         HorizontalLayout quizName = new HorizontalLayout();
         Span maxScoreLabel = new Span(text("quiz.result.maxScore.label") + ": ");
         Span maxScore = new Span(String.valueOf(result.getMaxScore()));
@@ -36,7 +37,7 @@ public class QuizResultListItem extends AbstractListItem {
 
         setOpenButtonClickListener(e ->
                 UI.getCurrent().navigate(QuizResultView.class,
-                        new RouteParameters(new RouteParam("quizId", result.getId()),new RouteParam("back", redirect)))
+                        new RouteParameters(new RouteParam("quizId", result.getId()), new RouteParam("back", redirect)))
         );
     }
 }
