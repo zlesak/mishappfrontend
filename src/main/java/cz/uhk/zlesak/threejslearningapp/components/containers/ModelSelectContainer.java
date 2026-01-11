@@ -12,15 +12,24 @@ import lombok.Getter;
 public class ModelSelectContainer extends HorizontalLayout implements I18nAware {
     private final Select<QuickModelEntity> select;
 
-    public ModelSelectContainer(String label, String id, boolean main) {
+    /**
+     * Constructs a ModelSelectContainer.
+     * @param label label for the select component
+     * @param id   block ID attribute
+     * @param main indicates if this is for the main chapter
+     * @param showInfo whether to show the select component
+     */
+    public ModelSelectContainer(String label, String id, boolean main, boolean showInfo) {
         super();
         setWidthFull();
         select = new QuickModelSelect(label, id);
         ExistingModelSelectButton alreadyCreatedModelButton = new ExistingModelSelectButton(
                 text("modelSelectButton.label"),
-                select
+                id
         );
         add(select, alreadyCreatedModelButton);
+
+        select.setVisible(showInfo);
 
         if (!main) {
             setId("select-models-tab-piece-" + id);

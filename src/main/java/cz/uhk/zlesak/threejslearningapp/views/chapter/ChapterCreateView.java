@@ -142,10 +142,13 @@ public class ChapterCreateView extends AbstractChapterView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelSelectedFromDialogEvent.class,
-                event -> secondaryNavigation.getModelsScroller().updateModelSelect(
-                        event.getBlockId(),
-                        event.getSelectedModel()
-                )
+                event -> {
+                    secondaryNavigation.getModelsScroller().updateModelSelect(
+                            event.getBlockId(),
+                            event.getSelectedModel()
+                    );
+                    loadSingleModelWithTextures(event.getSelectedModel(), event.getBlockId(), event.getSelectedModel().getModel().getId(), true);
+                }
         ));
     }
 }

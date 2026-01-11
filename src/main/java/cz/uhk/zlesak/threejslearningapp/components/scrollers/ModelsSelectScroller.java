@@ -62,7 +62,7 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      * @param main  whether this is the main model select or sub-chapter model select.
      */
     private void modelSelectHorizontalLayout(String label, String id, boolean main) {
-        ModelSelectContainer container = new ModelSelectContainer(label, id, main);
+        ModelSelectContainer container = new ModelSelectContainer(label, id, main, true);
 
         if (main) {
             this.mainModelSelect = container.getSelect();

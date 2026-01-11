@@ -33,6 +33,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         ModelSelectContainer modelSelectContainer = new ModelSelectContainer(
                 "Select Model",
                 questionId,
+                false,
                 false
         );
         actionsLayout.remove(addOptionButton);
