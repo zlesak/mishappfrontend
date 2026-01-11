@@ -11,6 +11,14 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Base class for user's answer submission to a question
+ * Used for polymorphic serialization/deserialization of different submission types.
+ * Contains common properties for all types of question submissions.
+ * @see MultipleChoiceSubmissionData
+ * @see SingleChoiceSubmissionData
+ * @see OpenTextSubmissionData
+ * @see MatchingSubmissionData
+ * @see OrderingSubmissionData
+ * @see TextureClickSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeInfo(

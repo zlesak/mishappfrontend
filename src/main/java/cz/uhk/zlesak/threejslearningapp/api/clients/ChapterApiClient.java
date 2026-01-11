@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.IChapterApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,7 @@ import org.springframework.web.client.RestTemplate;
  * It extends AbstractApiClient to inherit common API client functionality.
  */
 @Component
-public class ChapterApiClient extends AbstractApiClient<ChapterEntity, ChapterEntity, ChapterFilter> implements IChapterApiClient { //TODO QUICKCHAPTERENTITY
+public class ChapterApiClient extends AbstractApiClient<ChapterEntity, ChapterEntity, ChapterFilter> { //TODO QUICKCHAPTERENTITY
     /**
      * Constructor for ChapterApiClient.
      *
@@ -26,8 +25,10 @@ public class ChapterApiClient extends AbstractApiClient<ChapterEntity, ChapterEn
     }
 
     //region Overridden operations from AbstractApiClient
+
     /**
      * Gets the entity class for Chapter
+     *
      * @return ChapterEntity class
      */
     @Override
@@ -37,6 +38,7 @@ public class ChapterApiClient extends AbstractApiClient<ChapterEntity, ChapterEn
 
     /**
      * Gets the quick entity class for Chapter
+     *
      * @return ChapterEntity class
      */
     @Override

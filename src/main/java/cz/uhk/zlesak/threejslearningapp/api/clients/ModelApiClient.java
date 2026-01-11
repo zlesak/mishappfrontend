@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.IModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
@@ -22,7 +21,7 @@ import java.util.List;
  * The base URL for the API is determined by the IApiClient interface.
  */
 @Component
-public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickModelEntity, ModelFilter> implements IModelApiClient {
+public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickModelEntity, ModelFilter> {
 
     /**
      * Constructor for ModelApiClient.
@@ -82,6 +81,7 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
 
     /**
      * Prepares the body for file upload.
+     *
      * @param entity the model entity containing the file to upload
      * @return MultiValueMap with the file data
      */

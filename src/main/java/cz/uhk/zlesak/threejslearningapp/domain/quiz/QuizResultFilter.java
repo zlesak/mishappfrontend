@@ -7,6 +7,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * QuizResultFilter Class - Represents filter criteria for querying quiz results.
+ * Extends FilterBase to inherit common filtering properties.
+ * @see FilterBase for inherited properties.
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor

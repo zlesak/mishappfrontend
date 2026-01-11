@@ -7,6 +7,8 @@ import java.time.Instant;
 
 /**
  * AbstractEntity Class - Base class for all entities in the application.
+ * Contains common fields such as id, name, creatorId, created timestamp, updated timestamp, and description.
+ * Implements IEntity interface.
  */
 @Data
 @NoArgsConstructor

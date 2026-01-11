@@ -12,6 +12,8 @@ import java.util.List;
 
 /**
  * Model entity data class - holds data about model on FE side or when communicating with backend API endpoints.
+ * Includes additional fields compared to QuickModelEntity for full model representation.
+ * @see QuickModelEntity
  */
 @Data
 @Getter

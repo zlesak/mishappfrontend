@@ -8,6 +8,9 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Answer data for texture click question.
+ * Contains identifiers for the model and texture, as well as a hex color code.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

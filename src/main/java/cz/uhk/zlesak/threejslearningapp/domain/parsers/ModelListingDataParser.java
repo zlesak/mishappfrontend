@@ -8,6 +8,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ModelListingDataParser is responsible for parsing model data for selection lists.
+ */
 public abstract class ModelListingDataParser {
 
     /**

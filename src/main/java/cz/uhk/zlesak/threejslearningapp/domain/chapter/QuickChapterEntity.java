@@ -8,6 +8,7 @@ import java.util.List;
 
 /**
  * QuickChapterEntity Class - Represents a lightweight chapter entity containing list of sub-chapters.
+ * @see AbstractEntity for common entity properties.
  */
 @Data
 @Getter

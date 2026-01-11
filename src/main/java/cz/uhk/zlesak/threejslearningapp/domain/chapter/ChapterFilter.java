@@ -7,6 +7,10 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * ChapterFilter Class - Represents filtering criteria for querying chapters.
+ * @see FilterBase for common filtering functionality.
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor

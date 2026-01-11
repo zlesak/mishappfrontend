@@ -4,9 +4,11 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
 
 /**
  * HeadingForSelect Record - Represents a heading item for selection within a subchapter.
- * @param id heading block id
+ *
+ * @param id           heading block id
  * @param subchapterId subchapter block id
- * @param name heading name
+ * @param name         heading name
+ * @see HasPrimarySecondaryMain for primary/secondary/main item structure
  */
 public record HeadingForSelect(String id, String subchapterId, String name) implements HasPrimarySecondaryMain {
     /**

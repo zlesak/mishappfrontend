@@ -10,6 +10,9 @@ import java.util.List;
 
 /**
  * Answer data for ordering question.
+ * Contains a list of integers representing the correct order of items.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

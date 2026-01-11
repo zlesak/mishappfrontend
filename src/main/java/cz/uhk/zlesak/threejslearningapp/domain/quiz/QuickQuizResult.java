@@ -4,6 +4,11 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * QuickQuizResult Class - Represents the result of a quiz taken by a user.
+ * Extends AbstractEntity to inherit common entity properties.
+ * @see AbstractEntity for inherited properties.
+ */
 @Data
 @Getter
 @Setter

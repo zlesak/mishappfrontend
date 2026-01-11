@@ -11,7 +11,10 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Submission for multiple choice question type
+ * Submission for multiple choice question type where user can select multiple answers.
+ * Contains a list of indices representing the selected answer items.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("MULTIPLE_CHOICE")

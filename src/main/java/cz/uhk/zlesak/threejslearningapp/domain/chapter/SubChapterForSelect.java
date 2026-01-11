@@ -9,6 +9,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
  * @param id      the unique identifier of the sub-chapter
  * @param text    the display text of the sub-chapter
  * @param modelId the id of the model the subchapter belongs to
+ * @see HasPrimarySecondaryMain for primary/secondary/main item structure
  */
 public record SubChapterForSelect(String id, String text, String modelId) implements HasPrimarySecondaryMain {
     /**

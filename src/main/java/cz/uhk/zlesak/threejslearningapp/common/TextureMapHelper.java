@@ -44,6 +44,14 @@ public abstract class TextureMapHelper {
         return records;
     }
 
+    /**
+     * Parses CSV content and adds TextureAreaForSelect records to the provided list.
+     * @param modelId the model ID
+     * @param csvContent the CSV content to parse
+     * @param records the list to add records to
+     * @param textureId the texture ID
+     * @throws IllegalArgumentException if the CSV content format is invalid
+     */
     public static void csvParse(String modelId, String csvContent, List<TextureAreaForSelect> records, String textureId) {
         String[] rows = csvContent.split("\\r?\\n|\\r");
         for (String row : rows) {

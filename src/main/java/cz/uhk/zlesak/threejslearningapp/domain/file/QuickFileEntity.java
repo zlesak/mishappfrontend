@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * QuickFileEntity Class - Represents a quick file entity with backend endpoint information.
+ * Extends AbstractFileEntity to include file-specific fields.
+ * @see AbstractFileEntity for common file entity fields.
  */
 @Data
 @Getter

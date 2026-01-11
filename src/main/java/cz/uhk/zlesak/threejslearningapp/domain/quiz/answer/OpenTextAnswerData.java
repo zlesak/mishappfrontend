@@ -10,6 +10,9 @@ import java.util.List;
 
 /**
  * Answer data for open text question.
+ * Contains a list of acceptable answers and a flag indicating if exact match is required.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -8,12 +8,10 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.common.DateFormater;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import lombok.extern.slf4j.Slf4j;
-
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Tag("div")
@@ -51,7 +49,7 @@ public class ChapterListItem extends AbstractListItem {
             Span label = new Span(text("chapter.creationDate") + ":");
             label.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
 
-            Span value = new Span(DateTimeFormatter.ofPattern("d.M.yyyy HH:mm").withZone(ZoneId.systemDefault()).format(chapter.getCreated()));
+            Span value = new Span(DateFormater.formatDate(chapter.getCreated()));
             value.addClassNames(LumoUtility.FontSize.SMALL);
 
             dateRow.add(calendarIcon, label, value);
@@ -68,7 +66,7 @@ public class ChapterListItem extends AbstractListItem {
             Span label = new Span(text("chapter.lastModified") + ":");
             label.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
 
-            Span value = new Span(DateTimeFormatter.ofPattern("d.M.yyyy HH:mm").withZone(ZoneId.systemDefault()).format(chapter.getUpdated()));
+            Span value = new Span(DateFormater.formatDate(chapter.getUpdated()));
             value.addClassNames(LumoUtility.FontSize.SMALL);
 
             updateRow.add(editIcon, label, value);

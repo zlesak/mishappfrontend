@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.ITextureApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
@@ -22,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
  * The base URL for the API is determined by the IApiClient interface.
  */
 @Component
-public class TextureApiClient extends AbstractFileApiClient<TextureEntity, QuickTextureEntity, TextureFilter> implements ITextureApiClient {
+public class TextureApiClient extends AbstractFileApiClient<TextureEntity, QuickTextureEntity, TextureFilter> {
     /**
      * Constructor for TextureApiClient.
      *
@@ -58,10 +57,9 @@ public class TextureApiClient extends AbstractFileApiClient<TextureEntity, Quick
      *
      * @param filterParameters FilterParameters<TextureFilter> object containing pagination info and filters
      * @return PageResult of QuickTextureEntity
-     * @throws Exception if API call fails
      */
     @Override
-    public PageResult<QuickTextureEntity> readEntities(FilterParameters<TextureFilter> filterParameters) throws Exception {
+    public PageResult<QuickTextureEntity> readEntities(FilterParameters<TextureFilter> filterParameters) {
         throw new NotImplementedException("Filtrování textur není zatím implementováno.");
     }
 

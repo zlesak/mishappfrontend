@@ -10,6 +10,9 @@ import java.util.List;
 
 /**
  * Answer data for multiple choice question.
+ * Contains a list of indices representing the correct items.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

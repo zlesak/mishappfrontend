@@ -17,7 +17,8 @@ public class SpringContextUtils implements ApplicationContextAware {
 
     /**
      * Sets the ApplicationContext. This method is called by Spring during application startup.
-      * @param applicationContext the ApplicationContext to be set
+     *
+     * @param applicationContext the ApplicationContext to be set
      */
     @Override
     public void setApplicationContext(@NotNull ApplicationContext applicationContext) {
@@ -26,9 +27,10 @@ public class SpringContextUtils implements ApplicationContextAware {
 
     /**
      * Retrieves a bean from the Spring ApplicationContext by its class type.
+     *
      * @param beanClass the class type of the bean to be retrieved
+     * @param <T>       the type of the bean
      * @return the bean instance of the specified class type
-     * @param <T> the type of the bean
      */
     public static <T> T getBean(Class<T> beanClass) {
         return context.getBean(beanClass);

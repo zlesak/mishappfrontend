@@ -9,7 +9,9 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Multiple choice question.
+ * Multiple choice question data class - Represents a multiple choice question with a list of options.
+ * Extends AbstractQuestionData to inherit common question properties.
+ * @see AbstractQuestionData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -10,6 +10,8 @@ import java.util.List;
 
 /**
  * QuickModelEntity Class - Represents a lightweight model entity with associated textures and metadata.
+ * Extends QuickFileEntity to inherit common file properties.
+ * @see QuickFileEntity
  */
 @Data
 @Getter

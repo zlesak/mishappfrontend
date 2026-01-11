@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * TextureEntity Class - Represents a texture entity with associated files.
+ * Extends QuickTextureEntity to inherit common texture properties.
+ * @see QuickTextureEntity
  */
 @Data
 @Getter

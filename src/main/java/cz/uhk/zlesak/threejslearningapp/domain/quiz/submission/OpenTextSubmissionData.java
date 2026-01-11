@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Submission for open text question type
+ * Submission for open text question type where user can provide a free-form text answer.
+ * Contains a string representing the user's text answer.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("OPEN_TEXT")

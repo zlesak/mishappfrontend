@@ -9,6 +9,7 @@ import java.time.Instant;
 
 /**
  * Base class for filters used in various entities.
+ * Contains common filtering fields such as name, creatorId, createdFrom, and createdTo.
  */
 @Data
 @NoArgsConstructor

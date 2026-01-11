@@ -10,6 +10,14 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Base class for all answer types.
+ * Contains common properties shared by all answer types as questionId and type.
+ * Used for polymorphic serialization/deserialization of different answer types.
+ * @see MultipleChoiceAnswerData
+ * @see SingleChoiceAnswerData
+ * @see OpenTextAnswerData
+ * @see MatchingAnswerData
+ * @see OrderingAnswerData
+ * @see TextureClickAnswerData
  */
 @JsonTypeInfo(
   use = JsonTypeInfo.Id.NAME,

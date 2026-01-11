@@ -22,6 +22,11 @@ public class FilterParameters<F> {
     PageRequest pageRequest = PageRequest.of(0, 10, Sort.Direction.ASC, "Name");
     F filter;
 
+    /**
+     * Sets the pagination and filtering parameters based on the provided SearchEvent and filter object.
+     * @param searchEvent The search event containing pagination and sorting information.
+     * @param filter The filter object of type F.
+     */
     public void setFilteredParameters(SearchEvent searchEvent, F filter) {
         this.pageRequest = PageRequest.of(
                 0,
@@ -32,6 +37,10 @@ public class FilterParameters<F> {
         this.filter = filter;
     }
 
+    /**
+     * Sets the page number for pagination.
+     * @param pageNumber The page number to set.
+     */
     public void setPageNumber(int pageNumber) {
         this.pageRequest = PageRequest.of(
                 pageNumber,

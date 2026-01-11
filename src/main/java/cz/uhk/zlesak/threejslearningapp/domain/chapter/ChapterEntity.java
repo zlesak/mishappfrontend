@@ -10,6 +10,7 @@ import java.util.Map;
 
 /**
  * ChapterEntity Class - Represents a detailed chapter entity with models, quizzes, and content.
+ * @see QuickChapterEntity for the base class.
  */
 @Data
 @Getter

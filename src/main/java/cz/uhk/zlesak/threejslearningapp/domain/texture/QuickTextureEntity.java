@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * QuickTextureEntity Class - Represents a lightweight texture entity with essential information.
+ * Extends QuickFileEntity to include file-related attributes.
+ * @see QuickFileEntity
  */
 @Data
 @Getter
