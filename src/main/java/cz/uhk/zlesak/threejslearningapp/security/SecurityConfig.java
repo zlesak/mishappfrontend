@@ -2,7 +2,6 @@ package cz.uhk.zlesak.threejslearningapp.security;
 
 import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
-import cz.uhk.zlesak.threejslearningapp.views.auth.LoginView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,9 +9,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.SecurityFilterChain;
@@ -35,6 +40,7 @@ class SecurityConfig {
 
     /**
      * Configures the security filter chain for HTTP requests with OAuth2 login.
+     *
      * @param http the HttpSecurity object to configure
      * @return the configured SecurityFilterChain
      * @throws Exception if an error occurs during configuration
@@ -42,13 +48,11 @@ class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.with(VaadinSecurityConfigurer.vaadin(), configurer ->
-            configurer.loginView(LoginView.class)
+                configurer.oauth2LoginPage("/oauth2/authorization/keycloak?prompt=login")
         );
 
-        http.oauth2Login(oauth2 -> oauth2
-            .userInfoEndpoint(userInfo -> userInfo
-                .oidcUserService(this.oidcUserService())
-            )
+        http.oauth2Login(oauth2 ->
+                oauth2.userInfoEndpoint(userInfo -> userInfo.oidcUserService(this.oidcUserService()))
         );
 
         return http.build();
@@ -93,5 +97,32 @@ class SecurityConfig {
 
             return new DefaultOidcUser(mappedAuthorities, oidcUser.getIdToken(), oidcUser.getUserInfo());
         };
+    }
+
+    /**
+     * Configures the OAuth2AuthorizedClientManager bean for managing authorized clients.
+     * Enables handling of refresh tokens.
+     *
+     * @param clientRegistrationRepository the repository for client registrations
+     * @param authorizedClientRepository   the repository for authorized clients
+     * @return the configured OAuth2AuthorizedClientManager
+     */
+    @Bean
+    public OAuth2AuthorizedClientManager authorizedClientManager(
+            ClientRegistrationRepository clientRegistrationRepository,
+            OAuth2AuthorizedClientRepository authorizedClientRepository) {
+
+        OAuth2AuthorizedClientProvider authorizedClientProvider =
+                OAuth2AuthorizedClientProviderBuilder.builder()
+                        .authorizationCode()
+                        .refreshToken()
+                        .build();
+
+        DefaultOAuth2AuthorizedClientManager authorizedClientManager =
+                new DefaultOAuth2AuthorizedClientManager(
+                        clientRegistrationRepository, authorizedClientRepository);
+        authorizedClientManager.setAuthorizedClientProvider(authorizedClientProvider);
+
+        return authorizedClientManager;
     }
 }

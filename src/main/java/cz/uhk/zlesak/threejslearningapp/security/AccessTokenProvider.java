@@ -2,6 +2,11 @@ package cz.uhk.zlesak.threejslearningapp.security;
 
 import com.vaadin.flow.spring.annotation.UIScope;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
@@ -30,10 +35,18 @@ public class AccessTokenProvider {
             OAuth2AuthorizedClientManager clientManager =
                     SpringContextUtils.getBean(OAuth2AuthorizedClientManager.class);
 
-            OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
+            OAuth2AuthorizeRequest.Builder builder = OAuth2AuthorizeRequest
                     .withClientRegistrationId(oauth.getAuthorizedClientRegistrationId())
-                    .principal(oauth)
-                    .build();
+                    .principal(oauth);
+
+            if (VaadinService.getCurrentRequest() instanceof VaadinServletRequest vaadinRequest) {
+                builder.attribute(HttpServletRequest.class.getName(), vaadinRequest.getHttpServletRequest());
+            }
+            if (VaadinService.getCurrentResponse() instanceof VaadinServletResponse vaadinResponse) {
+                builder.attribute(HttpServletResponse.class.getName(), vaadinResponse.getHttpServletResponse());
+            }
+
+            OAuth2AuthorizeRequest authorizeRequest = builder.build();
 
             OAuth2AuthorizedClient client = clientManager.authorize(authorizeRequest);
 
@@ -44,4 +57,3 @@ public class AccessTokenProvider {
         return null;
     }
 }
-
