@@ -38,7 +38,7 @@ public class ChapterDetailView extends AbstractChapterView {
      */
     @Autowired
     public ChapterDetailView(ChapterService chapterService) {
-        super("page.title.chapterDetailView");
+        super("page.title.chapterDetailView" ,chapterService);
         configureReadOnlyMode();
         this.chapterService = chapterService;
     }

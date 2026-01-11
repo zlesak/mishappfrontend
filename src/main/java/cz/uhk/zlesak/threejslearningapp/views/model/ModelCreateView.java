@@ -27,7 +27,6 @@ import org.springframework.context.annotation.Scope;
 @Scope("prototype")
 @RolesAllowed(value = "TEACHER")
 public class ModelCreateView extends AbstractModelView {
-    private final ModelService modelService;
     private String modelId;
     private QuickModelEntity quickModelEntity;
 
@@ -38,8 +37,7 @@ public class ModelCreateView extends AbstractModelView {
      */
     @Autowired
     public ModelCreateView(ModelService modelService) {
-        super("page.title.createModelView", false);
-        this.modelService = modelService;
+        super("page.title.createModelView", false, modelService);
     }
 
     @Override
@@ -87,7 +85,7 @@ public class ModelCreateView extends AbstractModelView {
                 if (modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()) {
                     throw new ApplicationContextException(text("model.upload.error.emptyModelMainTexture"));
                 }
-                quickModelEntity = modelService.create(
+                quickModelEntity = service.create(
                         ModelEntity.builder()
                                 .name(modelUploadForm.getModelName().getValue().trim())
                                 .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
@@ -108,7 +106,7 @@ public class ModelCreateView extends AbstractModelView {
                                 .build()
                 );
             } else {
-                quickModelEntity = modelService.create(
+                quickModelEntity = service.create(
                         ModelEntity.builder()
                                 .name(modelUploadForm.getModelName().getValue().trim())
                                 .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())

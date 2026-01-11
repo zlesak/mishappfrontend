@@ -1,6 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.forms.ModelUploadForm;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
@@ -9,7 +11,7 @@ import org.springframework.context.annotation.Scope;
  */
 @Slf4j
 @Scope("prototype")
-public abstract class AbstractModelView extends AbstractEntityView {
+public abstract class AbstractModelView extends AbstractEntityView<ModelService> {
     protected final ModelUploadForm modelUploadForm = new ModelUploadForm();
 
     /**
@@ -18,7 +20,7 @@ public abstract class AbstractModelView extends AbstractEntityView {
      * @param pageTitleKey the key for the page title
      */
     public AbstractModelView(String pageTitleKey) {
-        super(pageTitleKey);
+        super(pageTitleKey, SpringContextUtils.getBean(ModelService.class));
     }
 
     /**
@@ -27,8 +29,8 @@ public abstract class AbstractModelView extends AbstractEntityView {
      * @param pageTitleKey          the key for the page title
      * @param skipBeforeLeaveDialog flag to skip before-leave dialog
      */
-    public AbstractModelView(String pageTitleKey, boolean skipBeforeLeaveDialog) {
-        super(pageTitleKey, skipBeforeLeaveDialog);
+    public AbstractModelView(String pageTitleKey, boolean skipBeforeLeaveDialog, ModelService service) {
+        super(pageTitleKey, skipBeforeLeaveDialog, service);
         modelUploadForm.setWidthFull();
         entityContent.add(modelUploadForm);
     }

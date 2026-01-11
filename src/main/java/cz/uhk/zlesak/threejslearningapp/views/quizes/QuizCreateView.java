@@ -42,15 +42,13 @@ import java.util.stream.Collectors;
 @Scope("prototype")
 @RolesAllowed(value = "TEACHER")
 public class QuizCreateView extends AbstractQuizView {
-    private final QuizService quizService;
     private final ChapterService chapterService;
     private final QuizForm quizForm;
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
 
     @Autowired
     public QuizCreateView(QuizService quizService, ChapterService chapterService) {
-        super("page.title.createQuizView", false);
-        this.quizService = quizService;
+        super("page.title.createQuizView", false, quizService);
         this.chapterService = chapterService;
 
         quizForm = new QuizForm();
@@ -150,11 +148,11 @@ public class QuizCreateView extends AbstractQuizView {
                 if (!editor.validate()) {
                     throw new ApplicationContextException(text("quiz.validation.question.invalid"));
                 }
-                quizService.addQuestion(editor.getQuestionData());
-                quizService.addAnswer(editor.getAnswerData());
+                service.addQuestion(editor.getQuestionData());
+                service.addAnswer(editor.getAnswerData());
             }
 
-            String quizId = quizService.create(
+            String quizId = service.create(
                     QuizEntity.builder()
                             .name(name)
                             .description(quizForm.getDescription())
@@ -170,7 +168,7 @@ public class QuizCreateView extends AbstractQuizView {
 
         } catch (Exception e) {
             log.error("Error creating quiz", e);
-            quizService.clearQuestionsAndAnswers();
+            service.clearQuestionsAndAnswers();
             new ErrorNotification(text("quiz.created.error") + ": " + e.getMessage(), 5000);
         }
     }
@@ -195,7 +193,7 @@ public class QuizCreateView extends AbstractQuizView {
 
         if (quizId != null) {
             try {
-                var entity = quizService.getQuizWithAnswers(quizId);
+                var entity = service.getQuizWithAnswers(quizId);
                 if (entity == null) {
                     log.error("Quiz not found for editing, quizId: {}", quizId);
                 } else {

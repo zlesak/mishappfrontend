@@ -37,7 +37,7 @@ import java.util.function.Consumer;
 @Slf4j
 @Scope("prototype")
 @Tag("listing-scaffold")
-public abstract class AbstractListingView<Q extends AbstractEntity, F extends FilterBase, E extends Q, S extends AbstractService<E, Q, F>> extends AbstractView {
+public abstract class AbstractListingView<Q extends AbstractEntity, F extends FilterBase, E extends Q, S extends AbstractService<E, Q, F>> extends AbstractView<S> {
     protected final VerticalLayout listingLayout, itemListLayout, paginationLayout, secondaryFilterLayout;
     protected final Filter filter = new Filter();
     protected final boolean listView;
@@ -62,7 +62,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
      * @param listView indicates whether the view is in list view mode or select mode (in cases of model or chapter selection dialogs)
      */
     public AbstractListingView(boolean listView, String pageTitleKey, S service) {
-        super(pageTitleKey);
+        super(pageTitleKey, service);
         this.listView = listView;
         this.listingLayout = new VerticalLayout();
         this.itemListLayout = new VerticalLayout();
@@ -73,9 +73,9 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
         filterParameters = new FilterParameters<>(PageRequest.of(0, 10, Sort.Direction.ASC, "Name"), createFilter(""));
 
         itemListLayout.addClassNames(
-            LumoUtility.Display.GRID,
-            LumoUtility.Gap.MEDIUM,
-            LumoUtility.Padding.MEDIUM
+                LumoUtility.Display.GRID,
+                LumoUtility.Gap.MEDIUM,
+                LumoUtility.Padding.MEDIUM
         );
         itemListLayout.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(350px, 1fr))");
 
@@ -83,8 +83,8 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
         listScroller.setSizeFull();
 
         paginationLayout.addClassNames(
-            LumoUtility.AlignItems.CENTER,
-            LumoUtility.Padding.MEDIUM
+                LumoUtility.AlignItems.CENTER,
+                LumoUtility.Padding.MEDIUM
         );
 
         listingLayout.setFlexGrow(1, listScroller);

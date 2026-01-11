@@ -11,6 +11,7 @@ import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextF
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ChapterContentScroller;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ModelsSelectScroller;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
@@ -25,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @Scope("prototype")
-public abstract class AbstractChapterView extends AbstractEntityView {
+public abstract class AbstractChapterView extends AbstractEntityView <ChapterService> {
     protected final SearchTextField searchTextField = new SearchTextField("filter.search.placeholder");
     protected final SubchapterSelectContainer subchapterSelectContainer = new SubchapterSelectContainer();
     protected final MarkdownEditor mdEditor = new MarkdownEditor();
@@ -39,12 +40,12 @@ public abstract class AbstractChapterView extends AbstractEntityView {
      * Initializes the layout and components based on the specified view type.
      *
      */
-    public AbstractChapterView(String pageTitleKey) {
-        this(pageTitleKey, false, true);
+    public AbstractChapterView(String pageTitleKey, ChapterService service) {
+        this(pageTitleKey, false, true, service);
     }
 
-    public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog) {
-        super(pageTitleKey, skipBeforeLeaveDialog);
+    public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service) {
+        super(pageTitleKey, skipBeforeLeaveDialog, service);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs, mdEditor);
         ModelsSelectScroller modelsScroller = new ModelsSelectScroller();
         this.createMode = createChapterMode;

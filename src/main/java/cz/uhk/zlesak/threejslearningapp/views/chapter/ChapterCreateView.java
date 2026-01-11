@@ -30,7 +30,6 @@ import java.util.Map;
 @Scope("prototype")
 @RolesAllowed(value = "TEACHER")
 public class ChapterCreateView extends AbstractChapterView {
-    private final ChapterService chapterService;
 
     /**
      * Constructor for CreateChapterView.
@@ -40,10 +39,7 @@ public class ChapterCreateView extends AbstractChapterView {
      */
     @Autowired
     public ChapterCreateView(ChapterService chapterService) {
-        super("page.title.createChapterView", true, false);
-
-        this.chapterService = chapterService;
-
+        super("page.title.createChapterView", true, false, chapterService);
         configureVisibility();
         setupChapterForm();
     }
@@ -112,10 +108,9 @@ public class ChapterCreateView extends AbstractChapterView {
      */
     private void createChapterAndNavigate(String bodyData, Map<String, QuickModelEntity> allModels) {
         try {
-            String chapterName = nameTextField.getValue().trim();
-            String chapterId = chapterService.create(
+            String chapterId = service.create(
                     ChapterEntity.builder()
-                            .name(chapterName)
+                            .name(nameTextField.getValue().trim())
                             .modelHeaderMap(allModels)
                             .content(bodyData)
                             .models(allModels.values().stream().toList())

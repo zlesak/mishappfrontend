@@ -16,6 +16,7 @@ import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
+import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 
 import java.util.Map;
 import java.util.Objects;
@@ -25,7 +26,7 @@ import java.util.Objects;
  * It extends AbstractView and provides common layout components for entity views.
  *
  */
-public abstract class AbstractEntityView extends AbstractView {
+public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> extends AbstractView<S> {
     protected VerticalLayout entityContent = new VerticalLayout();
     protected VerticalLayout modelSide = new VerticalLayout();
     protected SplitLayout splitLayout;
@@ -37,8 +38,8 @@ public abstract class AbstractEntityView extends AbstractView {
      * Constructor for AbstractEntityView.
      * Initializes the layout and components for entity views.
      */
-    public AbstractEntityView(String pageTitleKey, boolean skipBeforeLeaveDialog) {
-        super(pageTitleKey);
+    public AbstractEntityView(String pageTitleKey, boolean skipBeforeLeaveDialog, S service) {
+        super(pageTitleKey, service);
         this.skipBeforeLeaveDialog = skipBeforeLeaveDialog;
 
         entityContent.setSizeFull();
@@ -57,8 +58,8 @@ public abstract class AbstractEntityView extends AbstractView {
         getContent().add(splitLayout);
     }
 
-    public AbstractEntityView(String pageTitleKey) {
-        super(pageTitleKey);
+    public AbstractEntityView(String pageTitleKey, S service) {
+        super(pageTitleKey, service);
         this.skipBeforeLeaveDialog = true;
 
         modelSide.add(modelDiv);

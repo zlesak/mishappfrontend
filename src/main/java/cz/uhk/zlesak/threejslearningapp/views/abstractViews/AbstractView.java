@@ -7,6 +7,7 @@ import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
+import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +18,13 @@ import java.util.List;
  * It extends Composite with a VerticalLayout and implements the IView interface.
  * This class manages event registrations and ensures they are cleaned up when the view is detached.
  */
-public abstract class AbstractView extends Composite<VerticalLayout> implements IView {
+public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Composite<VerticalLayout> implements IView {
     protected final List<Registration> registrations = new ArrayList<>();
+    protected final S service;
     private final String pageTitleKey;
 
-    public AbstractView(String pageTitleKey) {
+    public AbstractView(String pageTitleKey, S service) {
+        this.service = service;
         getContent().setSizeFull();
         getContent().addClassName(LumoUtility.Gap.XSMALL);
         getContent().setSpacing(false);
