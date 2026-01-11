@@ -10,6 +10,7 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.CreateChapterEvent;
+import cz.uhk.zlesak.threejslearningapp.events.model.ModelSelectedFromDialogEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.RolesAllowed;
@@ -59,7 +60,6 @@ public class ChapterCreateView extends AbstractChapterView {
         CreateChapterForm createChapterForm = new CreateChapterForm(editorjs, mdEditor);
         entityContent.add(createChapterForm);
         secondaryNavigation.init(editorjs);
-        secondaryNavigation.getModelsScroller().setModelSelectedConsumer(this::setupData);
     }
 
     /**
@@ -137,6 +137,15 @@ public class ChapterCreateView extends AbstractChapterView {
                 attachEvent.getUI(),
                 CreateChapterEvent.class,
                 this::createChapterConsumer
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ModelSelectedFromDialogEvent.class,
+                event -> secondaryNavigation.getModelsScroller().updateModelSelect(
+                        event.getBlockId(),
+                        event.getSelectedModel()
+                )
         ));
     }
 }

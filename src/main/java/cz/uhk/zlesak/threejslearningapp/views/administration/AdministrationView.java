@@ -24,7 +24,7 @@ import org.springframework.context.annotation.Scope;
 @Tag("administration-view")
 @Scope("prototype")
 @RolesAllowed({"ADMIN", "TEACHER"})
-public class AdministrationView extends AbstractView {
+public class AdministrationView extends AbstractView<ChapterService> {
 
     private final ChapterService chapterService;
     private final ModelService modelService;
@@ -42,7 +42,7 @@ public class AdministrationView extends AbstractView {
 
     @Autowired
     public AdministrationView(ChapterService chapterService, ModelService modelService, QuizService quizService) {
-        super("page.title.administrationView");
+        super("page.title.administrationView", chapterService);
         this.chapterService = chapterService;
         this.modelService = modelService;
         this.quizService = quizService;

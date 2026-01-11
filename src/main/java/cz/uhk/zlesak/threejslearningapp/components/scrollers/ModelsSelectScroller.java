@@ -10,7 +10,6 @@ import org.springframework.context.ApplicationContextException;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * A scroller component that contains selects for choosing 3D models for the main chapter and its sub-chapters.
@@ -22,21 +21,11 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
     private Select<QuickModelEntity> mainModelSelect;
     private final Map<String, ModelSelectContainer> otherModelsHorizontalLayouts = new HashMap<>();
     private final VerticalLayout scrollerLayout;
-    private Consumer<Map<String, QuickModelEntity>> modelSelectConsumer;
 
     public ModelsSelectScroller() {
         super(new VerticalLayout(), ScrollDirection.VERTICAL);
         this.scrollerLayout = (VerticalLayout) getContent();
         setSizeFull();
-    }
-
-    /**
-     * Set consumer to be called when a model is selected on any of the selects.
-     *
-     * @param onSelect Consumer to be called with the selected QuickModelEntity.
-     */
-    public void setModelSelectedConsumer(Consumer<Map<String, QuickModelEntity>> onSelect) {
-        modelSelectConsumer = onSelect;
     }
 
     /**
@@ -73,7 +62,7 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      * @param main  whether this is the main model select or sub-chapter model select.
      */
     private void modelSelectHorizontalLayout(String label, String id, boolean main) {
-        ModelSelectContainer container = new ModelSelectContainer(label, id, main, modelSelectConsumer);
+        ModelSelectContainer container = new ModelSelectContainer(label, id, main);
 
         if (main) {
             this.mainModelSelect = container.getSelect();
@@ -108,4 +97,28 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
         models.put("main", mainModelSelect.getValue());
         return models;
     }
+
+    /**
+     * Updates the model select for a given blockId with the selected model.
+     * This is called when a model is selected from the dialog.
+     *
+     * @param blockId the blockId of the select to update
+     * @param model   the selected model
+     */
+    public void updateModelSelect(String blockId, QuickModelEntity model) {
+        if (blockId == null || blockId.isEmpty()) {
+            if (mainModelSelect != null) {
+                mainModelSelect.setItems(model);
+                mainModelSelect.setValue(model);
+            }
+        } else {
+            ModelSelectContainer container = otherModelsHorizontalLayouts.get(blockId);
+            if (container != null) {
+                Select<QuickModelEntity> select = container.getSelect();
+                select.setItems(model);
+                select.setValue(model);
+            }
+        }
+    }
 }
+

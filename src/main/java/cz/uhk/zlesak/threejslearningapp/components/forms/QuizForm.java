@@ -112,10 +112,7 @@ public class QuizForm extends VerticalLayout implements I18nAware {
      */
     private void openChapterSelectionDialog() {
         ChapterListDialog dialog = new ChapterListDialog(new ChapterListingView());
-        dialog.setEntitySelectedListener(chapter -> {
-            chapterSelect.setItems(chapter);
-            chapterSelect.setValue(chapter);
-        });
+        dialog.setBlockId("quiz-chapter-select");
         dialog.open();
     }
 

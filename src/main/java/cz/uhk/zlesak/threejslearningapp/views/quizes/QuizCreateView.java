@@ -15,6 +15,8 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.ChapterSelectedFromDialogEvent;
+import cz.uhk.zlesak.threejslearningapp.events.model.ModelSelectedFromDialogEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.CreateQuizEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
@@ -112,14 +114,7 @@ public class QuizCreateView extends AbstractQuizView {
             case OPEN_TEXT -> new OpenTextQuestionEditor();
             case MATCHING -> new MatchingQuestionEditor();
             case ORDERING -> new OrderingQuestionEditor();
-            case TEXTURE_CLICK -> new TextureClickQuestionEditor(quickModelEntity -> {
-                try {
-                    loadModelsIntoRenderer(quickModelEntity);
-                } catch (IOException e) {
-                    log.error("Error loading model with textures", e);
-                    new ErrorNotification(text("model.load.error") + ": " + e.getMessage(), 3000);
-                }
-            });
+            case TEXTURE_CLICK -> new TextureClickQuestionEditor();
         };
     }
 
@@ -177,6 +172,30 @@ public class QuizCreateView extends AbstractQuizView {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         registrations.add(ComponentUtil.addListener(UI.getCurrent(), CreateQuizEvent.class, e -> saveQuiz()));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+               ModelSelectedFromDialogEvent.class,
+                event -> {
+                    try {
+                        loadModelsIntoRenderer(Map.of(event.getBlockId(), event.getSelectedModel()));
+                    } catch (IOException e) {
+                        log.error("Error loading model", e);
+                        new ErrorNotification(text("model.load.error") + ": " + e.getMessage(), 3000);
+                    }
+                }
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ChapterSelectedFromDialogEvent.class,
+                event -> {
+                    if ("quiz-chapter-select".equals(event.getBlockId())) {
+                        quizForm.getChapterSelect().setItems(event.getSelectedChapter());
+                        quizForm.getChapterSelect().setValue(event.getSelectedChapter());
+                    }
+                }
+        ));
     }
 
     private void loadModelsIntoRenderer(Map<String, QuickModelEntity> quickModelEntityMap) throws IOException {

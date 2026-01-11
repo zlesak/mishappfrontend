@@ -17,9 +17,6 @@ import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import org.apache.commons.lang3.NotImplementedException;
 
-import java.util.Map;
-import java.util.function.Consumer;
-
 /**
  * Editor for texture click questions.
  */
@@ -29,17 +26,14 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
 
     /**
      * Constructor for TextureClickQuestionEditor.
-     *
-     * @param loadModelDataConsumer consumer to load model data
      */
-    public TextureClickQuestionEditor(Consumer<Map<String, QuickModelEntity>> loadModelDataConsumer) {
+    public TextureClickQuestionEditor() {
         super(QuestionTypeEnum.TEXTURE_CLICK);
         modelTextureAreaSelectContainer.setQuestionId(questionId);
         ModelSelectContainer modelSelectContainer = new ModelSelectContainer(
                 "Select Model",
                 questionId,
-                false,
-                loadModelDataConsumer
+                false
         );
         actionsLayout.remove(addOptionButton);
         actionsLayout.addComponentAtIndex(1, modelSelectContainer);
