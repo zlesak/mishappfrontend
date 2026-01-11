@@ -25,6 +25,7 @@ import java.util.Objects;
  * AbstractEntityView Class - A base class for entity views in the application.
  * It extends AbstractView and provides common layout components for entity views.
  *
+ * @param <S> the type of service associated with the entity view
  */
 public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> extends AbstractView<S> {
     protected VerticalLayout entityContent = new VerticalLayout();
@@ -36,7 +37,10 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
 
     /**
      * Constructor for AbstractEntityView.
-     * Initializes the layout and components for entity views.
+     *
+     * @param pageTitleKey          the title key for the page
+     * @param skipBeforeLeaveDialog flag to skip the before leave dialog
+     * @param service               the service associated with the view
      */
     public AbstractEntityView(String pageTitleKey, boolean skipBeforeLeaveDialog, S service) {
         super(pageTitleKey, service);
@@ -58,6 +62,12 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
         getContent().add(splitLayout);
     }
 
+    /**
+     * Constructor for AbstractEntityView.
+     *
+     * @param pageTitleKey the title key for the page
+     * @param service      the service associated with the view
+     */
     public AbstractEntityView(String pageTitleKey, S service) {
         super(pageTitleKey, service);
         this.skipBeforeLeaveDialog = true;
@@ -101,7 +111,10 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
     /**
      * Loads a single model along with its associated textures by firing UploadFileEvent events.
      *
-     * @param quickModelEntity the QuickModelEntity containing the model and texture information
+     * @param quickModelEntity the QuickModelEntity containing model and texture information
+     * @param questionId       the question ID associated with the model (can be null)
+     * @param key              the key identifying the model
+     * @param showImmediately  optional flag to indicate if the model should be shown immediately after loading
      */
     protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity, String questionId, String key, boolean... showImmediately) {
         String modelId = quickModelEntity.getModel().getId();
@@ -172,7 +185,11 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
         }
     }
 
-
+    /**
+     * Called when the component is attached to the UI.
+     *
+     * @param attachEvent the attach event
+     */
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);

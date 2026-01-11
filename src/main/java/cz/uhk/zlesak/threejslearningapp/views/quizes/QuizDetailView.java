@@ -11,7 +11,6 @@ import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContaine
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
 import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
-import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -27,12 +26,15 @@ import org.springframework.context.annotation.Scope;
 @Tag("quiz-detail")
 @PermitAll
 public class QuizDetailView extends AbstractQuizView {
-    private final QuizService quizService;
 
+    /**
+     * Constructor for QuizDetailView.
+     *
+     * @param quizResultService the quiz result service
+     */
     @Autowired
-    public QuizDetailView(QuizService quizService, QuizResultService quizResultService) {
+    public QuizDetailView(QuizResultService quizResultService) {
         super("page.title.quizView");
-        this.quizService = quizService;
         modelDiv.renderer.dispose(null);
         modelDiv.setHeight("0");
         modelDiv.setWidth("0");
@@ -45,7 +47,7 @@ public class QuizDetailView extends AbstractQuizView {
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         try {
-            QuickQuizEntity quiz = quizService.readQuick(quizId);
+            QuickQuizEntity quiz = service.readQuick(quizId);
             displayQuizDetails(quiz);
         } catch (Exception e) {
             log.error("Error loading quiz: {}", e.getMessage(), e);
@@ -68,6 +70,12 @@ public class QuizDetailView extends AbstractQuizView {
         entityContent.add(detailContainer);
     }
 
+    /**
+     * Overridden beforeEnter function to check if the quizId parameter is present in the URL.
+     * If not, it redirects the user to the QuizListingView.
+     *
+     * @param event before navigation event with event details
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();

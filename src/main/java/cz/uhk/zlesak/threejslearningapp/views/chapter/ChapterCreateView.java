@@ -23,7 +23,7 @@ import java.util.Map;
 
 /**
  * ChapterCreateView for creating a new chapter.
- * Accessible at the route "/createChapter".
+ * Extends AbstractChapterView and provides functionality to create chapters.
  */
 @Slf4j
 @Route("createChapter")

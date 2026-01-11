@@ -7,7 +7,7 @@ import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
-import cz.uhk.zlesak.threejslearningapp.utils.MoodleZipParser;
+import cz.uhk.zlesak.threejslearningapp.common.MoodleZipParser;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

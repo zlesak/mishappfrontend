@@ -30,6 +30,7 @@ public class ModelListingView extends AbstractListingView<QuickModelEntity, Mode
      * Constructor for ModelListingView.
      * Initializes the view with the necessary services using dependency injection.
      * filterParameters is initialized here for ModelListDialog usage.
+     * @param modelService service for handling model-related operations
      *
      * @see ModelListDialog
      */

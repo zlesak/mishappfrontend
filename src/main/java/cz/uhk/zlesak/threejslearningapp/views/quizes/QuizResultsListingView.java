@@ -54,13 +54,17 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      * @return a QuizFilter object
      */
     @Override
-    protected QuizResultFilter createFilter(String searchText) { //TODO wait for BE part to use quizId in request param to filter, then check for correct implementation
+    protected QuizResultFilter createFilter(String searchText) {
         return QuizResultFilter.builder()
                 .Name(searchText)
                 .quizId(quizId)
                 .build();
     }
 
+    /**
+     * Handles actions to be performed after navigation to this view.
+     * @param event the after navigation event
+     */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         quizId = event.getRouteParameters().get("quizId").orElse("");

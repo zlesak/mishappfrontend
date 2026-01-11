@@ -21,6 +21,10 @@ import lombok.extern.slf4j.Slf4j;
 public class NotFoundView extends VerticalLayout implements HasErrorParameter<NotFoundException> {
     private final ErrorDialog errorDialog;
 
+    /**
+     * Constructor for NotFoundView.
+     * Initializes the view with an error dialog informing the user about the missing page.
+     */
     public NotFoundView() {
         super();
         setSizeFull();
@@ -29,6 +33,12 @@ public class NotFoundView extends VerticalLayout implements HasErrorParameter<No
         add(errorDialog);
     }
 
+    /**
+     * Sets the error parameter for NotFoundException.
+     * @param event the before enter event
+     * @param parameter the error parameter containing the NotFoundException
+     * @return the HTTP status code for not found (404)
+     */
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<NotFoundException> parameter) {
         log.info("Navigated to NotFoundView for path: {}", event.getLocation().getPath());

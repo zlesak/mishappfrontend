@@ -10,11 +10,9 @@ import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizResultComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
-import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
@@ -30,17 +28,13 @@ import java.util.ArrayList;
 @Tag("quiz-player-view")
 @PermitAll
 public class QuizPlayerView extends AbstractQuizView {
-    private final QuizService quizService;
     private QuizPlayerComponent playerComponent;
 
     /**
      * Constructor for QuizPlayerView.
-     * @param quizService service for handling quiz-related operations
      */
-    @Autowired
-    public QuizPlayerView(QuizService quizService) {
+    public QuizPlayerView() {
         super("page.title.quizView");
-        this.quizService = quizService;
     }
 
     /**
@@ -49,7 +43,7 @@ public class QuizPlayerView extends AbstractQuizView {
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         try {
-            QuizEntity quiz = quizService.getQuizForStudent(quizId);
+            QuizEntity quiz = service.getQuizForStudent(quizId);
             displayQuiz(quiz);
         } catch (Exception e) {
             log.error("Error loading quiz: {}", e.getMessage(), e);
@@ -59,6 +53,7 @@ public class QuizPlayerView extends AbstractQuizView {
 
     /**
      * Displays the quiz using QuizPlayerComponent.
+     *
      * @param quiz the quiz entity to be displayed
      */
     private void displayQuiz(QuizEntity quiz) {
@@ -80,7 +75,7 @@ public class QuizPlayerView extends AbstractQuizView {
             }
 
             playerComponent.disable();
-            QuizValidationResult result = quizService.validateAnswers(quizId, new ArrayList<>(playerComponent.getAnswers().values()));
+            QuizValidationResult result = service.validateAnswers(quizId, new ArrayList<>(playerComponent.getAnswers().values()));
 
             entityContent.removeAll();
             entityContent.add(new QuizResultComponent(result));

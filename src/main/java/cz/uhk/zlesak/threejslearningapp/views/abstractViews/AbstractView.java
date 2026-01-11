@@ -17,12 +17,18 @@ import java.util.List;
  * AbstractView Class - A base class for all views in the application.
  * It extends Composite with a VerticalLayout and implements the IView interface.
  * This class manages event registrations and ensures they are cleaned up when the view is detached.
+ * @param <S> the type of service associated with the view
  */
 public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Composite<VerticalLayout> implements IView {
     protected final List<Registration> registrations = new ArrayList<>();
     protected final S service;
     private final String pageTitleKey;
 
+    /**
+     * Constructor for AbstractView.
+     * @param pageTitleKey the key for the page title
+     * @param service the service associated with the view
+     */
     public AbstractView(String pageTitleKey, S service) {
         this.service = service;
         getContent().setSizeFull();

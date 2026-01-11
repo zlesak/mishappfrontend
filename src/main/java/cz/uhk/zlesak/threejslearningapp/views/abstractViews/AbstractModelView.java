@@ -28,6 +28,7 @@ public abstract class AbstractModelView extends AbstractEntityView<ModelService>
      *
      * @param pageTitleKey          the key for the page title
      * @param skipBeforeLeaveDialog flag to skip before-leave dialog
+     * @param service               the model service for handling model operations
      */
     public AbstractModelView(String pageTitleKey, boolean skipBeforeLeaveDialog, ModelService service) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);

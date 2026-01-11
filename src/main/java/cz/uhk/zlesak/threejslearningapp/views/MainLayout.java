@@ -33,15 +33,26 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * MainLayout class - The main layout of the application that includes the header with navigation and user authentication controls.
+ */
 @AnonymousAllowed
 @Scope("prototype")
 @Layout
 @Slf4j
 public class MainLayout extends AppLayout {
+    /**
+     * Constructor for MainLayout.
+     */
     public MainLayout() {
         addToNavbar(createHeaderContent());
     }
 
+    /**
+     * Creates the header content including navigation and user authentication controls.
+     *
+     * @return the header component
+     */
     private Component createHeaderContent() {
         AuthenticationContext authenticationContext = VaadinService.getCurrent().getInstantiator().getOrCreate(AuthenticationContext.class);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -90,7 +101,12 @@ public class MainLayout extends AppLayout {
         return header;
     }
 
-    /// Function for creating menu items to appear at the top navigation
+    /**
+     * Creates the menu items based on the user's authentication and roles.
+     *
+     * @param authentication the authentication object of the current user
+     * @return the list of menu items
+     */
     private List<MenuItemInfo> createMenuItems(Authentication authentication) {
         List<MenuItemInfo> menuItems = commonMenuItemsForLoggedUsers();
         if (authentication != null && authentication.getAuthorities() != null) {
@@ -102,6 +118,11 @@ public class MainLayout extends AppLayout {
         return menuItems;
     }
 
+    /**
+     * Creates common menu items for logged-in users.
+     *
+     * @return the list of common menu items
+     */
     private List<MenuItemInfo> commonMenuItemsForLoggedUsers() {
         return new ArrayList<>(List.of(
                 new MenuItemInfo("MISH APP", VaadinIcon.HOME.create(), MainPageView.class),
@@ -111,6 +132,12 @@ public class MainLayout extends AppLayout {
         ));
     }
 
+    /**
+     * Gets the user role name based on the authentication object.
+     *
+     * @param authentication the authentication object of the current user
+     * @return the user role name
+     */
     private String getUserRoleName(Authentication authentication) {
         if (authentication != null && authentication.getAuthorities() != null) {
             for (GrantedAuthority authority : authentication.getAuthorities()) {
@@ -132,7 +159,10 @@ public class MainLayout extends AppLayout {
         return "Uživatel";
     }
 
-
+    /**
+     * Shows the cookie notification to the user.
+     *
+     */
     private void showCookieNotification() {
         CookiesNotification notification = new CookiesNotification();
         notification.open();

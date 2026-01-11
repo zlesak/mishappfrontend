@@ -19,7 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
 /**
- * View for displaying quiz details before starting.
+ * QuizResultView Class - Displays the results of a completed quiz.
+ * It fetches quiz result data from the backend and displays it using QuizResultComponent.
  */
 @Slf4j
 @Route("quiz-result/:quizId?/:back?")
@@ -30,12 +31,20 @@ public class QuizResultView extends AbstractQuizView {
     private final QuizResultService quizResultService;
     private String redirect = null;
 
+    /**
+     * Constructor for QuizResultView.
+     * @param quizResultService  the quiz result service
+     */
     @Autowired
     public QuizResultView(QuizResultService quizResultService) {
         super("page.title.quizView");
         this.quizResultService = quizResultService;
     }
 
+    /**
+     * Handles actions to be performed after navigation to this view.
+     * @param event after navigation event with event details
+     */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         try {
@@ -47,6 +56,10 @@ public class QuizResultView extends AbstractQuizView {
         }
     }
 
+    /**
+     * Displays the quiz result details in the view.
+     * @param result QuizValidationResult entity to display
+     */
     private void displayQuizResultDetails(QuizValidationResult result) {
         Button backButton = new Button(text("button.back"), new Icon(VaadinIcon.BACKWARDS));
         backButton.addClickListener(e -> {
@@ -61,6 +74,11 @@ public class QuizResultView extends AbstractQuizView {
         splitLayout.setSplitterPosition(100);
     }
 
+    /**
+     * Overridden beforeEnter function to check if the quizId and back parameters are present in the URL.
+     * If not, it redirects the user to the QuizListingView.
+     * @param event before navigation event with event details
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();

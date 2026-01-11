@@ -22,7 +22,10 @@ import lombok.extern.slf4j.Slf4j;
 @AnonymousAllowed
 @ParentLayout(MainLayout.class)
 public class ErrorView extends VerticalLayout implements HasErrorParameter<Exception> {
-
+    /**
+     * Constructor for ErrorView.
+     * Initializes the view with an error dialog informing the user about the internal error.
+     */
     public ErrorView() {
         super();
         setSizeFull();
@@ -35,6 +38,12 @@ public class ErrorView extends VerticalLayout implements HasErrorParameter<Excep
                 "Pro více informací kontaktujte správce aplikace."));
     }
 
+    /**
+     * Sets the error parameter for Exception.
+     * @param event the before enter event
+     * @param parameter the error parameter containing the Exception
+     * @return the HTTP status code for internal server error (500)
+     */
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<Exception> parameter) {
 

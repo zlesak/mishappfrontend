@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Scope;
 
 /**
  * View for creating a new 3D model.
+ * Extends AbstractModelView and provides functionality to upload and create models.
  */
 @Slf4j
 @Route("createModel/:modelId?")
@@ -40,6 +41,11 @@ public class ModelCreateView extends AbstractModelView {
         super("page.title.createModelView", false, modelService);
     }
 
+    /**
+     * Overridden beforeEnter function to check if the modelId parameter is present in the URL.
+     * If present, it attempts to load the model for editing.
+     * @param event before navigation event with event details
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
@@ -61,6 +67,10 @@ public class ModelCreateView extends AbstractModelView {
         }
     }
 
+    /**
+     * Overridden afterNavigation function to load the model data if modelId is present.
+     * @param event after navigation event with event details
+     */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         if (modelId != null && quickModelEntity != null) {

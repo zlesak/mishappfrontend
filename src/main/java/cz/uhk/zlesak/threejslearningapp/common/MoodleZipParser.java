@@ -1,4 +1,4 @@
-package cz.uhk.zlesak.threejslearningapp.utils;
+package cz.uhk.zlesak.threejslearningapp.common;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;

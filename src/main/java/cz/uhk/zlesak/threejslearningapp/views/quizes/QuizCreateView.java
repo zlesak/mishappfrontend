@@ -10,7 +10,6 @@ import cz.uhk.zlesak.threejslearningapp.components.forms.QuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
@@ -29,10 +28,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +45,12 @@ public class QuizCreateView extends AbstractQuizView {
     private final QuizForm quizForm;
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
 
+    /**
+     * Constructor for QuizCreateView.
+     *
+     * @param quizService    quiz service for handling quiz operations
+     * @param chapterService chapter service for handling chapter operations
+     */
     @Autowired
     public QuizCreateView(QuizService quizService, ChapterService chapterService) {
         super("page.title.createQuizView", false, quizService);
@@ -82,6 +85,12 @@ public class QuizCreateView extends AbstractQuizView {
         }
     }
 
+    /**
+     * Adds a new question of the specified type.
+     *
+     * @param questionType The type of question to add
+     * @return The created QuestionEditorBase instance
+     */
     private QuestionEditorBase<?> addQuestion(QuestionTypeEnum questionType) {
         QuestionEditorBase<?> editor = createQuestionEditor(questionType);
         editor.getRemoveButton().addClickListener(e -> removeQuestion(editor));
@@ -99,6 +108,12 @@ public class QuizCreateView extends AbstractQuizView {
         return editor;
     }
 
+    /**
+     * Adds a question with the provided data and answer data.
+     *
+     * @param questionData The question data
+     * @param answerData   The answer data
+     */
     private void addQuestion(AbstractQuestionData questionData, AbstractAnswerData answerData) {
         QuestionTypeEnum questionType = questionData.getType();
 
@@ -107,6 +122,12 @@ public class QuizCreateView extends AbstractQuizView {
         editor.setAnswerData(answerData);
     }
 
+    /**
+     * Creates a QuestionEditorBase instance based on the question type.
+     *
+     * @param questionType The type of question
+     * @return The created QuestionEditorBase instance
+     */
     private QuestionEditorBase<?> createQuestionEditor(QuestionTypeEnum questionType) {
         return switch (questionType) {
             case SINGLE_CHOICE -> new SingleChoiceQuestionEditor();
@@ -118,6 +139,11 @@ public class QuizCreateView extends AbstractQuizView {
         };
     }
 
+    /**
+     * Removes the specified question editor.
+     *
+     * @param editor The question editor to remove
+     */
     private void removeQuestion(QuestionEditorBase<?> editor) {
         questionEditors.remove(editor);
         quizForm.questionsContainer.remove(editor);
@@ -128,6 +154,9 @@ public class QuizCreateView extends AbstractQuizView {
         quizForm.questionsContainer.open(index);
     }
 
+    /**
+     * Saves the quiz by validating input and creating the quiz entity.
+     */
     private void saveQuiz() {
         try {
             String name = quizForm.getName();
@@ -168,6 +197,11 @@ public class QuizCreateView extends AbstractQuizView {
         }
     }
 
+    /**
+     * Overridden onAttach function to set up event listeners when the component is attached.
+     *
+     * @param attachEvent the attach event
+     */
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
@@ -175,15 +209,8 @@ public class QuizCreateView extends AbstractQuizView {
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
-               ModelSelectedFromDialogEvent.class,
-                event -> {
-                    try {
-                        loadModelsIntoRenderer(Map.of(event.getBlockId(), event.getSelectedModel()));
-                    } catch (IOException e) {
-                        log.error("Error loading model", e);
-                        new ErrorNotification(text("model.load.error") + ": " + e.getMessage(), 3000);
-                    }
-                }
+                ModelSelectedFromDialogEvent.class,
+                event -> loadSingleModelWithTextures(event.getSelectedModel(), event.getBlockId(), event.getSelectedModel().getModel().getId(), true)
         ));
 
         registrations.add(ComponentUtil.addListener(
@@ -198,13 +225,11 @@ public class QuizCreateView extends AbstractQuizView {
         ));
     }
 
-    private void loadModelsIntoRenderer(Map<String, QuickModelEntity> quickModelEntityMap) throws IOException {
-        for (Map.Entry<String, QuickModelEntity> entry : quickModelEntityMap.entrySet()) {
-            QuickModelEntity quickModelEntity = entry.getValue();
-            loadSingleModelWithTextures(quickModelEntity, entry.getKey(), null, true);
-        }
-    }
-
+    /**
+     * Overridden beforeEnter function to load quiz data if quizId parameter is present.
+     *
+     * @param event before navigation event with event details
+     */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();

@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @Scope("prototype")
-public abstract class AbstractChapterView extends AbstractEntityView <ChapterService> {
+public abstract class AbstractChapterView extends AbstractEntityView<ChapterService> {
     protected final SearchTextField searchTextField = new SearchTextField("filter.search.placeholder");
     protected final SubchapterSelectContainer subchapterSelectContainer = new SubchapterSelectContainer();
     protected final MarkdownEditor mdEditor = new MarkdownEditor();
@@ -36,14 +36,24 @@ public abstract class AbstractChapterView extends AbstractEntityView <ChapterSer
     private final boolean createMode;
 
     /**
-     * Constructor for AbstractChapterView.
-     * Initializes the layout and components based on the specified view type.
+     * Constructor for AbstractChapterView in edit/view mode.
      *
+     * @param pageTitleKey the title key for the page
+     * @param service      the chapter service for handling chapter operations
      */
     public AbstractChapterView(String pageTitleKey, ChapterService service) {
         this(pageTitleKey, false, true, service);
     }
 
+    /**
+     * Constructor for AbstractChapterView.
+     * Initializes the layout and components based on the specified view type.
+     *
+     * @param pageTitleKey          the title key for the page
+     * @param createChapterMode     indicates if the view is in create chapter mode
+     * @param skipBeforeLeaveDialog indicates if the before-leave dialog should be skipped
+     * @param service               the chapter service for handling chapter operations
+     */
     public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs, mdEditor);

@@ -33,6 +33,8 @@ import java.util.function.Consumer;
  *
  * @param <Q> the type of entity to be listed - quick type
  * @param <F> the type of filter used for listing entities
+ * @param <E> the type of entity managed by the service
+ * @param <S> the type of service used for entity operations
  */
 @Slf4j
 @Scope("prototype")
@@ -51,6 +53,8 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     /**
      * Constructor for AbstractListingView.
      * Initializes the view in non-list mode with an empty page title key.
+     *
+     * @param service the service used for entity operations
      */
     public AbstractListingView(S service) {
         this(false, "", service);
@@ -59,7 +63,9 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     /**
      * Constructor for AbstractListingView.
      *
-     * @param listView indicates whether the view is in list view mode or select mode (in cases of model or chapter selection dialogs)
+     * @param listView     indicates whether the view is in list view mode or select mode (in cases of model or chapter selection dialogs)
+     * @param pageTitleKey the title key for the page
+     * @param service      the service used for entity operations
      */
     public AbstractListingView(boolean listView, String pageTitleKey, S service) {
         super(pageTitleKey, service);

@@ -41,28 +41,31 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         mainLayout.setPadding(false);
         mainLayout.setSpacing(false);
 
-        createHeroSection(mainLayout);
+        mainLayout.add(createHeroSection());
 
         Hr divider1 = new Hr();
         divider1.setWidth("80%");
         mainLayout.add(divider1);
 
-        createFeaturesSection(mainLayout);
+        mainLayout.add(createFeaturesSection());
 
         Hr divider2 = new Hr();
         divider2.setWidth("80%");
         mainLayout.add(divider2);
 
-        createShowcaseSection(mainLayout);
+        mainLayout.add(createShowcaseSection());
 
         Hr divider3 = new Hr();
         divider3.setWidth("80%");
         mainLayout.add(divider3);
 
-        createAboutAndCollaborationSection(mainLayout);
+        mainLayout.add(createAboutAndCollaborationSection());
     }
 
-    private void createHeroSection(VerticalLayout parent) {
+    /**
+     * Creates the hero section of the main page.
+     */
+    private HorizontalLayout createHeroSection() {
         HorizontalLayout hero = new HorizontalLayout();
         hero.setWidthFull();
         hero.setMinHeight("calc(100vh - 100px)");
@@ -102,11 +105,11 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         description.getStyle().set("max-width", "600px");
 
         HorizontalLayout buttons = new HorizontalLayout();
-        Button startBtn = new Button(text("cta.start"), new Icon(VaadinIcon.ACADEMY_CAP));
+        Button startBtn = new Button(text("cta.start"), new Icon(VaadinIcon.OPEN_BOOK));
         startBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
         startBtn.addClickListener(e -> UI.getCurrent().navigate(ChapterListingView.class));
 
-        Button modelsBtn = new Button(text("cta.models"), new Icon(VaadinIcon.CUBE));
+        Button modelsBtn = new Button(text("cta.models"), new Icon(VaadinIcon.CUBES));
         modelsBtn.addThemeVariants(ButtonVariant.LUMO_LARGE);
         modelsBtn.addClickListener(e -> UI.getCurrent().navigate(ModelListingView.class));
 
@@ -115,10 +118,14 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         textContent.add(title, subtitle, description, buttons);
 
         hero.add(logoWrapper, textContent);
-        parent.add(hero);
+        return hero;
     }
 
-    private void createFeaturesSection(VerticalLayout parent) {
+    /**
+     * Creates the features section of the main page.
+     * @return The VerticalLayout containing the features section.
+     */
+    private VerticalLayout createFeaturesSection() {
         VerticalLayout section = new VerticalLayout();
         section.setWidthFull();
         section.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -142,7 +149,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         );
 
         section.add(title, cardsLayout);
-        parent.add(section);
+        return section;
     }
 
     private VerticalLayout createFeatureCard(VaadinIcon icon, String titleKey, String descKey) {
@@ -165,7 +172,11 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         return card;
     }
 
-    private void createShowcaseSection(VerticalLayout parent) {
+    /**
+     * Creates the showcase section of the main page.
+     * @return The VerticalLayout containing the showcase section.
+     */
+    private VerticalLayout createShowcaseSection() {
         VerticalLayout section = new VerticalLayout();
         section.setWidthFull();
         section.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -188,9 +199,14 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         showcaseGrid.add(createGifPlaceholder("showcase.gif3.title"));
 
         section.add(title, desc, showcaseGrid);
-        parent.add(section);
+        return section;
     }
 
+    /**
+     * Creates a placeholder for a GIF/Image with a title. //TODO replace with actual GIF/Image component
+     * @param titleKey The key for the title text.
+     * @return The VerticalLayout containing the GIF/Image placeholder and title.
+     */
     private VerticalLayout createGifPlaceholder(String titleKey) {
         VerticalLayout container = new VerticalLayout();
         container.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -217,7 +233,11 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         return container;
     }
 
-    private void createAboutAndCollaborationSection(VerticalLayout parent) {
+    /**
+     * Creates the about and collaboration section of the main page.
+     * @return The VerticalLayout containing the about and collaboration section.
+     */
+    private VerticalLayout createAboutAndCollaborationSection() {
         VerticalLayout section = new VerticalLayout();
         section.setWidthFull();
         section.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -271,7 +291,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
         container.add(aboutCol, rightCol);
         section.add(container);
-        parent.add(section);
+        return section;
     }
 
     /**

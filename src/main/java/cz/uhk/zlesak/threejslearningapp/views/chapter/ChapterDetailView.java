@@ -35,6 +35,7 @@ public class ChapterDetailView extends AbstractChapterView {
     /**
      * ChapterView constructor - creates instance of chapter view instance that then accomplishes the goal of getting
      * and serving the user the requested chapter from proper backend API endpoint via chapterApiClient.
+     * @param chapterService service for handling chapter-related operations
      */
     @Autowired
     public ChapterDetailView(ChapterService chapterService) {
