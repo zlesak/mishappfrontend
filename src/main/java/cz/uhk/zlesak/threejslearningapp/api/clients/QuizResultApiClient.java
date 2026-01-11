@@ -41,7 +41,7 @@ public class QuizResultApiClient extends AbstractApiClient<QuizValidationResult,
      */
     @Override
     public QuizValidationResult validateAnswers(QuizSubmissionRequest submissionRequest) throws Exception {
-        return sendPostRequest(resultsEndpoint + submissionRequest.getQuizId() + "/validate-result", submissionRequest, QuizValidationResult.class, "Chyba při validaci odpovědí kvízu", submissionRequest.getQuizId(), null);
+        return sendPostRequest(resultsEndpoint + "validate-result", submissionRequest, QuizValidationResult.class, "Chyba při validaci odpovědí kvízu", submissionRequest.getQuizId(), null);
     }
 
     //region Overridden operations from AbstractApiClient
