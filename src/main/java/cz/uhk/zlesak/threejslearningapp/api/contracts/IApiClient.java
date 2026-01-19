@@ -15,13 +15,15 @@ import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
  */
 public interface IApiClient <E, Q, F> {
     static String getBaseUrl() {
-        boolean isHotswap = java.lang.management.ManagementFactory.getRuntimeMXBean()
-                .getInputArguments().stream()
-                .anyMatch(arg -> arg.contains("hotswap-agent.jar"));
-        if (isHotswap) {
-            return "http://localhost:8050/api/";
+        String envUrl = System.getenv("BACKEND_URL");
+        return (envUrl != null && !envUrl.isEmpty() ? envUrl : "http://localhost:8050") + "/api/";
+    }
+    static String getExternalAppUrl() {
+        String envUrl = System.getenv("APP_URL");
+        if(envUrl != null && !envUrl.isEmpty()){
+            return envUrl;
         }
-        return "http://kotlin-backend:8050/api/";
+        throw new IllegalArgumentException("APP_URL is not set");
     }
 
     /**

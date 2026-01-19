@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
@@ -42,11 +43,12 @@ class SecurityConfig {
      * Configures the security filter chain for HTTP requests with OAuth2 login.
      *
      * @param http the HttpSecurity object to configure
+     * @param clientRegistrationRepository the repository for client registrations
      * @return the configured SecurityFilterChain
      * @throws Exception if an error occurs during configuration
      */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
         http.with(VaadinSecurityConfigurer.vaadin(), configurer ->
                 configurer.oauth2LoginPage("/oauth2/authorization/keycloak?prompt=login")
         );
@@ -54,6 +56,12 @@ class SecurityConfig {
         http.oauth2Login(oauth2 ->
                 oauth2.userInfoEndpoint(userInfo -> userInfo.oidcUserService(this.oidcUserService()))
         );
+
+        OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler =
+                new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+        logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
+
+        http.logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler));
 
         return http.build();
     }
