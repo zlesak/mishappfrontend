@@ -12,6 +12,9 @@ export class EditorJs extends LitElement {
   @state()
   private editor: any;
 
+  @state()
+  private readOnly: boolean = false;
+
   readonly editorReadyPromise: Promise<void>;
   private resolveEditorReadyPromise!: () => void;
   private rejectEditorReadyPromise!: (reason?: any) => void;
@@ -31,6 +34,12 @@ export class EditorJs extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+
+    const readOnlyAttr = this.getAttribute('readonly');
+    if (readOnlyAttr !== null) {
+      this.readOnly = readOnlyAttr === 'true' || readOnlyAttr === '';
+    }
+
     this.style.display = 'block';
     this.style.width = '100%';
     const style = document.createElement('style');
@@ -53,7 +62,7 @@ export class EditorJs extends LitElement {
 
   async firstUpdated() {
     try {
-      this.editor = await initializeEditor(this);
+      this.editor = await initializeEditor(this, { readOnly: this.readOnly });
       TextureColorLinkTool.setGlobalModelsTexturesAndColors([], [], []);
       this.resolveEditorReadyPromise();
       attachTextureColorListeners();

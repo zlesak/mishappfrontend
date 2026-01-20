@@ -50,7 +50,6 @@ public class ChapterCreateView extends AbstractChapterView {
      */
     private void configureVisibility() {
         searchTextField.setVisible(false);
-        editorjs.toggleReadOnlyMode(false);
     }
 
     /**

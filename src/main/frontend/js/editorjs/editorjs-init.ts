@@ -14,80 +14,87 @@ import uploader from '@ajite/editorjs-image-base64';
 import ImageTool from '@editorjs/image';
 import LinkTool from '@editorjs/link';
 import TextureColorLinkTool from 'Frontend/js/editorjs/textureColorLinkTool/textureColorLinkTool';
-import { MDParser, MDImporter } from 'editorjs-md-parser';
+import { MDImporter } from 'editorjs-md-parser';
 
 function initializeEditorJs({
   holder,
   models = [],
   textures = [],
   colors = [],
-  placeholder = 'Začněte tvořit...'
+  placeholder = 'Začněte tvořit...',
+  readOnly = false
 }: {
   holder: HTMLElement,
   models?: any[],
   textures?: any[],
   colors?: any[],
-  placeholder?: string
+  placeholder?: string,
+  readOnly?: boolean
 }) {
+  const baseTools: any = {
+    strikethrough: Strikethrough,
+    linkTool: LinkTool,
+    underline: Underline,
+    paragraph: {
+      class: Paragraph,
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textureColorLinkTool']
+    },
+    header: {
+      class: Header,
+      inlineToolbar: ['underline', 'bold', 'italic'],
+      config: {
+        placeholder: 'Vložte nadpis',
+        levels: [1, 2, 3, 4, 5, 6],
+        defaultLevel: 1
+      }
+    },
+    table: Table,
+    list: List,
+    code: Code,
+    quote: {
+      class: Quote,
+      inlineToolbar: ['underline', 'bold', 'italic'],
+      config: {
+        quotePlaceholder: 'Citujte...',
+        captionPlaceholder: 'Podepište autora citace'
+      }
+    },
+    hyperlink: {
+      class: Hyperlink,
+      config: {
+        target: '_self',
+        rel: 'nofollow',
+        availableTargets: ['_self'],
+        availableRels: ['author', 'noreferrer'],
+        validate: false,
+        inlineToolbar: ['underline', 'bold', 'italic']
+      }
+    },
+    textureColorLinkTool: {
+      class: TextureColorLinkTool,
+      config: {
+        models,
+        textures,
+        colors
+      }
+    },
+    image: {
+      class: ImageTool,
+      config: {
+        uploader
+      }
+    }
+  };
+  // Only add the markdown importer if the editor is not read-only as this tool has no read-only support
+  if (!readOnly) {
+    baseTools.markdownImporter = MDImporter;
+  }
+
   return new EditorJS({
     holder,
     placeholder,
-    tools: {
-      markdownParser: MDParser,
-      markdownImporter: MDImporter,
-      strikethrough: Strikethrough,
-      linkTool: LinkTool,
-      underline: Underline,
-      paragraph: {
-        class: Paragraph,
-        inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textureColorLinkTool']
-      },
-      header: {
-        class: Header,
-        inlineToolbar: ['underline', 'bold', 'italic'],
-        config: {
-          placeholder: 'Vložte nadpis',
-          levels: [1, 2, 3, 4, 5, 6],
-          defaultLevel: 1
-        }
-      },
-      table: Table,
-      list: List,
-      code: Code,
-      quote: {
-        class: Quote,
-        inlineToolbar: ['underline', 'bold', 'italic'],
-        config: {
-          quotePlaceholder: 'Citujte...',
-          captionPlaceholder: 'Podepište autora citace'
-        }
-      },
-      hyperlink: {
-        class: Hyperlink,
-        config: {
-          target: '_self',
-          rel: 'nofollow',
-          availableTargets: ['_self'],
-          availableRels: ['author', 'noreferrer'],
-          validate: false,
-          inlineToolbar: ['underline', 'bold', 'italic']
-        }
-      },
-      textureColorLinkTool: {
-        class: TextureColorLinkTool,
-        config: {
-          models,
-          textures,
-          colors
-        }
-      },
-      image: {
-        class: ImageTool,
-        config: {
-          uploader
-        }
-      }
-    },
+    readOnly,
+    tools: baseTools,
     i18n: {
       messages: {
         ui: {
@@ -269,7 +276,7 @@ async function initializeContainer(parentElement: HTMLElement): Promise<HTMLElem
   return container;
 }
 
-export async function initializeEditor(parentElement: HTMLElement, options: {models?: any[], textures?: any[], colors?: any[], placeholder?: string} = {}): Promise<any> {
+export async function initializeEditor(parentElement: HTMLElement, options: {models?: any[], textures?: any[], colors?: any[], placeholder?: string, readOnly?: boolean} = {}): Promise<any> {
   let container = await initializeContainer(parentElement);
   try {
     const editor = initializeEditorJs({

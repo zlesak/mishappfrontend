@@ -28,7 +28,7 @@ import java.util.Map;
 public abstract class AbstractChapterView extends AbstractEntityView<ChapterService> {
     protected final SearchTextField searchTextField = new SearchTextField("filter.search.placeholder");
     protected final SubchapterSelectContainer subchapterSelectContainer = new SubchapterSelectContainer();
-    protected final EditorJs editorjs = new EditorJs();
+    protected final EditorJs editorjs;
     protected final NameTextField nameTextField = new NameTextField("chapter.title");
     protected ChapterTabSheetContainer secondaryNavigation = null;
     private final boolean createMode;
@@ -54,6 +54,7 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);
+        editorjs = new EditorJs(createChapterMode);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs);
         ModelsSelectScroller modelsScroller = new ModelsSelectScroller();
         this.createMode = createChapterMode;
@@ -91,6 +92,5 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     protected void configureReadOnlyMode() {
         nameTextField.setReadOnly(true);
-        editorjs.toggleReadOnlyMode(true);
     }
 }

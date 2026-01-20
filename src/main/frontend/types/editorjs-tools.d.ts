@@ -147,27 +147,6 @@ declare module '@editorjs/list' {
 }
 
 declare module 'editorjs-md-parser' {
-    export class MDParser {
-        static get toolbox(): {
-            title: string;
-            icon: string;
-        };
-
-        constructor(config: {
-            data?: any;
-            api?: any;
-            config?: {
-                filename?: string;
-                extension?: string;
-                timestamp?: boolean;
-                callback?: (markdown: string) => void;
-            };
-        });
-
-        render(): HTMLElement;
-        save(): { message: string };
-    }
-
     export class MDImporter {
         static get toolbox(): {
             title: string;
@@ -197,7 +176,6 @@ declare module 'editorjs-md-parser' {
         onPaste(event: any): void;
     }
 
-    export function MDfromBlocks(blocks: any[]): Promise<string>;
     export function MDtoBlocks(markdown: string): Promise<any[]>;
 }
 

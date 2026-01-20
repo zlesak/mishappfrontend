@@ -43,9 +43,11 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
 
     /**
      * Default constructor for EditorJsComponent.
-     * Does not take any parameters as they are not needed at the time of instantiation.
+     *
+     * @param createMode true for edit mode, false for read-only mode
      */
-    public EditorJs() {
+    public EditorJs(boolean createMode) {
+        getElement().setProperty("readOnly", !createMode);
         addModelTextureColorAreaClickListener();
     }
 
@@ -60,16 +62,6 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                     String result = json.asString();
                     return (result == null || result.isEmpty()) ? "{}" : result;
                 });
-    }
-
-    /**
-     * Toggles the read-only mode of the Editor.js instance.
-     * When in read-only mode, users cannot edit the content.
-     *
-     * @param readOnly true to enable read-only mode, false to disable it.
-     */
-    public void toggleReadOnlyMode(boolean readOnly) {
-        getElement().callJsFunction("toggleReadOnlyMode", readOnly);
     }
 
     /**
