@@ -89,7 +89,7 @@ public class CustomI18NProvider implements I18NProvider {
                 return value;
             }
         }
-        log.warn("Translation not found for: {} in locale: {}", key, locale.getLanguage());
+        log.warn("Translation not found for: {} in locale: {}", key, locale.getLanguage(), new Exception("Stack trace"));
         return key;
     }
 

@@ -57,6 +57,11 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         return quizResultApiClient.validateAnswers(request);
     }
 
+    /**
+     * Gets quiz data including correct answers.
+     * @param quizId Quiz ID
+     * @return Quiz entity with answers
+     */
     public QuizEntity getQuizWithAnswers(String quizId) {
         try {
             return quizApiClient.readAll(quizId);
@@ -73,13 +78,22 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      * @return Quiz entity for student
      */
     public QuizEntity getQuizForStudent(String quizId){
-
         try {
             return quizApiClient.readQuizStudent(quizId);
         } catch (Exception e) {
             log.error("Nepodařilo se naříst kvíz: {}", String.valueOf(e));
             throw new ApplicationContextException("Nepodařilo se naříst kvíz");
         }
+    }
+
+    /**
+     * Calculates the possible maximum score for a fully and correctly filled quiz.
+     * @param quizId Quiz ID
+     * @return Possible maximum score
+     */
+    public int calculatePossibleScore(String quizId){
+        QuizEntity quiz = getQuizForStudent(quizId);
+        return quiz.getQuestions().stream().mapToInt(AbstractQuestionData::getPoints).sum();
     }
 
     /**

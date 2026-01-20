@@ -24,7 +24,7 @@ public class QuizResultListItem extends AbstractListItem {
         Span totalScoreLabel = new Span(text("quiz.result.totalScore.label") + ": ");
         Span totalScore = new Span(String.valueOf(result.getTotalScore()));
         Span percentageLabel = new Span(text("quiz.result.percentage.label") + ": ");
-        Span percentage = new Span(result.getPercentage() + "%");
+        Span percentage = new Span(String.format("%.2f%%", result.getPercentage()));
 
 
         maxScore.getStyle().set("font-weight", "600");

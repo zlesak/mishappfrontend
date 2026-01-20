@@ -5,6 +5,7 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 
@@ -15,33 +16,29 @@ public class QuizScoreCard extends VerticalLayout implements I18nAware {
 
     /**
      * Creates score card displaying total score and percentage.
-     * @param result Quiz validation result
+     *
+     * @param result        Quiz validation result
+     * @param possibleScore Possible maximum score
      */
-    public QuizScoreCard(QuizValidationResult result) {
+    public QuizScoreCard(QuizValidationResult result, int possibleScore) {
         super();
+
         addClassName("score-card");
-        getStyle()
-                .set("border", "2px solid var(--lumo-primary-color)")
-                .set("border-radius", "var(--lumo-border-radius-m)")
-                .set("padding", "var(--lumo-space-l)")
-                .set("margin-bottom", "var(--lumo-space-m)")
-                .set("text-align", "center")
-                .set("background", "var(--lumo-primary-color-10pct)");
+        addClassNames(LumoUtility.BorderRadius.MEDIUM, LumoUtility.Border.ALL, LumoUtility.BorderColor.PRIMARY,
+                LumoUtility.Padding.LARGE, LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.CENTER,
+                LumoUtility.Background.PRIMARY_10);
 
         H3 scoreTitle = new H3(text("quiz.result.score"));
-        H1 scoreValue = new H1(result.getTotalScore() + " / " + result.getMaxScore());
-        scoreValue.getStyle().set("color", "var(--lumo-primary-color)");
+        H1 scoreValue = new H1(result.getTotalScore() + " / " + possibleScore);
+        scoreTitle.addClassNames(LumoUtility.TextColor.PRIMARY);
 
-        Span percentage = new Span(String.format("%.1f%%", result.getPercentage()));
-        percentage.getStyle()
-                .set("font-size", "var(--lumo-font-size-xl)")
-                .set("font-weight", "bold");
+        Span percentage = new Span(String.format("%.2f%%", result.getPercentage()));
+        percentage.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);
 
         String resultMessage = getResultMessage(result.getPercentage());
         Span message = new Span(resultMessage);
-        message.getStyle()
-                .set("font-size", "var(--lumo-font-size-l)")
-                .set("margin-top", "var(--lumo-space-m)");
+        message.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.Margin.Top.MEDIUM);
+
         setSpacing(false);
         setPadding(false);
         setAlignItems(FlexComponent.Alignment.CENTER);
@@ -52,6 +49,7 @@ public class QuizScoreCard extends VerticalLayout implements I18nAware {
 
     /**
      * Generates a result message based on the percentage score.
+     *
      * @param percentage Percentage score
      * @return Result message
      */

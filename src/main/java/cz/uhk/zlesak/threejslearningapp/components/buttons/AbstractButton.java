@@ -23,7 +23,9 @@ public class AbstractButton<T extends Component> extends Button implements I18nA
         if (icon != null){
             setIcon(icon.create());
         }
-        setText(text(labelKey));
+        if (labelKey != null && !labelKey.isEmpty()) {
+            setText(text(labelKey));
+        }
         for (ButtonVariant variant : variants){
             addThemeVariants(variant);
         }

@@ -52,6 +52,20 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
 
     /**
      * Constructor for AbstractListingView.
+     * Initializes the view with an option to show or hide the filter.
+     * @param listView true for list view mode, false for select mode
+     * @param pageTitleKey the title key for the page
+     * @param service the service used for entity operations
+     * @param showFilter indicates whether to show the filter component
+     */
+    public AbstractListingView(boolean listView, String pageTitleKey, S service, boolean showFilter) {
+        this(listView, pageTitleKey, service);
+        secondaryFilterLayout.setVisible(showFilter);
+
+    }
+
+    /**
+     * Constructor for AbstractListingView.
      * Initializes the view in non-list mode with an empty page title key.
      *
      * @param service the service used for entity operations

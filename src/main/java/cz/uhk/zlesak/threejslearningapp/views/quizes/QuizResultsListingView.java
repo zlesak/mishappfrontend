@@ -30,10 +30,11 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
     /**
      * Constructor for QuizListingView.
      * It initializes the view with the necessary services using dependency injection.
+     * Hides the filter via the super constructor.
      */
     @Autowired
     public QuizResultsListingView(QuizResultService quizResultService) {
-        super(true, "page.title.quizListView", quizResultService);
+        super(true, "page.title.quizListView", quizResultService, false);
     }
 
     /**

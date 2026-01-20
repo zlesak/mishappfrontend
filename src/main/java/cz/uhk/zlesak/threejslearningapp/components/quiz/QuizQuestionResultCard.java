@@ -11,11 +11,12 @@ public class QuizQuestionResultCard extends HorizontalLayout implements I18nAwar
 
     /**
      * Creates a question result card.
+     *
      * @param questionNumber number of the question
-     * @param isCorrect whether the answer was correct
-     * @param score score obtained for the question
+     * @param isCorrect      whether the answer was correct
+     * @param score          score obtained for the question
      */
-    public QuizQuestionResultCard(int questionNumber, String selected, Boolean isCorrect, Integer score) {
+    public QuizQuestionResultCard(int questionNumber, String questionText, Boolean isCorrect, int score) {
         super();
         setSpacing(true);
         setPadding(true);
@@ -25,17 +26,17 @@ public class QuizQuestionResultCard extends HorizontalLayout implements I18nAwar
         Span questionLabel = new Span(text("quiz.question.number") + " " + questionNumber + ": ");
         questionLabel.getStyle().set("font-weight", "bold");
 
-        Span selectedAnswer = new Span(text("quiz.question.selected") + ": " + selected);
+        Span questionTextSpan = new Span(questionText);
         questionLabel.getStyle().set("font-weight", "bold");
 
         Span statusLabel = new Span(isCorrect ? "✓ " + text("quiz.result.correct") : "✗ " + text("quiz.result.incorrect"));
         statusLabel.getStyle().set("color", isCorrect ? "var(--lumo-success-color)" : "var(--lumo-error-color)");
 
-        Span scoreLabel = new Span(" (" + score + " " + text("quiz.result.points") + ")");
+        Span scoreLabel = new Span(" (" + (score == -1 ? text("quiz.result.unfilled") : score + " " + text("quiz.result.points")) + ")");
         scoreLabel.getStyle()
                 .set("font-size", "var(--lumo-font-size-s)")
                 .set("color", "var(--lumo-secondary-text-color)");
 
-        add(questionLabel, statusLabel, selectedAnswer, scoreLabel);
+        add(questionLabel, questionTextSpan, statusLabel, scoreLabel);
     }
 }

@@ -7,7 +7,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizPlayerComponent;
-import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizResultComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
@@ -69,18 +68,9 @@ public class QuizPlayerView extends AbstractQuizView {
      */
     private void submitQuiz() {
         try {
-            if (!playerComponent.isComplete()) {
-                new ErrorNotification(text("quiz.error.notComplete"), 3000);
-                return;
-            }
-
             playerComponent.disable();
             QuizValidationResult result = service.validateAnswers(quizId, new ArrayList<>(playerComponent.getAnswers().values()));
-
-            entityContent.removeAll();
-            entityContent.add(new QuizResultComponent(result));
-            splitLayout.setSplitterPosition(100);
-
+            displayQuizResultDetails(result);
         } catch (Exception e) {
             log.error("Error při odeslání odpovědí kvízu", e);
             new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage(), 5000);

@@ -1,8 +1,15 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import cz.uhk.zlesak.threejslearningapp.components.quiz.QuizResultComponent;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
+import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizDetailView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
@@ -15,6 +22,7 @@ import org.springframework.context.annotation.Scope;
 @Scope("prototype")
 public abstract class AbstractQuizView extends AbstractEntityView<QuizService> {
     protected String quizId;
+    protected String redirect;
 
     /**
      * Constructor for AbstractQuizView.
@@ -34,5 +42,27 @@ public abstract class AbstractQuizView extends AbstractEntityView<QuizService> {
      */
     public AbstractQuizView(String pageTitleKey, boolean skipBeforeLeaveDialog, QuizService service) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);
+    }
+
+    /**
+     * Displays the quiz result details using QuizResultComponent.
+     * @param result Quiz validation result
+     */
+    protected void displayQuizResultDetails(QuizValidationResult result)
+    {
+        Button backButton = new Button(text("button.back"), new Icon(VaadinIcon.BACKWARDS));
+        backButton.addClickListener(e -> {
+            if (redirect != null && !redirect.isEmpty()) {
+                getUI().ifPresent(ui -> ui.navigate(QuizDetailView.class,
+                        new RouteParameters("quizId", redirect)));
+            }else{
+                getUI().ifPresent(ui -> ui.navigate(QuizDetailView.class,
+                        new RouteParameters("quizId", quizId)));
+            }
+        });
+        entityContent.removeAll();
+        entityContent.add(backButton);
+        entityContent.add(new QuizResultComponent(result, service.getQuizForStudent(redirect == null ? quizId : redirect), service.calculatePossibleScore(redirect == null ? quizId : redirect)));
+        splitLayout.setSplitterPosition(100);
     }
 }

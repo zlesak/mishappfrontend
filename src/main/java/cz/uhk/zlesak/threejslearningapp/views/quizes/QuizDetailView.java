@@ -7,6 +7,7 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
@@ -35,13 +36,7 @@ public class QuizDetailView extends AbstractQuizView {
     @Autowired
     public QuizDetailView(QuizResultService quizResultService) {
         super("page.title.quizView");
-        modelDiv.renderer.dispose(null);
-        modelDiv.setHeight("0");
-        modelDiv.setWidth("0");
-
-        Div resultHistoryListingDiv = new Div(new QuizResultsListingView(quizResultService));
-        resultHistoryListingDiv.setSizeFull();
-        modelSide.add(resultHistoryListingDiv);
+        replaceModelWithQuizResultListing(quizResultService);
     }
 
     @Override
@@ -68,6 +63,21 @@ public class QuizDetailView extends AbstractQuizView {
         QuizDetailContainer detailContainer = new QuizDetailContainer(quiz);
 
         entityContent.add(detailContainer);
+    }
+
+    /**
+     * Replaces the 3D model area with a quiz result listing.
+     * @param quizResultService the quiz result service
+     */
+    private void replaceModelWithQuizResultListing(QuizResultService quizResultService) {
+        modelDiv.renderer.dispose(null);
+        modelDiv.setHeight("0");
+        modelDiv.setWidth("0");
+
+        Div resultHistoryListingDiv = new Div(new QuizResultsListingView(quizResultService));
+        resultHistoryListingDiv.setSizeFull();
+        modelSide.addComponentAsFirst(resultHistoryListingDiv);
+        modelSide.addClassNames(LumoUtility.Overflow.HIDDEN);
     }
 
     /**
