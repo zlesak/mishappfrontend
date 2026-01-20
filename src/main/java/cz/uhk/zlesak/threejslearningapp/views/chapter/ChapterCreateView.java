@@ -146,6 +146,7 @@ public class ChapterCreateView extends AbstractChapterView {
                             event.getSelectedModel()
                     );
                     loadSingleModelWithTextures(event.getSelectedModel(), event.getBlockId(), event.getSelectedModel().getModel().getId(), true);
+                    editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
                 }
         ));
     }
