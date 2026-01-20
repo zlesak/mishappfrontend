@@ -17,12 +17,9 @@ import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.ScrollToElement;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.ShowSubchapterContentEvent;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownModeToggleEvent;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownValueChangedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
-import elemental.json.JsonValue;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
@@ -168,33 +165,12 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
     }
 
     /**
-     * Loads provided Markdown string into the editor (converts Markdown -> EditorJS blocks).
-     *
-     * @param filePath Markdown content as string
-     */
-    public void loadMarkdown(String filePath) {
-        getElement().callJsFunction("loadMarkdown", filePath);
-    }
-
-    /**
-     * Loads provided Moodle HTML string into the editor (converts HTML -> Markdown -> EditorJS blocks).
+     * Loads provided Moodle HTML string into the editor.
      *
      * @param html HTML content from Moodle
      */
     public void loadMoodleHtml(String html) {
         getElement().callJsFunction("loadMoodleHtml", html);
-    }
-
-    /**
-     * Retrieves current content as Markdown (converts blocks if in block mode).
-     *
-     * @return future with markdown string
-     */
-    public CompletableFuture<String> getMarkdown() {
-        return getElement()
-                .callJsFunction("getMarkdown")
-                .toCompletableFuture()
-                .thenApply(JsonValue::asString);
     }
 
     /**
@@ -215,44 +191,9 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
         });
     }
 
-    /**
-     * Adds a listener for Markdown mode toggle events.
-     * This listener is triggered when the Markdown mode is toggled.
-     *
-     */
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        registrations.add(ComponentUtil.addListener(
-                attachEvent.getUI(),
-                MarkdownModeToggleEvent.class,
-                event -> {
-                    if (event.isMarkdownMode()) {
-                        getMarkdown().whenComplete((markdown, throwable) -> {
-                            if (throwable != null) {
-                                throw new RuntimeException("Chyba při získávání markdown hodnoty: " + throwable.getMessage());
-                            } else {
-                                ComponentUtil.fireEvent(UI.getCurrent(), new MarkdownValueChangedEvent(UI.getCurrent(), markdown, true));
-                                setVisible(false);
-                            }
-                        });
-                    } else {
-                        setVisible(true);
-                    }
-                }
-        ));
-
-        registrations.add(
-                ComponentUtil.addListener(
-                        attachEvent.getUI(),
-                        MarkdownValueChangedEvent.class,
-                        event -> {
-                            if (!event.isMarkdownMode()) {
-                                loadMarkdown(event.getMarkdownValue());
-                            }
-                        }
-                )
-        );
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),

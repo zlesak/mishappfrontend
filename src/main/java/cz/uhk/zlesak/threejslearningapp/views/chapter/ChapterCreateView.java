@@ -57,8 +57,7 @@ public class ChapterCreateView extends AbstractChapterView {
      * Sets up the chapter creation form.
      */
     private void setupChapterForm() {
-        CreateChapterForm createChapterForm = new CreateChapterForm(editorjs, mdEditor);
-        entityContent.add(createChapterForm);
+        entityContent.add(new CreateChapterForm(editorjs));
         secondaryNavigation.init(editorjs);
     }
 

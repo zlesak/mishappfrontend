@@ -5,7 +5,6 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ChapterTabSheetContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.SubchapterSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
-import cz.uhk.zlesak.threejslearningapp.components.editors.MarkdownEditor;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextField;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ChapterContentScroller;
@@ -29,7 +28,6 @@ import java.util.Map;
 public abstract class AbstractChapterView extends AbstractEntityView<ChapterService> {
     protected final SearchTextField searchTextField = new SearchTextField("filter.search.placeholder");
     protected final SubchapterSelectContainer subchapterSelectContainer = new SubchapterSelectContainer();
-    protected final MarkdownEditor mdEditor = new MarkdownEditor();
     protected final EditorJs editorjs = new EditorJs();
     protected final NameTextField nameTextField = new NameTextField("chapter.title");
     protected ChapterTabSheetContainer secondaryNavigation = null;
@@ -56,7 +54,7 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);
-        ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs, mdEditor);
+        ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs);
         ModelsSelectScroller modelsScroller = new ModelsSelectScroller();
         this.createMode = createChapterMode;
 

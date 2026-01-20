@@ -4,6 +4,7 @@
     "@codexteam/icons": "^0.3.3",
     "@editorjs/attaches": "^1.3.0",
     "@editorjs/checklist": "^1.6.0",
+    "@editorjs/code": "^2.9.4",
     "@editorjs/editorjs": "2.30.8",
     "@editorjs/header": "^2.8.8",
     "@editorjs/image": "^2.10.2",
@@ -29,13 +30,14 @@
     "date-fns": "2.29.3",
     "dompurify": "3.2.4",
     "editorjs-hyperlink": "^1.0.6",
+    "editorjs-md-parser": "^0.0.3",
     "editorjs-text-color-plugin": "^2.0.4",
     "lit": "3.3.0",
     "mermaid": "^11.12.0",
     "progressbar.js": "^1.1.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router": "7.6.1",
+    "react-router": "^7.12.0",
     "rehype-sanitize": "6.0.0",
     "three": "0.172.0"
   },
@@ -48,13 +50,13 @@
     "@types/react-dom": "18.3.7",
     "@vitejs/plugin-react": "4.5.0",
     "async": "3.2.6",
-    "glob": "11.0.2",
+    "glob": "^11.1.0",
     "magic-string": "0.30.17",
     "rollup-plugin-brotli": "3.1.0",
     "rollup-plugin-visualizer": "5.14.0",
     "strip-css-comments": "5.0.0",
     "transform-ast": "2.4.4",
-    "ts-node": "10.9.2",
+    "ts-node": "^1.7.1",
     "tsx": "^4.20.6",
     "typescript": "5.8.3",
     "vite": "^6.3.6",
@@ -110,7 +112,7 @@
       "workbox-core": "7.3.0",
       "workbox-precaching": "7.3.0"
     },
-    "hash": "2a74392095506b746493935e09da53ff1579849978cae56937b72863e61add01"
+    "hash": "581fa1862ca0cc58d8d69ba42cf847ea2310ba8317a2edcfb29d4c25efd0383a"
   },
   "type": "module",
   "overrides": {
@@ -210,7 +212,9 @@
     "rehype-sanitize": "$rehype-sanitize",
     "mermaid": "$mermaid",
     "@uiw/react-md-editor": "$@uiw/react-md-editor",
-    "dompurify": "$dompurify"
+    "dompurify": "$dompurify",
+    "editorjs-md-parser": "$editorjs-md-parser",
+    "@editorjs/code": "$@editorjs/code"
   },
   "scripts": {
     "test:md": "npx tsx scripts/test-md-converters.ts"

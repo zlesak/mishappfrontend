@@ -23,7 +23,7 @@ public interface IApiClient <E, Q, F> {
         if(envUrl != null && !envUrl.isEmpty()){
             return envUrl;
         }
-        throw new IllegalArgumentException("APP_URL is not set");
+        return "http://localhost:8050" + "/api/";
     }
 
     /**

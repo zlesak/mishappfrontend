@@ -3,7 +3,6 @@ import { customElement, state } from 'lit/decorators.js';
 import { initializeEditor } from './editorjs-init';
 import { attachTextureColorListeners, removeLinksByModelIds } from './texture-utils';
 import { searchInEditor } from './search-utils';
-import { convertEditorJsToMarkdown, convertMarkdownToEditorJs } from 'Frontend/js/editorjs/markdownConvertors/convert';
 import { htmlToEditorJs } from 'Frontend/js/editorjs/markdownConvertors/htmlToEditorJsConverter';
 import TextureColorLinkTool from 'Frontend/js/editorjs/textureColorLinkTool/textureColorLinkTool';
 import { OutputData } from '@editorjs/editorjs';
@@ -69,31 +68,6 @@ export class EditorJs extends LitElement {
   public async search(searchText: string): Promise<void> {
     await searchInEditor(this.editor, searchText, this.editorReadyPromise);
   }
-
-  // @ts-ignore - Method is used by external components
-  public async getMarkdown(): Promise<string> {
-    await this.editorReadyPromise;
-    if (!this.editor) return '';
-    try {
-      const data = await this.editor.save();
-      return await convertEditorJsToMarkdown(data);
-    } catch (e) {
-      console.error('getMarkdown error:', e);
-      return '';
-    }
-  }
-
-  // @ts-ignore - Method is used by external components
-  public async loadMarkdown(md: string): Promise<void> {
-    await this.editorReadyPromise;
-    try {
-      const outputData = await convertMarkdownToEditorJs(md);
-      await this.setData(outputData);
-    } catch (e) {
-      console.error('loadMarkdown error:', e);
-    }
-  }
-
 
   // @ts-ignore - Method is used by external components
   public async loadMoodleHtml(html: string): Promise<void> {
