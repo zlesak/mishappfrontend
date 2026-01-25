@@ -14,8 +14,8 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.server.streams.DownloadHandler;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.components.common.Divider;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.IView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
@@ -23,7 +23,7 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 /**
  * Main page view of the application.
  * This view is accessible at the root route ("/").
- * It displays a welcome message and some introductory text.
+ * It provides an overview of the application features and navigation options.
  */
 @Route("")
 @Tag("main-page-view")
@@ -31,55 +31,43 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 public class MainPageView extends Composite<VerticalLayout> implements IView {
     /**
      * Constructor for MainPageView.
-     * Initializes the layout with a welcome message and description.
+     * Initializes the main layout and adds sections to the page.
      */
     public MainPageView() {
         VerticalLayout mainLayout = getContent();
-        mainLayout.setWidthFull();
-        mainLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+        mainLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         mainLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-        mainLayout.setPadding(false);
-        mainLayout.setSpacing(false);
-
-        mainLayout.add(createHeroSection());
-
-        Hr divider1 = new Hr();
-        divider1.setWidth("80%");
-        mainLayout.add(divider1);
-
-        mainLayout.add(createFeaturesSection());
-
-        Hr divider2 = new Hr();
-        divider2.setWidth("80%");
-        mainLayout.add(divider2);
-
-        mainLayout.add(createShowcaseSection());
-
-        Hr divider3 = new Hr();
-        divider3.setWidth("80%");
-        mainLayout.add(divider3);
-
-        mainLayout.add(createAboutAndCollaborationSection());
+        mainLayout.getStyle().set("margin", "0 auto");
+        mainLayout.add(
+                createHeroSection(),
+                new Divider(),
+                createAboutSection(),
+                new Divider(),
+                createFeaturesSection(),
+                new Divider(),
+                createShowcaseSection(),
+                new Divider(),
+                createCollaborationSection(),
+                createFooterSection()
+        );
     }
 
     /**
      * Creates the hero section of the main page.
      */
     private HorizontalLayout createHeroSection() {
-        HorizontalLayout hero = new HorizontalLayout();
-        hero.setWidthFull();
-        hero.setMinHeight("calc(100vh - 100px)");
-        hero.setAlignItems(FlexComponent.Alignment.CENTER);
-        hero.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-        hero.setPadding(true);
-        hero.setSpacing(true);
+        HorizontalLayout section = new HorizontalLayout();
+        section.setAlignItems(FlexComponent.Alignment.CENTER);
+        section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        section.setWidthFull();
+        section.setMinHeight("calc(100vh - 100px)");
 
         Div logoWrapper = new Div();
         logoWrapper.setWidth("50%");
         logoWrapper.setHeightFull();
         logoWrapper.addClassNames(LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER, LumoUtility.Display.FLEX);
 
-        Image logo = new Image(DownloadHandler.forServletResource("/img/MISH_big.png"), "MISH Logo");
+        Image logo = new Image("/img/MISH_big.png", "MISH Logo");
         logo.setMaxWidth("90%");
         logo.setMaxHeight("80vh");
         logo.getStyle().set("object-fit", "contain");
@@ -89,7 +77,6 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         VerticalLayout textContent = new VerticalLayout();
         textContent.setWidth("50%");
         textContent.setSpacing(false);
-        textContent.setPadding(true);
         textContent.setAlignItems(FlexComponent.Alignment.START);
         textContent.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
 
@@ -117,8 +104,8 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
         textContent.add(title, subtitle, description, buttons);
 
-        hero.add(logoWrapper, textContent);
-        return hero;
+        section.add(logoWrapper, textContent);
+        return section;
     }
 
     /**
@@ -127,9 +114,9 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createFeaturesSection() {
         VerticalLayout section = new VerticalLayout();
-        section.setWidthFull();
         section.setAlignItems(FlexComponent.Alignment.CENTER);
-        section.setPadding(true);
+        section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        section.setWidth("80%");
 
         H2 title = new H2(text("features.title"));
         title.addClassNames(LumoUtility.Margin.Bottom.XLARGE);
@@ -178,9 +165,9 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createShowcaseSection() {
         VerticalLayout section = new VerticalLayout();
-        section.setWidthFull();
         section.setAlignItems(FlexComponent.Alignment.CENTER);
-        section.setPadding(true);
+        section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        section.setWidth("80%");
 
         H2 title = new H2(text("showcase.title"));
         Paragraph desc = new Paragraph(text("showcase.desc"));
@@ -237,61 +224,82 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      * Creates the about and collaboration section of the main page.
      * @return The VerticalLayout containing the about and collaboration section.
      */
-    private VerticalLayout createAboutAndCollaborationSection() {
+    private VerticalLayout createAboutSection() {
         VerticalLayout section = new VerticalLayout();
-        section.setWidthFull();
+        section.setWidth("80%");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
-        section.setPadding(true);
-        section.setSpacing(true);
-        section.addClassNames(LumoUtility.Background.CONTRAST_5, LumoUtility.Padding.Vertical.XLARGE);
-
-        FlexLayout container = new FlexLayout();
-        container.setWidthFull();
-        container.setMaxWidth("1200px");
-        container.setFlexWrap(FlexLayout.FlexWrap.WRAP);
-        container.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-        container.addClassNames(LumoUtility.Gap.XLARGE);
-
-        VerticalLayout aboutCol = new VerticalLayout();
-        aboutCol.setPadding(false);
-        aboutCol.getStyle().set("flex", "1");
-        aboutCol.getStyle().set("min-width", "300px");
 
         H2 aboutTitle = new H2(text("about.title"));
         aboutTitle.addClassNames(LumoUtility.Margin.Top.NONE);
 
         Paragraph aboutDesc = new Paragraph(text("about.description"));
         aboutDesc.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.TextColor.SECONDARY);
+        aboutDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.JUSTIFY);
 
-        aboutCol.add(aboutTitle, aboutDesc);
-
-        VerticalLayout rightCol = new VerticalLayout();
-        rightCol.setPadding(false);
-        rightCol.getStyle().set("flex", "1");
-        rightCol.getStyle().set("min-width", "300px");
+        VerticalLayout aboutCol = new VerticalLayout(aboutTitle, aboutDesc);
+        aboutCol.setPadding(false);
+        aboutCol.setMinWidth("300px");
+        aboutCol.setWidthFull();
+        aboutCol.setAlignItems(FlexComponent.Alignment.CENTER);
+        section.add(aboutCol);
+        return section;
+    }
+    private VerticalLayout createCollaborationSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setWidth("80%");
+        section.setAlignItems(FlexComponent.Alignment.CENTER);
 
         H3 collabTitle = new H3(text("collaboration.title"));
-        collabTitle.addClassNames(LumoUtility.Margin.Top.NONE);
+        collabTitle.addClassNames(LumoUtility.Margin.Top.LARGE, LumoUtility.Margin.Bottom.NONE);
 
         Paragraph collabDesc = new Paragraph(text("collaboration.description"));
-        collabDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM);
+        collabDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.JUSTIFY);
 
-        H4 targetsTitle = new H4(text("forWho.title"));
-        targetsTitle.addClassNames(LumoUtility.Margin.Bottom.SMALL);
+        VerticalLayout collabCol = new VerticalLayout(collabTitle, collabDesc);
+        collabCol.setPadding(false);
+        collabCol.setMinWidth("300px");
+        collabCol.setWidthFull();
+        collabCol.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        UnorderedList list = new UnorderedList();
-        list.addClassNames(LumoUtility.Margin.NONE, LumoUtility.Padding.Left.LARGE);
 
-        ListItem studentItem = new ListItem(text("target.students"));
-        ListItem teacherItem = new ListItem(text("target.teachers"));
+        HorizontalLayout logosLayout = new HorizontalLayout();
+        logosLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        logosLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        logosLayout.setWidthFull();
+        logosLayout.addClassNames(LumoUtility.Gap.XLARGE, LumoUtility.FlexWrap.WRAP);
 
-        list.add(studentItem, teacherItem);
+        Div uhkLogoWrapper = creteLogoWrapper("/img/fim-uhk-abb_xs_rgb.png", "/img/fim-uhk-abb_xs_rgb-neg.png", "UHK Logo");
+        Div lfhkLogoWrapper = creteLogoWrapper("/img/LFHK-337-version1-logo_lfhk.png", "/img/LFHK-337-version1-logo_lfhk_bila.png", "LFHK Logo");
 
-        rightCol.add(collabTitle, collabDesc, new Hr(), targetsTitle, list);
+        logosLayout.add(uhkLogoWrapper, lfhkLogoWrapper);
 
-        container.add(aboutCol, rightCol);
-        section.add(container);
+        section.add(collabCol, logosLayout);
         return section;
+    }
+
+    private Div creteLogoWrapper(String light, String dark, String alt) {
+        Div logoWrapper = new Div();
+
+        Image logoLight = new Image(light, alt);
+        logoLight.setHeight("150px");
+        logoLight.addClassName("logo-light");
+        logoLight.getStyle().set("object-fit", "contain");
+
+        Image logoDark = new Image(dark, alt);
+        logoDark.setHeight("150px");
+        logoDark.addClassName("logo-dark");
+        logoDark.getStyle().set("object-fit", "contain");
+        logoWrapper.add(logoLight, logoDark);
+        return logoWrapper;
+    }
+
+    private Footer createFooterSection() {
+        Footer footer = new Footer();
+        footer.setWidthFull();
+        footer.addClassNames(LumoUtility.TextAlignment.CENTER, LumoUtility.FontSize.MEDIUM);
+        int currentYear = java.time.Year.now().getValue();
+        footer.add(new Span("© " + currentYear + " MISH | " + text("footer.rights")));
+        return footer;
     }
 
     /**

@@ -7,7 +7,7 @@
   "cta.models": "Prohlédnout modely",
 
   "about.title": "Co je MISH?",
-  "about.description": "Aplikace vznikla s cílem inovovat výuku anatomie. Namísto statických obrázků nabízíme plně otočné a detailní 3D skeny, které si můžete prohlédnout ze všech úhlů. Ke každému modelu náleží odborné texty, které vás provedou problematikou krok za krokem.",
+  "about.description": "MISH je moderní výuková aplikace zaměřená na inovaci výuky anatomie pomocí interaktivních 3D technologií. Jejím hlavním cílem je doplnit tradiční statické obrázky a schémata realistickými, detailními 3D skeny anatomických modelů. Tyto modely lze plynule otáčet, přibližovat a zkoumat z libovolného úhlu, což studentům umožňuje lépe pochopit prostorové vztahy mezi jednotlivými anatomickými útvary. Kaspitoly, jež 3D modely obsahují, jsou pak doplněny odborně zpracovanými studijní texty, které systematicky vysvětlují anatomickou stavbu, funkci i klinický význam dané oblasti. Student tak může propojit vizuální vjem s teoretickými znalostmi a studovat vlastním tempem, krok za krokem.",
 
   "features.title": "Klíčové vlastnosti",
   "features.models.title": "Reálné 3D modely",
@@ -26,10 +26,10 @@
   "showcase.gif3.title": "Test v kvízu",
 
   "collaboration.title": "Spolupráce",
-  "collaboration.description": "Tento projekt je výsledkem úzké spolupráce Fakulty informatiky a managementu UHK a Lékařské fakulty v Hradci Králové UK. Propojuje svět moderních technologií se špičkovou medicínskou expertízou.",
+  "collaboration.description": "Aplikace projektu MISH vznikla v rámci diplomových prací Jakuba Folga a Jana Zlesáka a to ve spolupráci Fakulty informatiky a managementu Univerzity Hradec Králové a Lékařské fakulty Univerzity Karlovy v Hradci Králové. Tato mezioborová spolupráce propojuje moderní softwarové technologie, 3D vizualizaci a uživatelsky přívětivé rozhraní s odbornými znalostmi z oblasti medicíny a anatomie. Výsledkem je nástroj, který odpovídá jak pedagogickým potřebám lékařského vzdělávání, tak současným technologickým standardům.",
 
   "target.students": "Pro studenty: Učte se efektivněji s vizuální podporou.",
   "target.teachers": "Pro pedagogy: Obohaťte svou výuku o interaktivní prvky.",
 
-  "forWho.title": "Pro koho je MISH určen?"
+  "footer.rights" : "Vytvořeno ve spolupráci FIM UHK a LFHK UK"
 }

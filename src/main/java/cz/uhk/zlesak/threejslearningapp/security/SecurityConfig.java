@@ -42,7 +42,7 @@ class SecurityConfig {
     /**
      * Configures the security filter chain for HTTP requests with OAuth2 login.
      *
-     * @param http the HttpSecurity object to configure
+     * @param http                         the HttpSecurity object to configure
      * @param clientRegistrationRepository the repository for client registrations
      * @return the configured SecurityFilterChain
      * @throws Exception if an error occurs during configuration
@@ -62,6 +62,10 @@ class SecurityConfig {
         logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
 
         http.logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler));
+
+        http.authorizeHttpRequests(auth ->
+            auth.requestMatchers("/img/**").permitAll()
+        );
 
         return http.build();
     }

@@ -3,10 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.views;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Header;
-import com.vaadin.flow.component.html.Nav;
-import com.vaadin.flow.component.html.UnorderedList;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.Layout;
 import com.vaadin.flow.server.VaadinService;
@@ -91,7 +88,7 @@ public class MainLayout extends AppLayout {
         });
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
-            String username = authentication.getPrincipal() instanceof OidcUser oidcUser ? oidcUser.getPreferredUsername() : authentication.getName();
+            String username = authentication.getPrincipal() instanceof OidcUser oidcUser ?( oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
             layout.add(new AvatarItem(username, getUserRoleName(authentication), new LogoutButton(authenticationContext)));
         } else {
             LoginButton loginButton = new LoginButton();
@@ -124,8 +121,11 @@ public class MainLayout extends AppLayout {
      * @return the list of common menu items
      */
     private List<MenuItemInfo> commonMenuItemsForLoggedUsers() {
+        Image logo = new Image("/icons/MISH_icon.ico", "MISH icon");
+        logo.setWidth("24px");
+        logo.setHeight("24px");
         return new ArrayList<>(List.of(
-                new MenuItemInfo("MISH APP", VaadinIcon.HOME.create(), MainPageView.class),
+                new MenuItemInfo("MISH - Úvod", logo, MainPageView.class),
                 new MenuItemInfo("Kapitoly", VaadinIcon.OPEN_BOOK.create(), ChapterListingView.class),
                 new MenuItemInfo("Modely", VaadinIcon.CUBES.create(), ModelListingView.class),
                 new MenuItemInfo("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class)
