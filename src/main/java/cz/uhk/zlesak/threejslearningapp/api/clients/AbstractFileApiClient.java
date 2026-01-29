@@ -49,18 +49,6 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     public E update(String textureId, E textureEntity) throws Exception {
         throw new NotImplementedException("Aktualizace textur není zatím implementováno.");
     }
-
-    /**
-     * Overridden delete method to throw not implemented exception.
-     *
-     * @param id ID of the entity to delete
-     * @return deleted entity
-     * @throws Exception throws exception when delete fails
-     */
-    @Override
-    public boolean delete(String id) throws Exception {
-        throw new NotImplementedException("Mazání textur není zatím implementováno.");
-    }
     //endregion
 
     //region Methods from IFileApiClient

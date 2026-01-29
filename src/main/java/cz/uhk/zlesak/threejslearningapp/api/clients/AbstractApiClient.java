@@ -136,7 +136,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     @Override
     public boolean delete(String id) throws Exception {
-        sendDeleteRequest(baseUrl + "delete/" + id, "Chyba při mazání entity typu: " + getEntityClass().getSimpleName(), id);
+        sendDeleteRequest(baseUrl + id + "/delete", "Chyba při mazání entity typu: " + getEntityClass().getSimpleName(), id);
         return true;
     }
     //endregion
