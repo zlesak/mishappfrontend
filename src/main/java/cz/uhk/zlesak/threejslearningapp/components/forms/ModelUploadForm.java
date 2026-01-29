@@ -9,9 +9,6 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.server.StreamRegistration;
-import com.vaadin.flow.server.StreamResource;
-import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateModelButton;
 import cz.uhk.zlesak.threejslearningapp.components.containers.UploadLabelContainer;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.files.FileUpload;
@@ -97,7 +94,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
                     } else {
                         contentType = "model/gltf-binary";
                     }
-                    modelUrl = registerStreamUrl(fileName, contentType, inputStreamMultipartFile.getInputStream());
+                    modelUrl = createDataUrl(fileName, contentType, inputStreamMultipartFile.getInputStream());
 
                     modelFileName = fileName;
 
@@ -120,7 +117,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
                     isAdvanced.setReadOnly(true);
                     uploadOtherTexturesDiv.setEnabled(true);
                     csvOtherTexturesDiv.setEnabled(true);
-                    textureUrl = registerStreamUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
+                    textureUrl = createDataUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
                     textureName = fileName;
 
                     ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MAIN, "main", textureUrl, textureName, true, null, isAdvanced.getValue(), true));
@@ -145,7 +142,7 @@ public class ModelUploadForm extends Scroller implements I18nAware {
 
         otherTexturesFileUpload.setUploadListener(
                 (fileName, inputStreamMultipartFile) -> {
-                    textureUrl = registerStreamUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
+                    textureUrl = createDataUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
                     otherTexturesUrls.add(textureUrl);
                     Map<String, String> otherTextures = new HashMap<>();
                     otherTextures.put(fileName, textureUrl);
@@ -208,18 +205,22 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     }
 
     /**
-     * Registers resource URL to provide files via streaming endpoint from front end side.
+     * Converts file data to a data URL (base64 encoded).
      *
      * @param fileName    name of the file
      * @param contentType content type of the file
      * @param inputStream file in input stream format
-     * @return registered stream URL in Vaadin session
+     * @return data URL with base64 encoded content
      */
-    private String registerStreamUrl(String fileName, String contentType, InputStream inputStream) {
-        StreamResource resource = new StreamResource(fileName, () -> inputStream);
-        resource.setContentType(contentType);
-        StreamRegistration registration = VaadinSession.getCurrent().getResourceRegistry().registerResource(resource);
-        return registration.getResourceUri().toString();
+    private String createDataUrl(String fileName, String contentType, InputStream inputStream) {
+        try {
+            byte[] fileBytes = inputStream.readAllBytes();
+            String base64Data = Base64.getEncoder().encodeToString(fileBytes);
+            return "data:" + contentType + ";base64," + base64Data;
+        } catch (IOException e) {
+            log.error("Failed to create data URL for file: {}", fileName, e);
+            throw new RuntimeException("Failed to create data URL", e);
+        }
     }
 
     /**
