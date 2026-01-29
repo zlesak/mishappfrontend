@@ -229,7 +229,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             }
 
             blocks.forEach(blockNode -> {
-                if (blockNode.has("id")) {
+                if (blockNode.has("id") && blockNode.has("type") && "header".equals(blockNode.get("type").asText())) {
                     String blockId = blockNode.get("id").asText();
                     QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().containsKey(blockId) ? chapterCreateEntity.getModelHeaderMap().get(blockId) :  chapterCreateEntity.getModelHeaderMap().get("main");
                     ObjectNode dataNode = (ObjectNode) blockNode.get("data");
