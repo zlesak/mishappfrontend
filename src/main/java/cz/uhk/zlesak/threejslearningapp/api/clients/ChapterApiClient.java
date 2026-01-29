@@ -5,7 +5,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * ChapterApiClient is responsible for handling API requests related to Chapter entities.
@@ -16,12 +16,12 @@ public class ChapterApiClient extends AbstractApiClient<ChapterEntity, ChapterEn
     /**
      * Constructor for ChapterApiClient.
      *
-     * @param restTemplate RestTemplate for making HTTP requests
+     * @param restClient RestClient for making HTTP requests
      * @param objectMapper ObjectMapper for JSON serialization/deserialization
      */
     @Autowired
-    public ChapterApiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        super(restTemplate, objectMapper, "chapter/");
+    public ChapterApiClient(RestClient restClient, ObjectMapper objectMapper) {
+        super(restClient, objectMapper, "chapter/");
     }
 
     //region Overridden operations from AbstractApiClient

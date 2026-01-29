@@ -12,12 +12,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * TextureApiClient provides connection to the backend service for managing textures.
  * It implements the ITextureApiClient interface and provides methods for creating, retrieving, uploading, downloading, and deleting texture entities.
- * It uses RestTemplate for making HTTP requests to the backend service.
+ * It uses RestClient for making HTTP requests to the backend service.
  * The base URL for the API is determined by the IApiClient interface.
  */
 @Component
@@ -25,12 +25,12 @@ public class TextureApiClient extends AbstractFileApiClient<TextureEntity, Quick
     /**
      * Constructor for TextureApiClient.
      *
-     * @param restTemplate the RestTemplate used for making HTTP requests
+     * @param restClient RestClient for making HTTP requests
      * @param objectMapper the ObjectMapper used for JSON serialization/deserialization
      */
     @Autowired
-    public TextureApiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        super(restTemplate, objectMapper, "texture/");
+    public TextureApiClient(RestClient restClient, ObjectMapper objectMapper) {
+        super(restClient, objectMapper, "texture/");
     }
 
     //region Overridden CRUD operations from IApiClient

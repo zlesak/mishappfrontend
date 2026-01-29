@@ -7,12 +7,12 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * QuizApiClient provides connection to the backend service for managing quizzes.
  * It implements the IQuizApiClient interface and provides methods for creating, updating, deleting, and retrieving quizzes.
- * It uses RestTemplate for making HTTP requests to the backend service.
+ * It uses RestClient for making HTTP requests to the backend service.
  */
 @Component
 public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity, QuizFilter> implements IQuizApiClient {
@@ -20,12 +20,12 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
     /**
      * Constructor for QuizApiClient.
      *
-     * @param restTemplate RestTemplate for making HTTP requests
+     * @param restClient RestClient for making HTTP requests
      * @param objectMapper ObjectMapper for JSON serialization/deserialization
      */
     @Autowired
-    public QuizApiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        super(restTemplate, objectMapper, "quiz/");
+    public QuizApiClient(RestClient restClient, ObjectMapper objectMapper) {
+        super(restClient, objectMapper, "quiz/");
     }
 
     /**

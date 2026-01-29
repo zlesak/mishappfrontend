@@ -11,7 +11,7 @@ import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.*;
 import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
@@ -29,19 +29,19 @@ import java.util.List;
  */
 public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F> implements IApiClient<E, Q, F> {
 
-    protected final RestTemplate restTemplate;
+    protected final RestClient restClient;
     protected final ObjectMapper objectMapper;
     protected final String baseUrl;
 
     /**
      * Constructor for AbstractApiClient.
      *
-     * @param restTemplate rest template
+     * @param restClient rest client
      * @param objectMapper object mapper
      * @param endpoint     API endpoint
      */
-    public AbstractApiClient(RestTemplate restTemplate, ObjectMapper objectMapper, String endpoint) {
-        this.restTemplate = restTemplate;
+    public AbstractApiClient(RestClient restClient, ObjectMapper objectMapper, String endpoint) {
+        this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.baseUrl = IApiClient.getBaseUrl() + endpoint;
     }
@@ -155,18 +155,18 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     protected <R> R sendPostRequest(String url, Object body, Class<R> responseType, String errorMessage, String entityId, HttpHeaders headers) throws Exception {
         headers = headers == null ? createJsonHeaders() : headers;
-        HttpEntity<?> request = new HttpEntity<>(body, headers);
+        final HttpHeaders finalHeaders = headers;
 
         try {
-            ResponseEntity<R> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    request,
-                    responseType
-            );
-            return objectMapper.readValue(objectMapper.writeValueAsString(response.getBody()), responseType);
+            R response = restClient.post()
+                    .uri(url)
+                    .headers(h -> h.addAll(finalHeaders))
+                    .body(body)
+                    .retrieve()
+                    .body(responseType);
+            return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, request.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, body.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }
@@ -184,19 +184,17 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     protected <R> R sendGetRequest(String url, Class<R> responseType, String errorMessage, String entityId, String... params) throws Exception {
         HttpHeaders headers = createJsonHeaders();
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
         url = parameterUrlBuilder(url, params);
 
         try {
-            ResponseEntity<R> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    requestEntity,
-                    responseType
-            );
-            return objectMapper.readValue(objectMapper.writeValueAsString(response.getBody()), responseType);
+            R response = restClient.get()
+                    .uri(url)
+                    .headers(h -> h.addAll(headers))
+                    .retrieve()
+                    .body(responseType);
+            return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, requestEntity.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }
@@ -214,17 +212,15 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     protected <R> ResponseEntity<R> sendGetRequestRaw(String url, Class<R> responseType, String errorMessage, String entityId, boolean includeHeaders) throws Exception {
         HttpHeaders headers = includeHeaders ? createAcceptJsonHeaders() : null;
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
         try {
-            return restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    requestEntity,
-                    responseType
-            );
+            RestClient.RequestHeadersSpec<?> spec = restClient.get().uri(url);
+            if (headers != null) {
+                spec = spec.headers(h -> h.addAll(headers));
+            }
+            return spec.retrieve().toEntity(responseType);
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, requestEntity.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }
@@ -243,13 +239,17 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     private <R> R sendPutRequest(String url, Object body, Class<R> responseType, String errorMessage, String entityId) throws Exception {
         HttpHeaders headers = createJsonHeaders();
-        HttpEntity<?> request = new HttpEntity<>(body, headers);
 
         try {
-            ResponseEntity<R> response = restTemplate.exchange(url, HttpMethod.PUT, request, responseType);
-            return objectMapper.readValue(objectMapper.writeValueAsString(response.getBody()), responseType);
+            R response = restClient.put()
+                    .uri(url)
+                    .headers(h -> h.addAll(headers))
+                    .body(body)
+                    .retrieve()
+                    .body(responseType);
+            return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, request.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, body.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }
@@ -265,12 +265,15 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     private void sendDeleteRequest(String url, String errorMessage, String entityId) throws Exception {
         HttpHeaders headers = createJsonHeaders();
-        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
 
         try {
-            restTemplate.exchange(url, HttpMethod.DELETE, requestEntity, Void.class);
+            restClient.delete()
+                    .uri(url)
+                    .headers(h -> h.addAll(headers))
+                    .retrieve()
+                    .toBodilessEntity();
         } catch (HttpStatusCodeException ex) {
-            throw new ApiCallException(errorMessage, entityId, requestEntity.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
+            throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
         }

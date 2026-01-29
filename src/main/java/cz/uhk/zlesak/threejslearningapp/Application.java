@@ -6,11 +6,11 @@ import com.vaadin.flow.theme.Theme;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * Main application class for the Three.js Learning App.
- * It sets up the Spring Boot application and provides RestTemplate and I18NProvider beans.
+ * It sets up the Spring Boot application and provides RestClient and I18NProvider beans.
  * The application uses a custom theme named "threejslearningapp".
  */
 @SpringBootApplication(scanBasePackages = "cz.uhk.zlesak.threejslearningapp")
@@ -26,13 +26,13 @@ public class Application implements AppShellConfigurator {
     }
 
     /**
-     * Provides a RestTemplate bean for making RESTful web service calls.
+     * Provides a RestClient bean for making RESTful web service calls.
      *
-     * @return a new instance of RestTemplate
+     * @return a new instance of RestClient
      */
     @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
+    public RestClient restClient() {
+        return RestClient.create();
     }
 
     /**

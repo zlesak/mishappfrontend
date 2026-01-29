@@ -10,14 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
 /**
  * ModelApiClient provides connection to the backend service for managing models.
  * It implements the IFileApiClient interface and provides methods for creating, retrieving, uploading, downloading, and deleting model entities.
- * It uses RestTemplate for making HTTP requests to the backend service.
+ * It uses RestClient for making HTTP requests to the backend service.
  * The base URL for the API is determined by the IApiClient interface.
  */
 @Component
@@ -26,12 +26,12 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
     /**
      * Constructor for ModelApiClient.
      *
-     * @param restTemplate the RestTemplate used for making HTTP requests
+     * @param restClient RestClient for making HTTP requests
      * @param objectMapper the ObjectMapper used for JSON serialization/deserialization
      */
     @Autowired
-    public ModelApiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        super(restTemplate, objectMapper, "model/");
+    public ModelApiClient(RestClient restClient, ObjectMapper objectMapper) {
+        super(restClient, objectMapper, "model/");
     }
 
     //region Overridden CRUD operations from IApiClient

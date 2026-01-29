@@ -10,7 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * Abstract file api client provides common functionality for file-related API clients.
@@ -26,12 +26,12 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     /**
      * Constructor for AbstractFileApiClient.
      *
-     * @param restTemplate rest template
+     * @param restClient rest client
      * @param objectMapper object mapper
      * @param endpoint     API endpoint
      */
-    public AbstractFileApiClient(RestTemplate restTemplate, ObjectMapper objectMapper, String endpoint) {
-        super(restTemplate, objectMapper, endpoint);
+    public AbstractFileApiClient(RestClient restClient, ObjectMapper objectMapper, String endpoint) {
+        super(restClient, objectMapper, endpoint);
         this.type = endpoint.equals("model/") ? "model" : endpoint.equals("texture/") ? "texture" : "file";
     }
 
