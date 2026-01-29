@@ -23,6 +23,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
     protected HorizontalLayout actionsLayout = new HorizontalLayout();
     protected Span titleSpan = new Span();
     private final Button editButton;
+    private final Button deleteButton;
     private final Button selectButton;
     private final Button openButton;
 
@@ -70,6 +71,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         openButton = getOpenButton(listView);
         selectButton = getSeletButton(listView);
         editButton = getEditButton(administrationView);
+        deleteButton = getDeleteButton(administrationView);
 
         actionsLayout.addClassNames(
             LumoUtility.Padding.MEDIUM,
@@ -79,7 +81,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
             LumoUtility.BorderColor.CONTRAST_10
         );
         actionsLayout.setWidthFull();
-        actionsLayout.add(editButton, selectButton, openButton);
+        actionsLayout.add(deleteButton, editButton, selectButton, openButton);
 
         add(headerLayout, details, actionsLayout);
     }
@@ -118,6 +120,13 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         return editButton;
     }
 
+    private Button getDeleteButton(boolean administrationView) {
+        Button deleteButton = new Button(text("button.delete"));
+        deleteButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+        deleteButton.setVisible(administrationView);
+        return deleteButton;
+    }
+
     /**
      * Sets the click listener for the select button.
      * @param listener the click event listener
@@ -136,5 +145,13 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
 
     public void setEditButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
         editButton.addClickListener(listener);
+    }
+
+    /**
+     * Sets the click listener for the delete button.
+     * @param listener the click event listener
+     */
+    public void setDeleteButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
+        deleteButton.addClickListener(listener);
     }
 }

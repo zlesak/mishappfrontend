@@ -106,5 +106,6 @@
   "quiz.result.maxScore.label": "Maximální skóre",
   "quiz.result.totalScore.label":  "Celkové skóre",
   "quiz.result.percentage.label": "Procentuální hodnocení",
-  "quiz.result.unfilled" : "Nevyplněno"
+  "quiz.result.unfilled" : "Nevyplněno",
+  "quiz.create.success" : "Kvíz byl úspěšně vytvořen"
 }

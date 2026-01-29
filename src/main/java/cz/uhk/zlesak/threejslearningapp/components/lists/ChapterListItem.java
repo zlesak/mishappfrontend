@@ -9,8 +9,13 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.common.DateFormater;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -122,5 +127,39 @@ public class ChapterListItem extends AbstractListItem {
             VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
             UI.getCurrent().navigate("chapter/" + chapter.getId());
         });
+
+        setEditButtonClickListener(e -> {
+            if (administrationView) {
+                VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
+                UI.getCurrent().navigate("createChapter/" + chapter.getId());
+            }
+        });
+
+        setDeleteButtonClickListener(e -> {
+            if (administrationView) {
+                ConfirmDialog dialog = ConfirmDialog.createDeleteConfirmation(
+                    "chapter",
+                    chapter.getName(),
+                    () -> deleteChapter(chapter.getId())
+                );
+                dialog.open();
+            }
+        });
+    }
+
+    private void deleteChapter(String chapterId) {
+        try {
+            ChapterService chapterService = SpringContextUtils.getBean(ChapterService.class);
+            boolean deleted = chapterService.delete(chapterId);
+            if (deleted) {
+                new SuccessNotification(text("chapter.delete.success"));
+                UI.getCurrent().getPage().reload();
+            } else {
+                new ErrorNotification(text("chapter.delete.failed"));
+            }
+        } catch (Exception ex) {
+            log.error("Error deleting chapter: {}", ex.getMessage(), ex);
+            new ErrorNotification(text("chapter.delete.error") + ": " + ex.getMessage());
+        }
     }
 }

@@ -36,7 +36,7 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      */
     public void initSelects(Map<String, String> subChapterForSelectRecords) {
         if (this.mainModelSelect == null) {
-            modelSelectHorizontalLayout(text("modelSelect.main.caption"), "", true);
+            modelSelectHorizontalLayout(text("modelSelect.main.caption"), "main", true);
         }
 
         otherModelsHorizontalLayouts.keySet().removeIf(id -> {
@@ -106,7 +106,7 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      * @param model   the selected model
      */
     public void updateModelSelect(String blockId, QuickModelEntity model) {
-        if (blockId == null || blockId.isEmpty()) {
+        if (blockId == null || blockId.isEmpty() || blockId.equals("main")) {
             if (mainModelSelect != null) {
                 mainModelSelect.setItems(model);
                 mainModelSelect.setValue(model);

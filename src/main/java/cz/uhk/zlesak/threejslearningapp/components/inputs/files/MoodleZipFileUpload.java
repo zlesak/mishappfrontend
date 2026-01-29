@@ -84,7 +84,7 @@ public class MoodleZipFileUpload extends FileUpload implements I18nAware {
             }
         });
 
-        addFileRejectedListener(e -> new ErrorNotification(text("moodleZipUpload.rejected") + ": " + e.getErrorMessage(), 5000));
+        addFileRejectedListener(e -> new ErrorNotification(text("moodleZipUpload.rejected") + ": " + e.getErrorMessage()));
     }
 
     /**

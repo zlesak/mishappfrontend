@@ -11,6 +11,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
@@ -86,6 +87,9 @@ public class CustomI18NProvider implements I18NProvider {
         if (locale.getLanguage().equals("cs")) {
             String value = csTranslations.get(key);
             if (value != null) {
+                if (params != null && params.length > 0) {
+                    return MessageFormat.format(value, params);
+                }
                 return value;
             }
         }

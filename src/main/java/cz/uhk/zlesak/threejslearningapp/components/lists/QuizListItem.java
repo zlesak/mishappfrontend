@@ -6,11 +6,18 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import cz.uhk.zlesak.threejslearningapp.services.QuizService;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * A list item representing a quiz for listing purposes.
  */
+@Slf4j
 public class QuizListItem extends AbstractListItem {
     /**
      * Constructs a QuizListItem for the given quiz.
@@ -58,8 +65,38 @@ public class QuizListItem extends AbstractListItem {
             details.add(chapterRow);
         }
 
-        setOpenButtonClickListener(e -> UI.getCurrent().navigate("quiz/" + quiz.getId()));
-        setEditButtonClickListener(e -> UI.getCurrent().navigate("createQuiz/" + quiz.getId()));
+        setOpenButtonClickListener(e -> UI.getCurrent().navigate("playQuiz/" + quiz.getId()));
+        setEditButtonClickListener(e -> {
+            if (administrationView) {
+                UI.getCurrent().navigate("createQuiz/" + quiz.getId());
+            }
+        });
+        setDeleteButtonClickListener(e -> {
+            if (administrationView) {
+                ConfirmDialog dialog = ConfirmDialog.createDeleteConfirmation(
+                    "quiz",
+                    quiz.getName(),
+                    () -> deleteQuiz(quiz.getId())
+                );
+                dialog.open();
+            }
+        });
+    }
+
+    private void deleteQuiz(String quizId) {
+        try {
+            QuizService quizService = SpringContextUtils.getBean(QuizService.class);
+            boolean deleted = quizService.delete(quizId);
+            if (deleted) {
+                new SuccessNotification(text("quiz.delete.success"));
+                UI.getCurrent().getPage().reload();
+            } else {
+                new ErrorNotification(text("quiz.delete.failed"));
+            }
+        } catch (Exception ex) {
+            log.error("Error deleting quiz: {}", ex.getMessage(), ex);
+            new ErrorNotification(text("quiz.delete.error") + ": " + ex.getMessage());
+        }
     }
 }
 

@@ -241,7 +241,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             throw e;
         } catch (Exception e) {
             log.error("Chyba při úpravě bloků editorjs: {}", e.getMessage(), e);
-            new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage(), 5000);
+            new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage());
         }
 
         Set<QuickModelEntity> addedModelIds = new HashSet<>();

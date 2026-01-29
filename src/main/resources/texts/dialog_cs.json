@@ -1,0 +1,21 @@
+{
+  "dialog.delete.quiz.title": "Smazat kvíz",
+  "dialog.delete.quiz.message": "Opravdu chcete smazat kvíz \"{0}\"?",
+  "dialog.delete.quiz.confirm": "Smazat kvíz",
+  "dialog.delete.chapter.title": "Smazat kapitolu",
+  "dialog.delete.chapter.message": "Opravdu chcete smazat kapitolu \"{0}\"?",
+  "dialog.delete.chapter.confirm": "Smazat kapitolu",
+  "dialog.delete.model.title": "Smazat model",
+  "dialog.delete.model.message": "Opravdu chcete smazat model \"{0}\"?",
+  "dialog.delete.model.confirm": "Smazat model",
+
+  "quiz.delete.success": "Kvíz byl úspěšně smazán",
+  "quiz.delete.error": "Chyba při mazání kvízu",
+  "quiz.update.success": "Kvíz byl úspěšně aktualizován",
+  "chapter.delete.success": "Kapitola byla úspěšně smazána",
+  "chapter.delete.error": "Chyba při mazání kapitoly",
+  "chapter.update.success": "Kapitola byla úspěšně aktualizována",
+  "model.delete.success": "Model byl úspěšně smazán",
+  "model.delete.error": "Chyba při mazání modelu",
+  "model.update.success": "Model byl úspěšně aktualizován"
+}

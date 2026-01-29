@@ -96,7 +96,7 @@ public class ChapterDetailView extends AbstractChapterView {
             setupData(modelsMap);
         } catch (Exception e) {
             log.error("Failed to load 3D models: {}", e.getMessage(), e);
-            new ErrorNotification(text("error.modelLoadFailed") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("error.modelLoadFailed") + ": " + e.getMessage());
         }
     }
 }

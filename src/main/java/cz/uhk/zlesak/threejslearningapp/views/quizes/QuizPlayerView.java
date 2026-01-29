@@ -46,7 +46,7 @@ public class QuizPlayerView extends AbstractQuizView {
             displayQuiz(quiz);
         } catch (Exception e) {
             log.error("Error loading quiz: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
         }
     }
 
@@ -73,7 +73,7 @@ public class QuizPlayerView extends AbstractQuizView {
             displayQuizResultDetails(result);
         } catch (Exception e) {
             log.error("Error při odeslání odpovědí kvízu", e);
-            new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage());
         }
     }
 

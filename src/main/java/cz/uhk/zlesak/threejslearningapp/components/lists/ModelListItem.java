@@ -4,7 +4,12 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.server.VaadinSession;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -32,5 +37,32 @@ public class ModelListItem extends AbstractListItem {
                 UI.getCurrent().navigate("createModel/" + model.getModel().getId());
             }
         });
+
+        setDeleteButtonClickListener(e -> {
+            if (administrationView) {
+                ConfirmDialog dialog = ConfirmDialog.createDeleteConfirmation(
+                    "model",
+                    model.getModel().getName(),
+                    () -> deleteModel(model.getModel().getId())
+                );
+                dialog.open();
+            }
+        });
+    }
+
+    private void deleteModel(String modelId) {
+        try {
+            ModelService modelService = SpringContextUtils.getBean(ModelService.class);
+            boolean deleted = modelService.delete(modelId);
+            if (deleted) {
+                new SuccessNotification(text("model.delete.success"));
+                UI.getCurrent().getPage().reload();
+            } else {
+                new ErrorNotification(text("model.delete.failed"));
+            }
+        } catch (Exception ex) {
+            log.error("Error deleting model: {}", ex.getMessage(), ex);
+            new ErrorNotification(text("model.delete.error") + ": " + ex.getMessage());
+        }
     }
 }

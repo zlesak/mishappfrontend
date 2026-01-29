@@ -46,7 +46,7 @@ public class QuizDetailView extends AbstractQuizView {
             displayQuizDetails(quiz);
         } catch (Exception e) {
             log.error("Error loading quiz: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
         }
     }
 

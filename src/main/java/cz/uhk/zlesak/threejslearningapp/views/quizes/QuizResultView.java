@@ -49,7 +49,7 @@ public class QuizResultView extends AbstractQuizView {
             displayQuizResultDetails(quizResult);
         } catch (Exception e) {
             log.error("Error loading quiz result: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
         }
     }
 
