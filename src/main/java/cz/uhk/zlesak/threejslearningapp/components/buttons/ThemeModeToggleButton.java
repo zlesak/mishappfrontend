@@ -1,9 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.components.buttons;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.theme.lumo.Lumo;
@@ -16,9 +16,9 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 public class ThemeModeToggleButton extends Button {
 
     public ThemeModeToggleButton() {
+        super();
         addClassNames(LumoUtility.Display.FLEX, LumoUtility.Gap.MEDIUM, LumoUtility.Margin.MEDIUM, LumoUtility.Padding.MEDIUM);
         addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        setWidth("20px");
         getElement().getClassList().add("theme-mode-toggle");
         addClickListener(e -> toggleTheme());
     }

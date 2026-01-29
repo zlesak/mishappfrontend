@@ -10,9 +10,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import elemental.json.Json;
-import elemental.json.JsonArray;
-import elemental.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,21 +82,24 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
 
         List<SubChapterForSelect> subChapters = new ArrayList<>();
         try {
-            JsonArray blocks = Json.parse(entity.getContent()).getArray("blocks");
+            JsonNode root = objectMapper.readTree(entity.getContent());
+            JsonNode blocks = root.get("blocks");
 
-            for (int i = 0; i < blocks.length(); i++) {
-                JsonObject block = blocks.getObject(i);
-                if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1) {
-                    String id = block.hasKey("id") ? block.getString("id") : "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7);
-                    String text = block.getObject("data").getString("text");
-                    String modelId = block.getObject("data").hasKey("modelId") ? block.getObject("data").getString("modelId") : "";
-                    subChapters.add(new SubChapterForSelect(id, text, modelId));
+            for (JsonNode block : blocks) {
+                if ("header".equals(block.get("type").asText())) {
+                    JsonNode data = block.get("data");
+                    if (data.get("level").asInt() == 1) {
+                        String id = block.has("id") ? block.get("id").asText() : "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7);
+                        String text = data.get("text").asText();
+                        String modelId = data.has("modelId") ? data.get("modelId").asText() : "";
+                        subChapters.add(new SubChapterForSelect(id, text, modelId));
+                    }
                 }
             }
             return subChapters;
         } catch (Exception e) {
             log.error("Error getting subchapter names: {}", e.getMessage(), e);
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 

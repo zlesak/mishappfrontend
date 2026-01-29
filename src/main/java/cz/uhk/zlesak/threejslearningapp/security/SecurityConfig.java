@@ -1,11 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.security;
 
-import com.vaadin.flow.spring.security.VaadinAwareSecurityContextHolderStrategyConfiguration;
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,7 +34,6 @@ import java.util.Map;
 @Slf4j
 @EnableWebSecurity
 @Configuration
-@Import(VaadinAwareSecurityContextHolderStrategyConfiguration.class)
 class SecurityConfig {
 
     /**
@@ -45,10 +42,9 @@ class SecurityConfig {
      * @param http                         the HttpSecurity object to configure
      * @param clientRegistrationRepository the repository for client registrations
      * @return the configured SecurityFilterChain
-     * @throws Exception if an error occurs during configuration
      */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) {
         http.with(VaadinSecurityConfigurer.vaadin(), configurer ->
                 configurer.oauth2LoginPage("/oauth2/authorization/keycloak?prompt=login")
         );

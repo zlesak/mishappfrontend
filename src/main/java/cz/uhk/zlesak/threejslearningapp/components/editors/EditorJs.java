@@ -129,9 +129,9 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
      */
     public void addModelTextureColorAreaClickListener() {
         getElement().addEventListener("texturecolorareaclick", event -> {
-                    String modelId = event.getEventData().getString("event.detail.modelId");
-                    String textureId = event.getEventData().getString("event.detail.textureId");
-                    String hexColor = event.getEventData().getString("event.detail.hexColor");
+                    String modelId = event.getEventData().get("event.detail.modelId").asString();
+                    String textureId = event.getEventData().get("event.detail.textureId").asString();
+                    String hexColor = event.getEventData().get("event.detail.hexColor").asString();
                     ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, null, hexColor));
                 }).addEventData("event.detail.modelId")
                 .addEventData("event.detail.textureId")
