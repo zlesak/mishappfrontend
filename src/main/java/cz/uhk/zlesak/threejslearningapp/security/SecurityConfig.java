@@ -60,7 +60,7 @@ class SecurityConfig {
         http.logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler));
 
         http.authorizeHttpRequests(auth ->
-            auth.requestMatchers("/img/**").permitAll()
+            auth.requestMatchers("/img/**", "/skybox/**").permitAll()
         );
 
         return http.build();
