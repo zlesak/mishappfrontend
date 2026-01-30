@@ -124,7 +124,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      */
     @Override
     public E update(String id, E entity) throws Exception {
-        return sendPutRequest(baseUrl + "update/" + id, entity, getEntityClass(), "Chyba při aktualizaci entity typu: " + getEntityClass().getSimpleName(), id);
+        return sendPutRequest(baseUrl + "update", entity, getEntityClass(), "Chyba při aktualizaci entity typu: " + getEntityClass().getSimpleName(), id);
     }
 
     /**

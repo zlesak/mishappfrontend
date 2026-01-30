@@ -262,6 +262,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
         uploadedModels.addAll(modelsList);
 
         return ChapterEntity.builder()
+                .id(chapterCreateEntity.getId())
                 .name(chapterCreateEntity.getName())
                 .created(Instant.now())
                 .description("")
