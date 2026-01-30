@@ -3,7 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.domain.quiz;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * Response object containing quiz validation results
@@ -20,7 +20,6 @@ public class QuizValidationResult extends QuickQuizResult {
     Integer totalScore;
     Integer maxScore;
     Double percentage;
-    Map<String, Boolean> questionResults;
-    Map<String, Integer> questionScores;
+    List<QuizValidationQuestion> questionResults;
 }
 
