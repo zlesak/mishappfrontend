@@ -8,7 +8,7 @@ import Underline from '@editorjs/underline';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
 import Code from '@editorjs/code';
-import Hyperlink from 'editorjs-hyperlink';
+import Hyperlink from '@coolbytes/editorjs-link';
 import Strikethrough from '@sotaproject/strikethrough';
 import uploader from '@ajite/editorjs-image-base64';
 import ImageTool from '@editorjs/image';
@@ -37,23 +37,29 @@ function initializeEditorJs({
     underline: Underline,
     paragraph: {
       class: Paragraph,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textureColorLinkTool']
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool']
     },
     header: {
       class: Header,
-      inlineToolbar: ['underline', 'bold', 'italic'],
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool'],
       config: {
         placeholder: 'Vložte nadpis',
         levels: [1, 2, 3, 4, 5, 6],
         defaultLevel: 1
       }
     },
-    table: Table,
-    list: List,
+    table: {
+      class: Table,
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink']
+    },
+    list: {
+      class: List,
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool']
+    },
     code: Code,
     quote: {
       class: Quote,
-      inlineToolbar: ['underline', 'bold', 'italic'],
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink'],
       config: {
         quotePlaceholder: 'Citujte...',
         captionPlaceholder: 'Podepište autora citace'
@@ -62,12 +68,9 @@ function initializeEditorJs({
     hyperlink: {
       class: Hyperlink,
       config: {
-        target: '_self',
-        rel: 'nofollow',
-        availableTargets: ['_self'],
-        availableRels: ['author', 'noreferrer'],
-        validate: false,
-        inlineToolbar: ['underline', 'bold', 'italic']
+        shortcut: 'CMD+L',
+        placeholder: 'Vložte URL',
+        validate: false
       }
     },
     textureColorLinkTool: {

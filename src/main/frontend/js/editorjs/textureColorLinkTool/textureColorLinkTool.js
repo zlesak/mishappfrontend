@@ -1,4 +1,4 @@
-import { IconLink } from '@codexteam/icons';
+import { IconColor } from '@codexteam/icons';
 import { attachTextureColorListeners } from 'Frontend/js/editorjs/texture-utils.js';
 import './textureColorLinkTool.css';
 
@@ -89,7 +89,7 @@ export default class TextureColorLinkTool {
     this.nodes.button = document.createElement('button');
     this.nodes.button.type = 'button';
     this.nodes.button.classList.add(this.iconClasses.base);
-    this.nodes.button.innerHTML = IconLink;
+    this.nodes.button.innerHTML = IconColor;
 
     this.nodes.button.addEventListener('click', (e) => {
       e.preventDefault();
