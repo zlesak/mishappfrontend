@@ -26,8 +26,8 @@ import java.util.List;
  * This class main purpose is to provide a bridge between the Java backend and the JavaScript Three.js library.
  */
 @Slf4j
-@JsModule("./js/threejs/three-javascript.js")
-@NpmPackage(value = "three", version = "0.172.0")
+@JsModule("./js/threejs/three-javascript.ts")
+@NpmPackage(value = "three", version = "0.182.0")
 @Tag("canvas")
 @Scope("prototype")
 @org.springframework.stereotype.Component
@@ -111,23 +111,6 @@ public class ThreeJs extends Component {
                     console.error('[JS] Error in loadAdvancedModel:', e);
                 }
                 """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null, advanced);
-    }
-
-    /**
-     * Clears the Three.js scene by executing the clear function defined in the JavaScript module.
-     * This method is used to remove all objects from the scene, effectively resetting it.
-     * It is useful for starting fresh without reloading the entire component.
-     */
-    private void clear() {
-        getElement().executeJs("""
-                try {
-                    if (typeof window.clear === 'function') {
-                        window.clear($0);
-                    }
-                } catch (e) {
-                    console.error('[JS] Error in clearModel:', e);
-                }
-                """, getElement());
     }
 
     private void removeModel(String modelId) {
@@ -305,9 +288,10 @@ public class ThreeJs extends Component {
 
     /**
      * Clears the specified model from the Three.js memory.
+     *
      * @param modelId identification of the model to be cleared
      */
-    private void clearModel(String modelId, String questionId, boolean forceClear) {
+    private void clearModel(String modelId, String questionId) {
         getElement().executeJs("""
                 try {
                     if (typeof window.clearModel === 'function') {
@@ -316,7 +300,7 @@ public class ThreeJs extends Component {
                 } catch (e) {
                     console.error('[JS] Error in clearModel:', e);
                 }
-                """, getElement(), modelId, questionId, forceClear);
+                """, getElement(), modelId, questionId, false);
     }
 
     /**
@@ -421,7 +405,7 @@ public class ThreeJs extends Component {
                         case SHOW_MODEL -> showModel(event.getModelId());
                         case APPLY_MASK_TO_TEXTURE ->
                                 applyMaskToMainTexture(event.getModelId(), event.getTextureId(), event.getMaskColor());
-                        case REMOVE -> clearModel(event.getModelId(), event.getQuestionId(), false);
+                        case REMOVE -> clearModel(event.getModelId(), event.getQuestionId());
                         default -> { /* No action */}
                     }
                 }
