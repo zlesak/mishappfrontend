@@ -108,6 +108,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * It parses the chapter content to identify level 1 headers and their corresponding sub-headers (level 2 and above).
      * The result is a map where each key is a Triple containing the level 1 header's ID, text, and modelId,
      * and the value is a list of Tuples representing the sub-headers with their IDs and texts.
+     * Replaces any HTML tags in the header texts with plain text.
      * @param chapterId the ID of the chapter to process
      * @return a map of level 1 headers to their associated sub-headers
      * @throws Exception if there is an error reading or parsing the chapter content
@@ -128,7 +129,8 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             if ("header".equals(type)) {
                 JsonNode data = block.get("data");
                 int level = data.get("level").asInt();
-                String text = data.get("text").asText();
+                String originalText = data.get("text").asText();
+                String text = originalText == null ? "" : originalText.replaceAll("<[^>]*>", "");
                 String id = block.get("id").asText();
                 String modelId = data.get("modelId") != null ? data.get("modelId").asText() : null;
 
