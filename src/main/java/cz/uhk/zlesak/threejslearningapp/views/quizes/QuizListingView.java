@@ -2,8 +2,8 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.Route;
-import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
-import cz.uhk.zlesak.threejslearningapp.components.lists.QuizListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.QuizListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizFilter;

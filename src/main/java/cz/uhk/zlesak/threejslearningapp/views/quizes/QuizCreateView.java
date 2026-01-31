@@ -6,9 +6,10 @@ import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
-import cz.uhk.zlesak.threejslearningapp.components.forms.QuizForm;
+import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
@@ -28,12 +29,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * View for creating new quizzes.
+ * View for creating new quizzes or editing existing ones.
  */
 @Slf4j
 @Route("createQuiz/:quizId?")
@@ -42,8 +44,10 @@ import java.util.stream.Collectors;
 @RolesAllowed(value = "TEACHER")
 public class QuizCreateView extends AbstractQuizView {
     private final ChapterService chapterService;
-    private final QuizForm quizForm;
+    private final CreateQuizForm quizForm;
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
+    private boolean isEditMode = false;
+    private QuizEntity loadedQuiz;
 
     /**
      * Constructor for QuizCreateView.
@@ -56,7 +60,7 @@ public class QuizCreateView extends AbstractQuizView {
         super("page.title.createQuizView", false, quizService);
         this.chapterService = chapterService;
 
-        quizForm = new QuizForm();
+        quizForm = new CreateQuizForm();
         quizForm.setAddQuestionListener(this::addQuestion);
         quizForm.setAccordionOpenedChangeListener(this::onAccordionPanelOpened);
 
@@ -98,7 +102,7 @@ public class QuizCreateView extends AbstractQuizView {
             if (editor.validate()) {
                 new InfoNotification(text("quiz.question.validated"));
             } else {
-                new ErrorNotification(text("quiz.question.validation.failed"), 3000);
+                new ErrorNotification(text("quiz.question.validation.failed"));
             }
         });
 
@@ -155,7 +159,7 @@ public class QuizCreateView extends AbstractQuizView {
     }
 
     /**
-     * Saves the quiz by validating input and creating the quiz entity.
+     * Saves the quiz by validating input and creating or updating the quiz entity.
      */
     private void saveQuiz() {
         try {
@@ -176,24 +180,43 @@ public class QuizCreateView extends AbstractQuizView {
                 service.addAnswer(editor.getAnswerData());
             }
 
-            String quizId = service.create(
-                    QuizEntity.builder()
-                            .name(name)
-                            .description(quizForm.getDescription())
-                            .timeLimit(quizForm.getTimeLimit())
-                            .chapterId(quizForm.getSelectedChapter())
-                            .build()
-            ).getId();
+            if (isEditMode) {
+                service.update(quizId,
+                        QuizEntity.builder()
+                                .id(quizId)
+                                .name(name)
+                                .description(quizForm.getDescription())
+                                .timeLimit(quizForm.getTimeLimit())
+                                .chapterId(quizForm.getSelectedChapter())
+                                .creatorId(loadedQuiz.getCreatorId())
+                                .created(loadedQuiz.getCreated())
+                                .updated(Instant.now())
+                                .build());
 
-            new InfoNotification(text("quiz.created.success"));
-            log.info("Quiz created with ID: {}", quizId);
-            skipBeforeLeaveDialog = true;
-            UI.getCurrent().navigate("quiz/" + quizId);
+                new SuccessNotification(text("quiz.update.success"));
+                log.info("Quiz updated with ID: {}", quizId);
+                skipBeforeLeaveDialog = true;
+                UI.getCurrent().navigate(QuizListingView.class);
+            } else {
+                String newQuizId = service.create(
+                        QuizEntity.builder()
+                                .name(name)
+                                .description(quizForm.getDescription())
+                                .timeLimit(quizForm.getTimeLimit())
+                                .chapterId(quizForm.getSelectedChapter())
+                                .build()
+                ).getId();
+
+                new SuccessNotification(text("quiz.create.success"));
+                log.info("Quiz created with ID: {}", newQuizId);
+                skipBeforeLeaveDialog = true;
+                UI.getCurrent().navigate(QuizListingView.class);
+            }
 
         } catch (Exception e) {
-            log.error("Error creating quiz", e);
+            log.error("Error saving quiz", e);
             service.clearQuestionsAndAnswers();
-            new ErrorNotification(text("quiz.created.error") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + e.getMessage());
         }
     }
 
@@ -236,21 +259,23 @@ public class QuizCreateView extends AbstractQuizView {
         quizId = parameters.get("quizId").orElse(null);
 
         if (quizId != null) {
+            isEditMode = true;
+            
             try {
-                var entity = service.getQuizWithAnswers(quizId);
-                if (entity == null) {
+                loadedQuiz = service.getQuizWithAnswers(quizId);
+                if (loadedQuiz == null) {
                     log.error("Quiz not found for editing, quizId: {}", quizId);
                 } else {
                     ChapterEntity chapterEntity = null;
-                    if (entity.getChapterId() != null) {
-                        chapterEntity = chapterService.read(entity.getChapterId());
+                    if (loadedQuiz.getChapterId() != null) {
+                        chapterEntity = chapterService.read(loadedQuiz.getChapterId());
                     }
-                    quizForm.setQuizData(entity.getName(), entity.getDescription(), entity.getTimeLimit(), chapterEntity);
+                    quizForm.setQuizData(loadedQuiz.getName(), loadedQuiz.getDescription(), loadedQuiz.getTimeLimit(), chapterEntity);
 
-                    var answersMap = entity.getAnswers().stream()
+                    var answersMap = loadedQuiz.getAnswers().stream()
                             .collect(Collectors.toMap(AbstractAnswerData::getQuestionId, answer -> answer));
 
-                    for (var question : entity.getQuestions()) {
+                    for (var question : loadedQuiz.getQuestions()) {
                         var answer = answersMap.get(question.getQuestionId());
                         addQuestion(question, answer);
                     }

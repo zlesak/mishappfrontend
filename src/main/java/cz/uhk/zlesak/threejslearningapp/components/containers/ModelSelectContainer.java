@@ -3,7 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.ExistingModelSelectButton;
-import cz.uhk.zlesak.threejslearningapp.components.selects.QuickModelSelect;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.selects.QuickModelSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Getter;

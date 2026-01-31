@@ -8,11 +8,11 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.common.Filter;
-import cz.uhk.zlesak.threejslearningapp.components.common.NoItemInfo;
-import cz.uhk.zlesak.threejslearningapp.components.common.Pagination;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.NoItemInfoComponent;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PaginationComponent;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ErrorDialog;
-import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterBase;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
@@ -41,7 +41,7 @@ import java.util.function.Consumer;
 @Tag("listing-scaffold")
 public abstract class AbstractListingView<Q extends AbstractEntity, F extends FilterBase, E extends Q, S extends AbstractService<E, Q, F>> extends AbstractView<S> {
     protected final VerticalLayout listingLayout, itemListLayout, paginationLayout, secondaryFilterLayout;
-    protected final Filter filter = new Filter();
+    protected final FilterComponent filter = new FilterComponent();
     protected final boolean listView;
     @Setter
     protected boolean administrationView;
@@ -146,7 +146,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
             List<Q> entities = pageResult.elements().stream().toList();
 
             if (entities.isEmpty()) {
-                itemListLayout.add(new NoItemInfo("page.info.noItemsFound"));
+                itemListLayout.add(new NoItemInfoComponent("page.info.noItemsFound"));
                 return;
             }
 
@@ -159,7 +159,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
                 });
                 itemListLayout.add(itemComponent);
             }
-            paginationLayout.add(new Pagination(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), pageResult.total(),
+            paginationLayout.add(new PaginationComponent(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), pageResult.total(),
                     p -> {
                         filterParameters.setPageNumber(p);
                         listEntities();

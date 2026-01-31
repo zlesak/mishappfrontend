@@ -1,10 +1,10 @@
 package cz.uhk.zlesak.threejslearningapp.events.threejs;
 
 import com.vaadin.flow.component.ComponentEvent;
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 
-public class ThreeJsFinishedActions  extends ComponentEvent<ThreeJs> {
-    public ThreeJsFinishedActions(ThreeJs source) {
+public class ThreeJsFinishedActions  extends ComponentEvent<ThreeJsComponent> {
+    public ThreeJsFinishedActions(ThreeJsComponent source) {
         super(source, false);
     }
 }

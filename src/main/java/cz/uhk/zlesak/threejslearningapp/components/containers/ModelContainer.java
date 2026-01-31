@@ -7,7 +7,7 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.shared.Registration;
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
 
@@ -18,13 +18,13 @@ import java.util.List;
  * ModelDiv is a custom Div component that contains a ThreeJsComponent for rendering 3D models,
  * along with an overlay progress bar and description for loading actions coming back from the ThreeJsComponent.
  *
- * @see ThreeJs
+ * @see ThreeJsComponent
  */
 public class ModelContainer extends Div {
     private final ProgressBar overlayProgressBar;
     private final Div overlayBackground;
     private final Span actionDescription;
-    public final ThreeJs renderer;
+    public final ThreeJsComponent renderer;
     public final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer;
     protected final List<Registration> registrations = new ArrayList<>();
 
@@ -39,7 +39,7 @@ public class ModelContainer extends Div {
         getStyle().set("width", "100%");
         getStyle().set("overflow", "hidden");
 
-        renderer = new ThreeJs();
+        renderer = new ThreeJsComponent();
         modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
         overlayBackground = getOverlayBackgroundDiv();
         overlayProgressBar = getOverlayProgressBar();

@@ -13,8 +13,8 @@ import com.vaadin.flow.theme.lumo.LumoUtility.*;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LoginButton;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LogoutButton;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.ThemeModeToggleButton;
-import cz.uhk.zlesak.threejslearningapp.components.common.AvatarItem;
-import cz.uhk.zlesak.threejslearningapp.components.common.MenuItemInfo;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.AvatarListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.MenuListItem;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.CookiesNotification;
 import cz.uhk.zlesak.threejslearningapp.views.administration.AdministrationView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
@@ -70,7 +70,7 @@ public class MainLayout extends AppLayout {
         nav.add(list);
         layout.add(nav);
         /// For loop for inserting the menu items into the UL wrapper
-        for (MenuItemInfo menuItem : createMenuItems(authentication)) {
+        for (MenuListItem menuItem : createMenuItems(authentication)) {
             list.add(menuItem);
         }
 
@@ -89,7 +89,7 @@ public class MainLayout extends AppLayout {
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
             String username = authentication.getPrincipal() instanceof OidcUser oidcUser ?( oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
-            layout.add(new AvatarItem(username, getUserRoleName(authentication), new LogoutButton(authenticationContext)));
+            layout.add(new AvatarListItem(username, getUserRoleName(authentication), new LogoutButton(authenticationContext)));
         } else {
             LoginButton loginButton = new LoginButton();
             layout.add(loginButton);
@@ -104,12 +104,12 @@ public class MainLayout extends AppLayout {
      * @param authentication the authentication object of the current user
      * @return the list of menu items
      */
-    private List<MenuItemInfo> createMenuItems(Authentication authentication) {
-        List<MenuItemInfo> menuItems = commonMenuItemsForLoggedUsers();
+    private List<MenuListItem> createMenuItems(Authentication authentication) {
+        List<MenuListItem> menuItems = commonMenuItemsForLoggedUsers();
         if (authentication != null && authentication.getAuthorities() != null) {
             if (authentication.getAuthorities().stream().anyMatch(auth ->
                     "ROLE_ADMIN".equals(auth.getAuthority()) || "ROLE_TEACHER".equals(auth.getAuthority()))) {
-                menuItems.add(new MenuItemInfo("Administrační centrum", VaadinIcon.COG.create(), AdministrationView.class));
+                menuItems.add(new MenuListItem("Administrační centrum", VaadinIcon.COG.create(), AdministrationView.class));
             }
         }
         return menuItems;
@@ -120,15 +120,15 @@ public class MainLayout extends AppLayout {
      *
      * @return the list of common menu items
      */
-    private List<MenuItemInfo> commonMenuItemsForLoggedUsers() {
+    private List<MenuListItem> commonMenuItemsForLoggedUsers() {
         Image logo = new Image("/icons/MISH_icon.ico", "MISH icon");
         logo.setWidth("24px");
         logo.setHeight("24px");
         return new ArrayList<>(List.of(
-                new MenuItemInfo("MISH - Úvod", logo, MainPageView.class),
-                new MenuItemInfo("Kapitoly", VaadinIcon.OPEN_BOOK.create(), ChapterListingView.class),
-                new MenuItemInfo("Modely", VaadinIcon.CUBES.create(), ModelListingView.class),
-                new MenuItemInfo("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class)
+                new MenuListItem("MISH - Úvod", logo, MainPageView.class),
+                new MenuListItem("Kapitoly", VaadinIcon.OPEN_BOOK.create(), ChapterListingView.class),
+                new MenuListItem("Modely", VaadinIcon.CUBES.create(), ModelListingView.class),
+                new MenuListItem("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class)
         ));
     }
 

@@ -15,7 +15,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.common.Divider;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.DividerComponent;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.IView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
@@ -40,13 +40,13 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         mainLayout.getStyle().set("margin", "0 auto");
         mainLayout.add(
                 createHeroSection(),
-                new Divider(),
+                new DividerComponent(),
                 createAboutSection(),
-                new Divider(),
+                new DividerComponent(),
                 createFeaturesSection(),
-                new Divider(),
+                new DividerComponent(),
                 createShowcaseSection(),
-                new Divider(),
+                new DividerComponent(),
                 createCollaborationSection(),
                 createFooterSection()
         );

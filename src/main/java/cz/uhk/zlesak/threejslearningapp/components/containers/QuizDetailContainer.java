@@ -8,7 +8,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.tables.QuizDetailTable;
+import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizDetailTableComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizPlayerView;
@@ -35,7 +35,7 @@ public class QuizDetailContainer extends VerticalLayout implements I18nAware {
         title.addClassName(LumoUtility.Margin.Bottom.MEDIUM);
         add(title);
 
-        Div table = new QuizDetailTable(quiz);
+        Div table = new QuizDetailTableComponent(quiz);
         add(table);
 
         Button startButton = new Button(text("quiz.detail.startButton"));

@@ -1,5 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.theme.Theme;
@@ -33,6 +36,21 @@ public class Application implements AppShellConfigurator {
     @Bean
     public RestClient restClient() {
         return RestClient.create();
+    }
+
+    /**
+     * Configures the ObjectMapper bean for JSON serialization and deserialization.
+     * It registers the JavaTimeModule to handle Java 8 date/time types and
+     * configures it to ignore unknown properties during deserialization.
+     *
+     * @return a configured ObjectMapper instance
+     */
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper;
     }
 
     /**
