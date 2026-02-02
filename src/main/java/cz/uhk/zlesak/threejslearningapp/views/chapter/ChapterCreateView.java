@@ -4,9 +4,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.router.AfterNavigationEvent;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateChapterForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -204,7 +202,7 @@ public class ChapterCreateView extends AbstractChapterView {
                 
                 new SuccessNotification(text("chapter.update.success"));
                 skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate("chapter/" + chapterId);
+                UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", chapterId)));
             } else {
                 String newChapterId = service.create(
                         ChapterEntity.builder()
@@ -216,7 +214,7 @@ public class ChapterCreateView extends AbstractChapterView {
 
                 new SuccessNotification(text("chapter.create.success"));
                 skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate("chapter/" + newChapterId);
+                UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", newChapterId)));
             }
         } catch (Exception e) {
             log.error("Error saving chapter: {}", e.getMessage(), e);

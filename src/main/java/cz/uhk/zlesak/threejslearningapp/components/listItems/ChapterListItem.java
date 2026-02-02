@@ -6,6 +6,8 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.router.RouteParam;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinSession;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.common.DateFormater;
@@ -16,6 +18,9 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotifica
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
+import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterCreateView;
+import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterDetailView;
+import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -112,7 +117,7 @@ public class ChapterListItem extends AbstractListItem {
 
                         modelBadge.getElement().addEventListener("click", e -> {
                             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
-                            UI.getCurrent().navigate("model/" + id);
+                            UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
                         });
 
                         modelsRow.add(modelBadge);
@@ -125,13 +130,13 @@ public class ChapterListItem extends AbstractListItem {
 
         setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
-            UI.getCurrent().navigate("chapter/" + chapter.getId());
+            UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", chapter.getId())));
         });
 
         setEditButtonClickListener(e -> {
             if (administrationView) {
                 VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
-                UI.getCurrent().navigate("createChapter/" + chapter.getId());
+                UI.getCurrent().navigate(ChapterCreateView.class, new RouteParameters(new RouteParam("chapterId", chapter.getId())));
             }
         });
 

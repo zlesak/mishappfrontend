@@ -2,7 +2,6 @@ package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
-import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
@@ -93,11 +92,4 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
         return body;
     }
     //endregion
-
-    //TODO: Remove after list url is unified in the BE
-    @Override
-    protected String pageRequestToQueryParams(FilterParameters<ModelFilter> filterParameters, String customBaseUrl) {
-        customBaseUrl = customBaseUrl == null ? "list-by" : customBaseUrl;
-        return super.pageRequestToQueryParams(filterParameters, customBaseUrl);
-    }
 }

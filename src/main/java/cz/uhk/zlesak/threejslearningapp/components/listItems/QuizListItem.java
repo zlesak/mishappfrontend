@@ -5,6 +5,8 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.router.RouteParam;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
@@ -12,6 +14,8 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
+import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizCreateView;
+import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizDetailView;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -65,10 +69,10 @@ public class QuizListItem extends AbstractListItem {
             details.add(chapterRow);
         }
 
-        setOpenButtonClickListener(e -> UI.getCurrent().navigate("playQuiz/" + quiz.getId()));
+        setOpenButtonClickListener(e -> UI.getCurrent().navigate(QuizDetailView.class, new RouteParameters(new RouteParam("quizId", quiz.getId()))));
         setEditButtonClickListener(e -> {
             if (administrationView) {
-                UI.getCurrent().navigate("createQuiz/" + quiz.getId());
+                UI.getCurrent().navigate(QuizCreateView.class, new RouteParameters(new RouteParam("quizId", quiz.getId())));
             }
         });
         setDeleteButtonClickListener(e -> {

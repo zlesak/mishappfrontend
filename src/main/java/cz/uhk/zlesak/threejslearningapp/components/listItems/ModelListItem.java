@@ -3,6 +3,8 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.router.RouteParam;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
@@ -10,6 +12,8 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
+import cz.uhk.zlesak.threejslearningapp.views.model.ModelCreateView;
+import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -25,7 +29,7 @@ public class ModelListItem extends AbstractListItem {
         setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
             if (listView) {
-                UI.getCurrent().navigate("model/" + model.getModel().getId());
+                UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
             } else {
                 UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getId());
             }
@@ -34,7 +38,7 @@ public class ModelListItem extends AbstractListItem {
         setEditButtonClickListener(e -> {
             if (administrationView) {
                 VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
-                UI.getCurrent().navigate("createModel/" + model.getModel().getId());
+                UI.getCurrent().navigate(ModelCreateView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
             }
         });
 

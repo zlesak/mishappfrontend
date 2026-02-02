@@ -34,7 +34,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
      */
     TextureClickQuestionRendererComponent(TextureClickQuestionData question) {
         this.question = question;
-        Button selectColorButton = new Button(text("Vybrat barvu"));
+        Button selectColorButton = new Button(text("quiz.choose.color"));
         selectColorButton.addClickListener(e -> {
 
                     var quickModelEntity = QuickModelEntity.builder()
