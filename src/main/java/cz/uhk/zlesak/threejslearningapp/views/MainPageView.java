@@ -180,43 +180,36 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         showcaseGrid.setWidthFull();
         showcaseGrid.setMaxWidth("1200px");
 
-        // Placeholders for GIFs TODO: Replace with actual GIF/Image components from aplication functionality
-        showcaseGrid.add(createGifPlaceholder("showcase.gif1.title"));
-        showcaseGrid.add(createGifPlaceholder("showcase.gif2.title"));
-        showcaseGrid.add(createGifPlaceholder("showcase.gif3.title"));
+        showcaseGrid.add(createGifPlaceholder("showcase.gif1.title", "/img/modelgif.gif"));
+        showcaseGrid.add(createGifPlaceholder("showcase.gif2.title", "/img/kapitolagif.gif"));
+        showcaseGrid.add(createGifPlaceholder("showcase.gif3.title", "/img/quizgif.gif"));
 
         section.add(title, desc, showcaseGrid);
         return section;
     }
 
     /**
-     * Creates a placeholder for a GIF/Image with a title. //TODO replace with actual GIF/Image component
+     * Creates a showcase item with a GIF/Image and a title.
      * @param titleKey The key for the title text.
-     * @return The VerticalLayout containing the GIF/Image placeholder and title.
+     * @param gifPath The path to the GIF image.
+     * @return The VerticalLayout containing the GIF/Image and title.
      */
-    private VerticalLayout createGifPlaceholder(String titleKey) {
+    private VerticalLayout createGifPlaceholder(String titleKey, String gifPath) {
         VerticalLayout container = new VerticalLayout();
         container.setAlignItems(FlexComponent.Alignment.CENTER);
-        container.setWidth("350px");
+        container.setWidthFull();
+        container.setPadding(false);
 
-        Div placeholder = new Div();
-        placeholder.setWidth("100%");
-        placeholder.setHeight("200px");
-        placeholder.getStyle().set("background-color", "var(--lumo-contrast-10pct)");
-        placeholder.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
-        placeholder.getStyle().set("display", "flex");
-        placeholder.getStyle().set("align-items", "center");
-        placeholder.getStyle().set("justify-content", "center");
-
-        // TODO: Replace with real Image component pointing to GIF
-        Span label = new Span("GIF/Image Placeholder");
-        label.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.SECONDARY);
-        placeholder.add(label);
+        Image gifImage = new Image(gifPath, text(titleKey));
+        gifImage.setWidthFull();
+        gifImage.setHeight("400px");
+        gifImage.getStyle().set("object-fit", "contain");
+        gifImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
 
         H4 title = new H4(text(titleKey));
         title.addClassNames(LumoUtility.Margin.Top.SMALL);
 
-        container.add(placeholder, title);
+        container.add(gifImage, title);
         return container;
     }
 

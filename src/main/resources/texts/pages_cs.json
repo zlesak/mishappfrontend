@@ -1,19 +1,17 @@
 {
-  "page.title.modelView" : "MISH - Zobrazit 3D model",
+  "page.title.modelView" : "MISH - Model",
   "page.title.createChapterView" : "MISH - Vytvořit kapitolu",
   "page.title.chapterView" : "MISH - Kapitola",
   "page.title.createModelView" : "MISH - Vytvořit model",
   "page.title.loginView" : "MISH - Přihlásit se",
   "page.title.logoutView" : "MISH - Odhlásit se",
   "page.title.mainPageView" : "MISH - Úvod",
-  "page.title.profileView" : "MISH - Můj účet",
-  "page.title.modelListView" : "MISH - Seznam nahraných modelů",
+  "page.title.modelListView" : "MISH - Modely",
   "page.title.chapterListView" : "MISH - Kapitoly",
   "page.title.createQuizView" : "MISH - Vytvořit kvíz",
   "page.title.quizView" : "MISH - Kvíz",
   "page.title.quizListView" : "MISH - Kvízy",
-  "page.title.administrationView" : "MISH - Administrace",
-  "page.title.chapterDetailView" : "MISH - Detail kapitoly",
+  "page.title.administrationView" : "MISH - Administrační centrum",
 
   "page.info.noItemsFound" : "Nebyly nalezeny žádné položky.",
   "page.info.errorLoadingItems" : "Chyba při načítání položek."
