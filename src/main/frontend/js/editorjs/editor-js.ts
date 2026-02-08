@@ -3,7 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { initializeEditor } from './editorjs-init';
 import { attachTextureColorListeners, removeLinksByModelIds } from './texture-utils';
 import { searchInEditor } from './search-utils';
-import { convertEditorJsToMarkdown, convertMarkdownToEditorJs } from 'Frontend/js/editorjs/markdownConvertors/convert';
+import { htmlToEditorJs } from 'Frontend/js/editorjs/markdownConvertors/htmlToEditorJsConverter';
 import TextureColorLinkTool from 'Frontend/js/editorjs/textureColorLinkTool/textureColorLinkTool';
 import { OutputData } from '@editorjs/editorjs';
 
@@ -11,6 +11,9 @@ import { OutputData } from '@editorjs/editorjs';
 export class EditorJs extends LitElement {
   @state()
   private editor: any;
+
+  @state()
+  private readOnly: boolean = false;
 
   readonly editorReadyPromise: Promise<void>;
   private resolveEditorReadyPromise!: () => void;
@@ -31,6 +34,12 @@ export class EditorJs extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+
+    const readOnlyAttr = this.getAttribute('readonly');
+    if (readOnlyAttr !== null) {
+      this.readOnly = readOnlyAttr === 'true' || readOnlyAttr === '';
+    }
+
     this.style.display = 'block';
     this.style.width = '100%';
     const style = document.createElement('style');
@@ -53,7 +62,7 @@ export class EditorJs extends LitElement {
 
   async firstUpdated() {
     try {
-      this.editor = await initializeEditor(this);
+      this.editor = await initializeEditor(this, { readOnly: this.readOnly });
       TextureColorLinkTool.setGlobalModelsTexturesAndColors([], [], []);
       this.resolveEditorReadyPromise();
       attachTextureColorListeners();
@@ -70,26 +79,15 @@ export class EditorJs extends LitElement {
   }
 
   // @ts-ignore - Method is used by external components
-  public async getMarkdown(): Promise<string> {
-    await this.editorReadyPromise;
-    if (!this.editor) return '';
-    try {
-      const data = await this.editor.save();
-      return await convertEditorJsToMarkdown(data);
-    } catch (e) {
-      console.error('getMarkdown error:', e);
-      return '';
-    }
-  }
-
-  // @ts-ignore - Method is used by external components
-  public async loadMarkdown(md: string): Promise<void> {
+  public async loadMoodleHtml(html: string): Promise<void> {
     await this.editorReadyPromise;
     try {
-      const outputData = await convertMarkdownToEditorJs(md);
+      console.log('Loading Moodle HTML directly to EditorJS...');
+      const outputData = htmlToEditorJs(html);
+      console.log('Converted HTML to EditorJS blocks:', outputData.blocks.length);
       await this.setData(outputData);
     } catch (e) {
-      console.error('loadMarkdown error:', e);
+      console.error('loadMoodleHtml error:', e);
     }
   }
 
@@ -141,6 +139,53 @@ export class EditorJs extends LitElement {
     attachTextureColorListeners();
   }
 
+  // @ts-ignore - Method is used by external components
+  async filterContentByLevel1Header( headerIdOrText : string, matchByText = false) {
+    const blocks = this._chapterContentData.blocks || [];
+    const filteredBlocks = [];
+
+    let isCapturing = false;
+    let foundHeader = false;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+
+      if (block.type === 'header' && block.data.level === 1) {
+        const isMatch = matchByText
+          ? block.data.text === headerIdOrText
+          : block.id === headerIdOrText;
+
+        if (isMatch) {
+          isCapturing = true;
+          foundHeader = true;
+          filteredBlocks.push(block);
+        } else if (isCapturing) {
+          break;
+        }
+      } else if (isCapturing) {
+        filteredBlocks.push(block);
+      }
+    }
+    if(!foundHeader){
+      console.warn(`Header with ${matchByText ? 'text' : 'ID'} "${headerIdOrText}" not found.`);
+      await this.showWholeChapterData();
+      return;
+    }
+
+    await this.setData({ time: this._chapterContentData.time, version: this._chapterContentData.version, blocks : filteredBlocks });
+  }
+
+  async scrollToDataId (dataId : string ) {
+    const element = document.querySelector(`[data-id="${dataId}"]`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      console.warn(`Element with data-id="${dataId}" not found.`);
+    }
+  };
+
+
+  // @ts-ignore - Method is used by external components
   async setData(value: OutputData): Promise<void> {
     await this.editorReadyPromise;
     if (!this.editor || !this.editor.blocks) {
@@ -151,10 +196,71 @@ export class EditorJs extends LitElement {
       await this.editor.blocks.clear();
       await this.editor.blocks.render(value);
       attachTextureColorListeners();
+
+      // Add data-id attributes to image blocks for scroll-to functionality
+      this.attachImageDataIds();
+
+      // Attach click handlers for image reference links
+      this.attachImageReferenceClickHandlers();
     } catch (error) {
       console.error('Error setting editor data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Attach data-id attributes to image blocks based on their data
+   */
+  private attachImageDataIds(): void {
+    setTimeout(() => {
+      const imageBlocks = this.querySelectorAll('.ce-block');
+      imageBlocks.forEach((block: Element) => {
+        const imgElement = block.querySelector('img');
+        if (imgElement) {
+          // Try to get data-id from block data or filename
+          const blockData = (block as any).__data;
+          if (blockData && blockData['data-id']) {
+            block.setAttribute('data-id', blockData['data-id']);
+          } else if (imgElement.src) {
+            // Extract filename without extension as fallback
+            const filename = imgElement.src.split('/').pop() || '';
+            const dataId = filename.replace(/\.[^.]+$/, '');
+            if (dataId) {
+              block.setAttribute('data-id', dataId);
+            }
+          }
+        }
+      });
+    }, 100); // Small delay to ensure DOM is updated
+  }
+
+  /**
+   * Attach click handlers to links with data-target-id to scroll to referenced images
+   */
+  private attachImageReferenceClickHandlers(): void {
+    setTimeout(() => {
+      const links = this.querySelectorAll('a[data-target-id]');
+      links.forEach((link: Element) => {
+        const anchor = link as HTMLAnchorElement;
+        anchor.addEventListener('click', (e: Event) => {
+          e.preventDefault();
+          const targetId = anchor.getAttribute('data-target-id');
+          if (targetId) {
+            const targetBlock = this.querySelector(`.ce-block[data-id="${targetId}"]`);
+            if (targetBlock) {
+              targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              // Optional: Add highlight effect
+              targetBlock.classList.add('editor-search-highlight');
+              setTimeout(() => {
+                targetBlock.classList.remove('editor-search-highlight');
+              }, 2000);
+            } else {
+              console.warn(`Image block with data-id="${targetId}" not found`);
+            }
+          }
+        });
+      });
+    }, 150); // Slightly longer delay to ensure all DOM updates are complete
   }
 
   // @ts-ignore - Method is used by external components

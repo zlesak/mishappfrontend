@@ -9,7 +9,9 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Matching question
+ * Matching question data class - Represents a matching question with left and right items to be matched.
+ * Extends AbstractQuestionData to inherit common question properties.
+ * @see AbstractQuestionData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

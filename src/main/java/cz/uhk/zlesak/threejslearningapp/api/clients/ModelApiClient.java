@@ -1,38 +1,36 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.IModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
 /**
  * ModelApiClient provides connection to the backend service for managing models.
  * It implements the IFileApiClient interface and provides methods for creating, retrieving, uploading, downloading, and deleting model entities.
- * It uses RestTemplate for making HTTP requests to the backend service.
+ * It uses RestClient for making HTTP requests to the backend service.
  * The base URL for the API is determined by the IApiClient interface.
  */
 @Component
-public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickModelEntity, ModelFilter> implements IModelApiClient {
+public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickModelEntity, ModelFilter> {
 
     /**
      * Constructor for ModelApiClient.
      *
-     * @param restTemplate the RestTemplate used for making HTTP requests
+     * @param restClient RestClient for making HTTP requests
      * @param objectMapper the ObjectMapper used for JSON serialization/deserialization
      */
     @Autowired
-    public ModelApiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        super(restTemplate, objectMapper, "model/");
+    public ModelApiClient(RestClient restClient, ObjectMapper objectMapper) {
+        super(restClient, objectMapper, "model/");
     }
 
     //region Overridden CRUD operations from IApiClient
@@ -53,6 +51,7 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
                 .name(fileEntity.getName())
                 .fullMainTexture(null)
                 .fullOtherTextures(List.of())
+                .inputStreamMultipartFile(fileEntity)
                 .build();
     }
     //endregion
@@ -81,6 +80,7 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
 
     /**
      * Prepares the body for file upload.
+     *
      * @param entity the model entity containing the file to upload
      * @return MultiValueMap with the file data
      */
@@ -92,21 +92,4 @@ public class ModelApiClient extends AbstractFileApiClient<ModelEntity, QuickMode
         return body;
     }
     //endregion
-
-    //TODO: Remove after list url is unified in the BE
-    @Override
-    protected String pageRequestToQueryParams(PageRequest pageRequest, String customBaseUrl) {
-        customBaseUrl = customBaseUrl == null ? "list-by" : customBaseUrl;
-        String orderBy = pageRequest.getSort().isSorted()
-                ? pageRequest.getSort().iterator().next().getProperty()
-                : "id";
-        String sortDirection = pageRequest.getSort().isSorted()
-                ? pageRequest.getSort().iterator().next().getDirection().name()
-                : "ASC";
-        return baseUrl + customBaseUrl +
-                "?limit=" + pageRequest.getPageSize() +
-                "&page=" + pageRequest.getPageNumber() +
-                "&orderBy=" + orderBy +
-                "&sortDirection=" + sortDirection;
-    }
 }

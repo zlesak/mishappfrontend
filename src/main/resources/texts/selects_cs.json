@@ -1,6 +1,10 @@
 {
   "chapterSelect.caption": "Vyberte podkapitolu",
   "textureAreaSelect.caption": "Vyberte oblast textury",
+  "textureListingSelect.caption": "Vyberte texturu",
+  "modelSelect.caption": "Vyberte model",
   "modelSelect.main.caption": "Hlavní model",
-  "modelSelect.other.caption": "Vyberte model pro "
+  "modelSelect.other.caption": "Vyberte model pro ",
+  "subchapterSelect.caption": "Vyberte podkapitolu",
+  "headingSelect.caption": "Přejít k nadpisu"
 }

@@ -8,6 +8,9 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Answer data for single choice question.
+ * Contains the index of the correct item.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

@@ -61,8 +61,8 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      * @return the created QuestionOption
      */
     @Override
-    protected QuestionOption createOption(int index) {
-        return new QuestionOption(index, "quiz.option.label");
+    protected QuestionOption createOption(int index, String... value) {
+        return new QuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -88,16 +88,45 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
     /**
      * Adds an answer to the question.
      */
-    private void addAnswer() {
+    private void addAnswer(String... value) {
         int index = answerIndices.stream().max(Integer::compareTo).orElse(0) + 1;
         answerIndices.add(index);
-        MatchQuestionOption optionLayout = new MatchQuestionOption(index, "quiz.matching.rightItem", indices);
+        MatchQuestionOption optionLayout = new MatchQuestionOption(index, "quiz.matching.rightItem", indices, value);
         optionLayout.getRemoveOptionButton().addClickListener(e -> removeAnswer(optionLayout.getQuestionId()));
 
         answers.add(optionLayout);
         answersLayout.add(optionLayout);
 
         updateCorrectAnswerGroup();
+    }
+
+    @Override
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+        if (questionData instanceof MatchingQuestionData data) {
+            addOptions(data.getLeftItems());
+            if (data.getRightItems() != null) {
+                for (String rightItem : data.getRightItems()) {
+                    addAnswer(rightItem);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
+        if (answerData instanceof MatchingAnswerData data) {
+            Map<Integer, Integer> matches = data.getCorrectMatches();
+            if (matches != null) {
+                for (MatchQuestionOption answer : answers) {
+                    Integer rightIdx = answer.getIndex() - 1;
+                    if (matches.containsKey(rightIdx)) {
+                        Integer leftIdx = matches.get(rightIdx);
+                        answer.getOptionSelect().setValue(leftIdx + 1);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -184,4 +213,3 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
         return true;
     }
 }
-

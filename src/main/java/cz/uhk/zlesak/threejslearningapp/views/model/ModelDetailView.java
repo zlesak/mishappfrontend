@@ -1,22 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.views.model;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.*;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinSession;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.services.ModelService;
-import cz.uhk.zlesak.threejslearningapp.services.TextureService;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
-import java.io.IOException;
-import java.util.Map;
+import java.util.Objects;
 
 /**
  * ModelDetailView for displaying a 3D model entity detail
@@ -29,22 +25,13 @@ import java.util.Map;
 @Scope("prototype")
 @PermitAll
 public class ModelDetailView extends AbstractModelView {
-    private final ModelService modelService;
-    private final TextureService textureService;
     private QuickModelEntity quickModelEntity;
 
     /**
      * Constructor for ModelDetailView.
-     * Initializes the view with necessary controllers and providers.
-     *
-     * @param modelService   controller for handling model-related operations
-     * @param textureService controller for handling texture-related operations
      */
-    @Autowired
-    public ModelDetailView(ModelService modelService, TextureService textureService) {
+    public ModelDetailView() {
         super("page.title.modelView");
-        this.modelService = modelService;
-        this.textureService = textureService;
     }
 
     /**
@@ -69,6 +56,10 @@ public class ModelDetailView extends AbstractModelView {
         //TODO remove after BE implementation of geting model by modelEntityId
         if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
             this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
+            if (!Objects.equals(this.quickModelEntity.getModel().getId(), parameters.get("modelId").get())) {
+                VaadinSession.getCurrent().setAttribute("quickModelEntity", null);
+                event.forwardTo(ModelListingView.class);
+            }
         } else {
             event.forwardTo(ModelListingView.class);
         }
@@ -82,36 +73,6 @@ public class ModelDetailView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        try {
-            String modelUrl = modelService.getModelFileBeEndpointUrl(quickModelEntity.getModel().getId());
-            String textureUrl = null;
-            if (quickModelEntity.getMainTexture() != null) {
-                modelUploadForm.getIsAdvanced().setValue(true);
-                textureUrl = textureService.getTextureFileBeEndpointUrl(quickModelEntity.getMainTexture().getTextureFileId());
-            }
-            modelUploadForm.getModelName().setValue(quickModelEntity.getModel().getName());
-            modelDiv.renderer.loadModel(modelUrl, textureUrl, quickModelEntity.getModel().getId());
-
-            try {
-                if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
-                    Map<String, String> otherTexturesMap = TextureMapHelper.otherTexturesMap(quickModelEntity.getOtherTextures(), textureService);
-                    modelDiv.renderer.addOtherTextures(otherTexturesMap, quickModelEntity.getModel().getId());
-                    modelDiv.modelTextureAreaSelectContainer.initializeData(Map.of(quickModelEntity.getModel().getId(), quickModelEntity));
-                }
-                else {
-                    modelDiv.renderer.showModel(quickModelEntity.getModel().getId());
-                }
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
-                throw new ApplicationContextException(e.getMessage());
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            new ErrorNotification(text("notification.modelLoadFailed") + e.getMessage(), 5000);
-            throw e;
-        } finally {
-            VaadinSession.getCurrent().setAttribute("quickModelEntity", null);
-        }
-        modelUploadForm.listingMode();
+        loadSingleModelWithTextures(quickModelEntity, null, null, true);
     }
 }

@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.events.model;
 
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentEvent;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import lombok.Getter;
 
 /**
@@ -11,27 +12,20 @@ import lombok.Getter;
  */
 @Getter
 public class ModelLoadEvent extends ComponentEvent<Component> {
-    private final String modelId;
-    private final String model;
-    private final String texture;
+    private final QuickModelEntity quickModelEntity;
     private final String questionId;
 
     /**
      * Constructor for ModelLoadEvent.
      *
      * @param source        the source component that fired the event
-     * @param model   model url or base64-encoded model data
-     * @param texture texture url or base64-encoded texture data
-     * @param modelId the identifier for the model
+     * @param quickModelEntity the quick model entity to load
      * @param questionId the identifier for the associated question
      */
-    public ModelLoadEvent(Component source, String model, String texture, String modelId, String questionId) {
+    public ModelLoadEvent(Component source, QuickModelEntity quickModelEntity, String questionId) {
         super(source, false);
-        this.model = model;
-        this.texture = texture;
-        this.modelId = modelId;
+        this.quickModelEntity = quickModelEntity;
         this.questionId = questionId;
     }
-
 }
 

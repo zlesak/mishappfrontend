@@ -11,7 +11,11 @@ import lombok.experimental.SuperBuilder;
 import java.util.Map;
 
 /**
- * Submission data for matching question type
+ * Submission data class for Matching question type where users match items from two columns.
+ * Contains a map of matches where the key is the index of the item from the first column
+ * and the value is the index of the matched item from the second column.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("MATCHING")

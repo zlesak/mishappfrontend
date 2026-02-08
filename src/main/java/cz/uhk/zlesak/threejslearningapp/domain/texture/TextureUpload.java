@@ -5,6 +5,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * TextureUpload Class - Represents a texture upload entity to be sent to the BE for uploading a texture.
+ * Extends TextureEntity to inherit common texture properties.
+ * @see TextureEntity
  */
 @Data
 @Getter

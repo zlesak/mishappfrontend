@@ -10,9 +10,17 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * Base class for all question types.
+ * Contains common properties shared by all question types such as questionId, questionText, type, and points.
+ * Used for polymorphic serialization/deserialization of different question types.
+ * @see MultipleChoiceQuestionData
+ * @see SingleChoiceQuestionData
+ * @see OpenTextQuestionData
+ * @see MatchingQuestionData
+ * @see OrderingQuestionData
+ * @see TextureClickQuestionData
  */
 @JsonTypeInfo(
-  use = JsonTypeInfo.Id.CLASS,
+  use = JsonTypeInfo.Id.NAME,
   include = JsonTypeInfo.As.PROPERTY,
   property = "_class"
 )

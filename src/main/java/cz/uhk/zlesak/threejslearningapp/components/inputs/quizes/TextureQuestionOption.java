@@ -8,8 +8,8 @@ public class TextureQuestionOption extends QuestionOption {
      * @param index        the index of the option
      * @param labelTextKey the key for the label text
      */
-    public TextureQuestionOption(int index, String labelTextKey) {
-        super(index, labelTextKey);
+    public TextureQuestionOption(int index, String labelTextKey, String... value) {
+        super(index, labelTextKey, value);
     }
 
 }

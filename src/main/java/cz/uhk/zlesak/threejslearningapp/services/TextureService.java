@@ -2,7 +2,6 @@ package cz.uhk.zlesak.threejslearningapp.services;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.api.clients.TextureApiClient;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.IApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureFilter;
@@ -105,26 +104,6 @@ public class TextureService extends AbstractService<TextureEntity, QuickTextureE
     }
 
     /**
-     * Generates the endpoint URL for streaming the texture by its ID.
-     *
-     * @param textureId the ID of the texture
-     * @return the endpoint URL for streaming the texture
-     */
-    public String getTextureStreamEndpointUrl(String textureId) {
-        return "/api/texture/" + textureId + "/stream";
-    }
-
-    /**
-     * Generates the backend endpoint URL for accessing the texture file by its ID.
-     *
-     * @param textureId the ID of the texture
-     * @return the backend endpoint URL for the texture file
-     */
-    public String getTextureFileBeEndpointUrl(String textureId) {
-        return IApiClient.getLocalBaseBeUrl() + "texture" + "/download/" + textureId;
-    }
-
-    /**
      * Validates the create entity.
      *
      * @param createEntity Entity to validate
@@ -152,7 +131,7 @@ public class TextureService extends AbstractService<TextureEntity, QuickTextureE
     @Override
     protected TextureEntity createFinalEntity(TextureEntity createEntity) throws RuntimeException {
         String csvString = createEntity.getCsvContent() == null ? "" : createEntity.getCsvContent();
-        TextureEntity texture =  TextureEntity.builder()
+        TextureEntity texture = TextureEntity.builder()
                 .name(createEntity.getTextureFile().getDisplayName())
                 .created(Instant.now())
                 .csvContent(csvString)

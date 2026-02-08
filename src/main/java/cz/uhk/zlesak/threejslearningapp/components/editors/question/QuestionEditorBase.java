@@ -27,7 +27,7 @@ import java.util.UUID;
  */
 @Getter
 public abstract class QuestionEditorBase<QO extends AbstractOption> extends VerticalLayout implements I18nAware {
-    protected final String questionId;
+    protected String questionId;
     protected final QuestionTypeEnum questionType;
     protected final TextArea questionTextField;
     protected final IntegerField pointsField;
@@ -93,10 +93,10 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
     /**
      * Adds an option to the question.
      */
-    void addOption() {
+    public void addOption(String... value) {
         int index = indices.stream().max(Integer::compareTo).orElse(0) + 1;
         indices.add(index);
-        QO optionLayout = createOption(index);
+        QO optionLayout = createOption(index, value);
         optionLayout.getRemoveOptionButton().addClickListener(e -> removeOption(optionLayout.getQuestionId()));
 
         options.add(optionLayout);
@@ -106,12 +106,25 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
     }
 
     /**
+     * Adds a list of options to the question.
+     *
+     * @param options list of options to add
+     */
+    public void addOptions(List<String> options) {
+        if (options != null) {
+            for (String option : options) {
+                addOption(option);
+            }
+        }
+    }
+
+    /**
      * Creates a QuestionOption.
      *
      * @param index the index of the option
      * @return the created QuestionOption
      */
-    protected abstract QO createOption(int index);
+    protected abstract QO createOption(int index, String... value);
 
     /**
      * Removes an option from the question.
@@ -123,6 +136,12 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
             indices.remove(field.getIndex() - 1);
             updateCorrectAnswerGroup();
         });
+    }
+
+    public void initialize(AbstractQuestionData questionData) {
+        questionId = questionData.getQuestionId();
+        questionTextField.setValue(questionData.getQuestionText());
+        pointsField.setValue(questionData.getPoints());
     }
 
     /**
@@ -143,6 +162,13 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
      * @return AnswerData object
      */
     public abstract AbstractAnswerData getAnswerData();
+
+    /**
+     * Sets the answer data to this editor.
+     *
+     * @param answerData AnswerData object
+     */
+    public abstract void setAnswerData(AbstractAnswerData answerData);
 
     /**
      * Validates the question data.
@@ -169,4 +195,3 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
         return pointsField.getValue();
     }
 }
-

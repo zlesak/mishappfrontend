@@ -19,12 +19,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 
+/**
+ * AdministrationView is the main view for administration tasks.
+ * It provides tabs for managing chapters, models, and quizzes.
+ * Uses ChapterService, ModelService, and QuizService for data operations.
+ * Uses listing views for each entity type.
+ */
 @Slf4j
 @Route("administration")
 @Tag("administration-view")
 @Scope("prototype")
 @RolesAllowed({"ADMIN", "TEACHER"})
-public class AdministrationView extends AbstractView {
+public class AdministrationView extends AbstractView<ChapterService> {
 
     private final ChapterService chapterService;
     private final ModelService modelService;
@@ -40,9 +46,15 @@ public class AdministrationView extends AbstractView {
     private ModelListingView modelListingView;
     private QuizListingView quizListingView;
 
+    /**
+     * Constructor for AdministrationView.
+     * @param chapterService the chapter service
+     * @param modelService the model service
+     * @param quizService the quiz service
+     */
     @Autowired
     public AdministrationView(ChapterService chapterService, ModelService modelService, QuizService quizService) {
-        super("page.title.administrationView");
+        super("page.title.administrationView", chapterService);
         this.chapterService = chapterService;
         this.modelService = modelService;
         this.quizService = quizService;
@@ -50,6 +62,9 @@ public class AdministrationView extends AbstractView {
         buildLayout();
     }
 
+    /**
+     * Builds the layout of the AdministrationView.
+     */
     private void buildLayout() {
         chaptersTab = new Tab(text("administration.tab.chapters"));
         modelsTab = new Tab(text("administration.tab.models"));
@@ -58,6 +73,10 @@ public class AdministrationView extends AbstractView {
         chapterListingView = new ChapterListingView(chapterService);
         modelListingView = new ModelListingView(modelService);
         quizListingView = new QuizListingView(quizService);
+
+        chapterListingView.setAdministrationView(true);
+        modelListingView.setAdministrationView(true);
+        quizListingView.setAdministrationView(true);
 
         navigationTabs = new TabSheet();
         navigationTabs.add(chaptersTab, chapterListingView);
@@ -89,6 +108,9 @@ public class AdministrationView extends AbstractView {
         getContent().setSizeFull();
     }
 
+    /**
+     * Navigates to the create view based on the selected tab.
+     */
     private void navigateToCreate() {
         Tab selectedTab = navigationTabs.getSelectedTab();
         if (selectedTab == chaptersTab) {

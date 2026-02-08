@@ -73,7 +73,7 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
                 throw new RuntimeException("ID entity nesmí být prázdné.");
             }
 
-            if (entity == null || entity.getId() == null || entity.getId().isEmpty()) {
+            if (entity == null || entity.getId() == null || !entity.getId().equals(entityId)) {
                 entity = apiClient.read(entityId);
             }
             return entity;

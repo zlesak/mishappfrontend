@@ -18,8 +18,8 @@ public class MatchQuestionOption extends QuestionOption {
      * @param labelTextKey the key for the label text
      * @param optionIndices the list of option indices to select from
      */
-    public MatchQuestionOption(int index, String labelTextKey, List<Integer> optionIndices) {
-        super(index, labelTextKey);
+    public MatchQuestionOption(int index, String labelTextKey, List<Integer> optionIndices, String... value) {
+        super(index, labelTextKey, value);
 
         optionSelect.setItems(optionIndices);
         optionSelect.setLabel(text("quiz.option.label"));

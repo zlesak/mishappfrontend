@@ -11,6 +11,7 @@ import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
+import java.text.MessageFormat;
 import java.util.*;
 
 /**
@@ -25,6 +26,7 @@ public class CustomI18NProvider implements I18NProvider {
 
     /**
      * Constructor that initializes the I18NProvider and loads translations from the properties file.
+     *
      * @param mapper the ObjectMapper used for reading JSON files
      */
     @Autowired
@@ -53,19 +55,20 @@ public class CustomI18NProvider implements I18NProvider {
                     continue;
                 }
                 try (InputStream input = resource.getInputStream()) {
-                    Map<String, String> map = mapper.readValue(input, new TypeReference<>() {});
+                    Map<String, String> map = mapper.readValue(input, new TypeReference<>() {
+                    });
                     for (String key : map.keySet()) {
                         if (csTranslations.containsKey(key)) {
-                            log.debug("Duplicitní klíč '{}' v {} – přepisuje se novou hodnotou", key, filename);
+                            log.warn("Duplicate key '{}' in {} – is replacing the previous value", key, filename);
                         }
                     }
                     csTranslations.putAll(map);
                 } catch (Exception e) {
-                    log.error("Chyba při čtení souboru {}: {}", filename, e.getMessage(), e);
+                    log.error("Error reading file {}: {}", filename, e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
-            log.error("Chyba při vyhledávání *_cs.json souborů: {}", e.getMessage(), e);
+            log.error("Error searching for *_cs.json files: {}", e.getMessage(), e);
         }
     }
 
@@ -84,10 +87,13 @@ public class CustomI18NProvider implements I18NProvider {
         if (locale.getLanguage().equals("cs")) {
             String value = csTranslations.get(key);
             if (value != null) {
+                if (params != null && params.length > 0) {
+                    return MessageFormat.format(value, params);
+                }
                 return value;
             }
         }
-        log.warn("Překlad nenalezen pro klíč: {} v jazyce: {}", key, locale.getLanguage());
+        log.warn("Translation not found for: {} in locale: {}", key, locale.getLanguage(), new Exception("Stack trace"));
         return key;
     }
 

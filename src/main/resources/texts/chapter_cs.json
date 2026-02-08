@@ -8,5 +8,7 @@
   "chapter.content.loadError": "Nepodařilo se načíst obsah kapitoly.",
   "chapter.content.loading": "Načítám...",
   "error.subChapterLoadFailed" : "Nepodařilo se načíst podkapitolu: ",
-  "error.chapterLoadFailed" : "Nepodařilo se načíst kapitolu: "
+  "error.chapterLoadFailed" : "Nepodařilo se načíst kapitolu: ",
+  "chapter.create.success" : "Kapitola byla vytvořena. ",
+  "error.chapterUpdateFailed" : "Nepodařilo se aktualizovat kapitolu: "
 }

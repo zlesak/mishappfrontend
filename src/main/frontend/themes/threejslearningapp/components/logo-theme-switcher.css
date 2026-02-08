@@ -1,0 +1,17 @@
+/* Light mode - show light logos, hide dark logos */
+.logo-light {
+    display: block;
+}
+
+.logo-dark {
+    display: none;
+}
+
+/* Dark mode - hide light logos, shows dark logos */
+[theme~="dark"] .logo-light {
+    display: none;
+}
+
+[theme~="dark"] .logo-dark {
+    display: block;
+}

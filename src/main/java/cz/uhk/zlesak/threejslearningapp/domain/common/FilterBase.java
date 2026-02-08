@@ -4,14 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 
 /**
  * Base class for filters used in various entities.
+ * Contains common filtering fields such as name, creatorId, createdFrom, and createdTo.
  */
-@Slf4j
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

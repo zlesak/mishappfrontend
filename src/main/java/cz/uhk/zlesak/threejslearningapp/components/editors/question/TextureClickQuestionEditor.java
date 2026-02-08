@@ -1,44 +1,40 @@
 package cz.uhk.zlesak.threejslearningapp.components.editors.question;
 
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.UI;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelTextureAreaSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.quizes.TextureQuestionOption;
+import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.TextureClickAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestionData;
+import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import org.apache.commons.lang3.NotImplementedException;
-
-import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * Editor for texture click questions.
  */
 public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuestionOption> {
 
-    private final ModelSelectContainer modelSelectContainer;
-    private final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer;
+    private final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
 
     /**
      * Constructor for TextureClickQuestionEditor.
-     * @param renderer the ThreeJs renderer
-     * @param loadModelDataConsumer consumer to load model data
      */
-    public TextureClickQuestionEditor(ThreeJs renderer, Consumer<Map<String, QuickModelEntity>> loadModelDataConsumer) {
+    public TextureClickQuestionEditor() {
         super(QuestionTypeEnum.TEXTURE_CLICK);
-        modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer(renderer);
-        this.modelSelectContainer = new ModelSelectContainer(
+        modelTextureAreaSelectContainer.setQuestionId(questionId);
+        ModelSelectContainer modelSelectContainer = new ModelSelectContainer(
                 "Select Model",
-                "model-select",
+                questionId,
                 false,
-                e -> {
-                    loadModelDataConsumer.accept(e);
-                    modelTextureAreaSelectContainer.initializeData(e);
-                }
+                false
         );
         actionsLayout.remove(addOptionButton);
         actionsLayout.addComponentAtIndex(1, modelSelectContainer);
@@ -50,7 +46,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
      * Adds an option to the question.
      */
     @Override
-    public void addOption() {
+    public void addOption(String... value) {
         throw new NotImplementedException("Adding options is not supported for TextureClickQuestionEditor. Directed by ModelTextureAreaColorSelect container.");
     }
 
@@ -59,8 +55,8 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
      * @return the created TextureQuestionOption
      */
     @Override
-    protected TextureQuestionOption createOption(int index) {
-        return new TextureQuestionOption(index, "quiz.option.label");
+    protected TextureQuestionOption createOption(int index, String... value) {
+        return new TextureQuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -81,8 +77,30 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         throw new NotImplementedException("Updating correct answer group is not supported for TextureClickQuestionEditor. Directed by ModelTextureAreaColorSelect container.");
     }
 
+    @Override //TODO
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+        if (questionData instanceof TextureClickQuestionData data) {
+            var quickModelEntity = QuickModelEntity.builder()
+                    .model(ModelFileEntity.builder().id(data.getModelId()).build())
+                    .isAdvanced(true)
+                    .build();
+
+            ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, data.getQuestionId()));
+        }
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
+        if (answerData instanceof TextureClickAnswerData data) {
+            ComponentUtil.fireEvent(UI.getCurrent(),
+                    new ThreeJsActionEvent(UI.getCurrent(), data.getModelId(), data.getTextureId(), ThreeJsActions.APPLY_MASK_TO_TEXTURE, false, data.getQuestionId(), data.getHexColor())); //TODO CHECK
+        }
+    }
+
     /**
      * Gets the question data.
+     *
      * @return the question data
      */
     @Override
@@ -93,13 +111,14 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 .questionText(getQuestionText())
                 .points(getPoints())
                 .modelId(modelTextureAreaSelectContainer.getModelListingSelect().getValue().id())
-                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id())
+                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId())
                 .build();
 
     }
 
     /**
      * Gets the answer data for the question.
+     *
      * @return the answer data
      */
     @Override
@@ -108,13 +127,14 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 .questionId(questionId)
                 .type(questionType)
                 .modelId(modelTextureAreaSelectContainer.getModelListingSelect().getValue().id())
-                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id())
+                .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId())
                 .hexColor(modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().hexColor())
                 .build();
     }
 
     /**
      * Validates the question data.
+     *
      * @return true if valid, false otherwise
      */
     @Override
@@ -125,19 +145,32 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         if (modelTextureAreaSelectContainer.getModelListingSelect().getValue() == null || modelTextureAreaSelectContainer.getModelListingSelect().getValue().id().isEmpty()) {
             return false;
         }
-        if (modelTextureAreaSelectContainer.getTextureListingSelect().getValue() == null || modelTextureAreaSelectContainer.getTextureListingSelect().getValue().id().isEmpty()) {
+        if (modelTextureAreaSelectContainer.getTextureListingSelect().getValue() == null || modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId().isEmpty()) {
             return false;
         }
         return modelTextureAreaSelectContainer.getTextureAreaSelect().getValue() != null && !modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().textureId().isEmpty();
     }
 
-    /**
-     * Gets the selected model from the model select container.
-     *
-     * @return The selected QuickModelEntity, or null if none is selected
-     */
-    public QuickModelEntity getSelectedModel() {
-        return modelSelectContainer.getSelect().getValue();
+    public String getSelectedModelId() {
+        if (modelTextureAreaSelectContainer.getModelListingSelect().getValue() == null) {
+            return null;
+        }
+        return modelTextureAreaSelectContainer.getModelListingSelect().getValue().id();
+    }
+
+    public String getSelectedTextureId() {
+        if (modelTextureAreaSelectContainer.getTextureAreaSelect().getValue() == null) {
+            return null;
+        }
+        return modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().textureId();
+
+    }
+
+    public String getSelectedAreaId() {
+        if (modelTextureAreaSelectContainer.getTextureAreaSelect().getValue() == null) {
+            return null;
+        }
+        return modelTextureAreaSelectContainer.getTextureAreaSelect().getValue().hexColor();
+
     }
 }
-

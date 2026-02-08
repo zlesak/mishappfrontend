@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Submission for texture click question type
+ * Submission for texture click question type where user selects a color from given question texture on a model from clicked area.
+ * Contains the hex color, model ID, and texture ID representing the user's selection.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("TEXTURE_CLICK")

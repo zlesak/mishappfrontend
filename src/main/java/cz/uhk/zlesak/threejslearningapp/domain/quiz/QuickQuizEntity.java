@@ -6,6 +6,8 @@ import lombok.experimental.SuperBuilder;
 
 /**
  * QuickQuizEntity Class - Represents a lightweight quiz entity containing list of chapters teh quiz belongs to.
+ * Extends AbstractEntity to inherit common entity properties.
+ * @see AbstractEntity for inherited properties.
  */
 @Data
 @Getter

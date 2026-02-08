@@ -8,6 +8,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ModelListingDataParser is responsible for parsing model data for selection lists.
+ */
 public abstract class ModelListingDataParser {
 
     /**
@@ -24,27 +27,18 @@ public abstract class ModelListingDataParser {
 
         Map<String, ModelForSelect> uniqueModels = new LinkedHashMap<>();
 
-        if (models.containsKey("main")) {
-            QuickModelEntity mainEntity = models.get("main");
-            uniqueModels.put(mainEntity.getModel().getId(), new ModelForSelect(
-                    mainEntity.getModel().getId(),
-                    "main",
-                    mainEntity.getModel().getName()
-            ));
-        }
-
-        models.entrySet().stream()
-                .filter(entry -> !entry.getKey().equals("main"))
-                .forEach(entry -> {
-                    String modelId = entry.getValue().getModel().getId();
-                    if (!uniqueModels.containsKey(modelId)) {
-                        uniqueModels.put(modelId, new ModelForSelect(
-                                modelId,
-                                entry.getKey(),
-                                entry.getValue().getModel().getName()
-                        ));
-                    }
-                });
+        models.forEach((key, entity) -> {
+            String modelId = entity.getModel().getId();
+            String textureId = entity.getMainTexture() != null ? entity.getMainTexture().getTextureFileId() : null;
+            if (!uniqueModels.containsKey(modelId)) {
+                uniqueModels.put(modelId, new ModelForSelect(
+                        modelId,
+                        textureId,
+                        entity.getModel().getName(),
+                        "main".equals(key)
+                ));
+            }
+        });
 
         return new LinkedList<>(uniqueModels.values());
     }

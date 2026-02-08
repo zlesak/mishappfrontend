@@ -1,15 +1,12 @@
 package cz.uhk.zlesak.threejslearningapp.views.chapter;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
-import cz.uhk.zlesak.threejslearningapp.components.lists.AbstractListItem;
-import cz.uhk.zlesak.threejslearningapp.components.lists.ChapterListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.ChapterListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
-import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
-import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractListingView;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizCreateView;
@@ -17,8 +14,6 @@ import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 
 /**
  * ChapterListingView Class - Shows the list of available chapters to the user.
@@ -29,8 +24,7 @@ import org.springframework.data.domain.Sort;
 @Scope("prototype")
 @Tag("chapters-listing")
 @PermitAll
-public class ChapterListingView extends AbstractListingView<ChapterEntity, ChapterFilter> {
-    private final ChapterService chapterService;
+public class ChapterListingView extends AbstractListingView<ChapterEntity, ChapterFilter, ChapterEntity, ChapterService> {
 
     /**
      * Constructor for ChapterListingView.
@@ -40,9 +34,7 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      */
     @Autowired
     public ChapterListingView(ChapterService chapterService) {
-        super(true, "page.title.chapterListView");
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), new ChapterFilter(""));
-        this.chapterService = chapterService;
+        super(true, "page.title.chapterListView", chapterService);
     }
 
     /**
@@ -51,34 +43,7 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      * @see QuizCreateView
      */
     public ChapterListingView() {
-        super();
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), new ChapterFilter(""));
-        this.chapterService = SpringContextUtils.getBean(ChapterService.class);
-    }
-
-    /**
-     * Called after navigation to this view.
-     * It fetches the list of chapters from the ChapterService and adds them to the vertical layout.
-     * If an error occurs during fetching, it logs the error and shows an error notification
-     *
-     * @param event after navigation event with event details
-     */
-    @Override
-    public void afterNavigation(AfterNavigationEvent event) {
-        filterParameters = new FilterParameters<>(PageRequest.of(0, 6, Sort.Direction.ASC, "Name"), new ChapterFilter(""));
-        filter.setSearchFieldValue(filterParameters.getFilter().getSearchText());
-        listEntities();
-    }
-
-    /**
-     * Fetches a page of ChapterEntity based on the provided filter parameters.
-     *
-     * @param params filter parameters including pagination and filtering criteria
-     * @return a PageResult containing the list of ChapterEntity and pagination details
-     */
-    @Override
-    protected PageResult<ChapterEntity> fetchPage(FilterParameters<ChapterFilter> params) {
-        return chapterService.readEntities(params);
+        super(SpringContextUtils.getBean(ChapterService.class));
     }
 
     /**
@@ -89,7 +54,7 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      */
     @Override
     protected AbstractListItem createListItem(ChapterEntity chapter) {
-        return new ChapterListItem(chapter, listView);
+        return new ChapterListItem(chapter, listView, administrationView);
     }
 
     /**

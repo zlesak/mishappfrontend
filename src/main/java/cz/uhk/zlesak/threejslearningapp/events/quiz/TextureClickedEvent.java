@@ -1,7 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.events.quiz;
 
 import com.vaadin.flow.component.ComponentEvent;
-import cz.uhk.zlesak.threejslearningapp.components.common.ThreeJs;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import lombok.Getter;
 
 /**
@@ -9,7 +9,7 @@ import lombok.Getter;
  * Used for TEXTURE_CLICK type questions.
  */
 @Getter
-public class TextureClickedEvent extends ComponentEvent<ThreeJs> {
+public class TextureClickedEvent extends ComponentEvent<ThreeJsComponent> {
     private final String questionId;
     private final String modelId;
     private final String textureId;
@@ -23,7 +23,7 @@ public class TextureClickedEvent extends ComponentEvent<ThreeJs> {
      * @param textureId the ID of the texture
      * @param hexColor the hexadecimal color code clicked
      */
-    public TextureClickedEvent(ThreeJs source, String questionId, String modelId, String textureId, String hexColor) {
+    public TextureClickedEvent(ThreeJsComponent source, String questionId, String modelId, String textureId, String hexColor) {
         super(source, false);
         this.questionId = questionId;
         this.modelId = modelId;

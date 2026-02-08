@@ -16,12 +16,14 @@ public class QuestionOption extends AbstractOption {
      * @param index the index of the option
      * @param labelTextKey the key for the label text
      */
-    public QuestionOption(int index, String labelTextKey) {
+    public QuestionOption(int index, String labelTextKey, String... value) {
         super(index, labelTextKey);
         optionField.setLabel(this.label);
         optionField.setWidthFull();
         optionField.setPlaceholder(text("quiz.option.placeholder"));
-
+        if(value != null &&  value.length > 0) {
+            optionField.setValue(value[0]);
+        }
         add(optionField, removeOptionButton);
         setWidthFull();
         setAlignItems(FlexComponent.Alignment.END);

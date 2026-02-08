@@ -145,3 +145,41 @@ declare module '@editorjs/list' {
 
     export default List;
 }
+
+declare module 'editorjs-md-parser' {
+    export class MDImporter {
+        static get toolbox(): {
+            title: string;
+            icon: string;
+        };
+
+        static get pasteConfig(): {
+            files: {
+                mimeTypes: string[];
+                extensions: string[];
+            };
+        };
+
+        constructor(config: {
+            data?: any;
+            api?: any;
+            config?: {
+                append?: boolean;
+                extensions?: string[];
+                callback?: (data: { blocks: any[] }) => void;
+            };
+            block?: any;
+        });
+
+        render(): HTMLElement;
+        save(): { message: string };
+        onPaste(event: any): void;
+    }
+
+    export function MDtoBlocks(markdown: string): Promise<any[]>;
+}
+
+declare module '@coolbytes/editorjs-link' {
+    const Link: any;
+    export default Link;
+}

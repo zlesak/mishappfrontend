@@ -11,7 +11,10 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Submission for ordering question type
+ * Submission for ordering question type where user arranges items in a specific order.
+ * Contains a list of indices representing the ordered items.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("ORDERING")

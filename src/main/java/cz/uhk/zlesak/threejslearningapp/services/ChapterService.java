@@ -1,5 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,14 +10,13 @@ import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import elemental.json.Json;
-import elemental.json.JsonArray;
-import elemental.json.JsonObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import org.yaml.snakeyaml.util.Tuple;
 
 import java.time.Instant;
 import java.util.*;
@@ -75,7 +75,6 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * If an error occurs during the parsing, it logs the error and throws an Exception.
      *
      * @return a list of SubChapterForComboBoxRecord objects containing sub-chapter IDs and names
-     * @throws Exception if there is an error retrieving the sub-chapter names or if the chapter does not exist
      * @see SubChapterForSelect
      */
     public List<SubChapterForSelect> getSubChaptersNames(String chapterId) {
@@ -83,156 +82,79 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
 
         List<SubChapterForSelect> subChapters = new ArrayList<>();
         try {
-            JsonArray blocks = Json.parse(entity.getContent()).getArray("blocks");
+            JsonNode root = objectMapper.readTree(entity.getContent());
+            JsonNode blocks = root.get("blocks");
 
-            for (int i = 0; i < blocks.length(); i++) {
-                JsonObject block = blocks.getObject(i);
-                if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1) {
-                    String id = block.hasKey("id") ? block.getString("id") : "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7);
-                    String text = block.getObject("data").getString("text");
-                    String modelId = block.getObject("data").hasKey("modelId") ? block.getObject("data").getString("modelId") : "";
-                    subChapters.add(new SubChapterForSelect(id, text, modelId));
+            for (JsonNode block : blocks) {
+                if ("header".equals(block.get("type").asText())) {
+                    JsonNode data = block.get("data");
+                    if (data.get("level").asInt() == 1) {
+                        String id = block.has("id") ? block.get("id").asText() : "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7);
+                        String text = data.get("text").asText();
+                        String modelId = data.has("modelId") ? data.get("modelId").asText() : "";
+                        subChapters.add(new SubChapterForSelect(id, text, modelId));
+                    }
                 }
             }
             return subChapters;
         } catch (Exception e) {
             log.error("Error getting subchapter names: {}", e.getMessage(), e);
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
     /**
-     * Retrieves the content of sub-chapters from the chapter content.
-     * It parses the chapter content to extract sub-chapter headers (level 1 headers)
-     *
-     * @return a JsonArray containing sub-chapter content, where each sub-chapter is represented by its header and content blocks
-     * @throws Exception if there is an error retrieving the sub-chapter content or if the chapter does not exist
+     * Processes the chapter content to extract headers and their associated sub-headers.
+     * It parses the chapter content to identify level 1 headers and their corresponding sub-headers (level 2 and above).
+     * The result is a map where each key is a Triple containing the level 1 header's ID, text, and modelId,
+     * and the value is a list of Tuples representing the sub-headers with their IDs and texts.
+     * Replaces any HTML tags in the header texts with plain text.
+     * @param chapterId the ID of the chapter to process
+     * @return a map of level 1 headers to their associated sub-headers
+     * @throws Exception if there is an error reading or parsing the chapter content
      */
-    public JsonArray getSubChaptersContent(String chapterId) {
+    public Map<Triple<String, String,String>, List<Tuple<String, String>>> processHeaders(String chapterId) throws Exception {
         read(chapterId);
+        JsonNode root = objectMapper.readTree(entity.getContent());
+        JsonNode blocks = root.get("blocks");
 
-        try {
-            JsonArray blocks = Json.parse(entity.getContent()).getArray("blocks");
-            JsonArray result = Json.createArray();
-            int resultIndex = 0;
-            int objectIndex = 0;
+        LinkedHashMap<Triple<String, String, String>, List<Tuple<String, String>>> result = new LinkedHashMap<>();
 
-            JsonObject oldHeaderBlock;
-            JsonObject newHeaderBlock = null;
+        Triple<String, String, String> currentLevel1Header = null;
+        LinkedList<Tuple<String, String>> currentSubHeaders = null;
 
-            JsonArray blocksArray = Json.createArray();
+        for (JsonNode block : blocks) {
+            String type = block.get("type").asText();
 
-            while (objectIndex < blocks.length()) {
-                JsonObject block = blocks.getObject(objectIndex++);
-                if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1) {
-                    oldHeaderBlock = newHeaderBlock;
-                    newHeaderBlock = block;
-                    JsonObject obj = Json.createObject();
-                    if (oldHeaderBlock != null) {
-                        obj.put("h1", oldHeaderBlock);
-                    } else {
-                        JsonObject noHeader = Json.createObject();
-                        noHeader.put("id", "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7));
-                        noHeader.put("type", "header");
-                        JsonObject data = Json.createObject();
-                        data.put("text", "Obsah bez hlavního nadpisu");
-                        data.put("level", 1);
-                        noHeader.put("data", data);
-                        obj.put("h1", noHeader);
+            if ("header".equals(type)) {
+                JsonNode data = block.get("data");
+                int level = data.get("level").asInt();
+                String originalText = data.get("text").asText();
+                String text = originalText == null ? "" : originalText.replaceAll("<[^>]*>", "");
+                String id = block.get("id").asText();
+                String modelId = data.get("modelId") != null ? data.get("modelId").asText() : null;
+
+                if (level == 1) {
+                    if (currentLevel1Header != null) {
+                        result.put(currentLevel1Header, currentSubHeaders);
                     }
-                    obj.put("content", blocksArray);
-                    result.set(resultIndex++, obj);
-                    blocksArray = Json.createArray();
-                } else if ("header".equals(block.getString("type"))) {
-                    blocksArray.set(blocksArray.length(), block);
-                }
-                JsonObject previousBlock = blocks.getObject(objectIndex - 1);
 
-                if (objectIndex == blocks.length() && "header".equals(previousBlock.getString("type")) && previousBlock.getObject("data").getNumber("level") == 1) {
-                    oldHeaderBlock = newHeaderBlock;
-                    newHeaderBlock = block;
-                    JsonObject obj = Json.createObject();
-                    if (oldHeaderBlock != null) {
-                        obj.put("h1", oldHeaderBlock);
-                    } else {
-                        JsonObject noHeader = Json.createObject();
-                        noHeader.put("id", "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7));
-                        noHeader.put("type", "header");
-                        JsonObject data = Json.createObject();
-                        data.put("text", "Obsah bez hlavního nadpisu");
-                        data.put("level", 1);
-                        noHeader.put("data", data);
-                        obj.put("h1", noHeader);
+                    currentLevel1Header = Triple.of(id, text, modelId);
+                    currentSubHeaders = new LinkedList<>();
+
+                } else if (level >= 2) {
+                    if (currentLevel1Header != null) {
+                        currentSubHeaders.add(new Tuple<>(id, text));
                     }
-                    obj.put("content", blocksArray);
-                    result.set(resultIndex++, obj);
-                    blocksArray = Json.createArray();
                 }
             }
-            if (blocksArray.length() > 0) {
-                oldHeaderBlock = newHeaderBlock;
-                JsonObject obj = Json.createObject();
-                if (oldHeaderBlock != null) {
-                    obj.put("h1", oldHeaderBlock);
-                } else {
-                    JsonObject noHeader = Json.createObject();
-                    noHeader.put("id", "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7));
-                    noHeader.put("type", "header");
-                    JsonObject data = Json.createObject();
-                    data.put("text", "Obsah bez hlavního nadpisu");
-                    data.put("level", 1);
-                    noHeader.put("data", data);
-                    obj.put("h1", noHeader);
-                }
-                obj.put("content", blocksArray);
-                result.set(resultIndex, obj);
-            }
-            return result;
-        } catch (Exception e) {
-            log.error("Error getting subchapters content: {}", e.getMessage(), e);
-            throw e;
         }
-    }
 
-    /**
-     * Retrieves the content of a selected sub-chapter by its ID.
-     * It parses the chapter content to find the blocks associated with the specified sub-chapter header (level 1 header).
-     * If the header with the specified ID does not exist, it returns the entire chapter content.
-     * If the header exists, it collects all blocks until the next header of the same level (level 1) is found.
-     *
-     * @param id the ID of the sub-chapter header to retrieve content for
-     * @return the content of the selected sub-chapter as a JSON string
-     */
-    public String getSelectedSubChapterContent(String id) {
-        JsonArray blocks = Json.parse(entity.getContent()).getArray("blocks");
-        boolean headerExists = false;
-        for (int i = 0; i < blocks.length(); i++) {
-            JsonObject block = blocks.getObject(i);
-            if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1 && block.hasKey("id") && block.getString("id").equals(id)) {
-                headerExists = true;
-                break;
-            }
+        if (currentLevel1Header != null) {
+            result.put(currentLevel1Header, currentSubHeaders);
         }
-        if (!headerExists) {
-            return blocks.toJson();
-        }
-        boolean found = false;
-        JsonArray content = Json.createArray();
-        int contentIndex = 0;
-        for (int i = 0; i < blocks.length(); i++) {
-            JsonObject block = blocks.getObject(i);
-            if (!found) {
-                if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1 && block.hasKey("id") && block.getString("id").equals(id)) {
-                    found = true;
-                    content.set(contentIndex++, block);
-                }
-            } else if ("header".equals(block.getString("type")) && block.getObject("data").getNumber("level") == 1) {
-                break;
-            } else {
-                content.set(contentIndex++, block);
-            }
-        }
-        return content.toJson();
+
+        return result;
     }
 
     /**
@@ -283,7 +205,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             throw new RuntimeException("Obsah kapitoly nesmí být prázdný.");
         }
         if (chapterCreateEntity.getModels() == null || chapterCreateEntity.getModels().isEmpty()) {
-            throw new RuntimeException("Kapitola musí mít alespoň jeden model.");
+            throw new RuntimeException("Kapitola musí mít alespoň jeden hlavní model.");
         }
         return chapterCreateEntity;
     }
@@ -309,9 +231,9 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             }
 
             blocks.forEach(blockNode -> {
-                if (blockNode.has("id") && chapterCreateEntity.getModelHeaderMap().containsKey(blockNode.get("id").asText())) {
+                if (blockNode.has("id") && blockNode.has("type") && "header".equals(blockNode.get("type").asText())) {
                     String blockId = blockNode.get("id").asText();
-                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().get(blockId);
+                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().containsKey(blockId) ? chapterCreateEntity.getModelHeaderMap().get(blockId) :  chapterCreateEntity.getModelHeaderMap().get("main");
                     ObjectNode dataNode = (ObjectNode) blockNode.get("data");
                     dataNode.put("modelId", model.getModel().getId());
                 }
@@ -321,7 +243,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             throw e;
         } catch (Exception e) {
             log.error("Chyba při úpravě bloků editorjs: {}", e.getMessage(), e);
-            new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage(), 5000);
+            new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage());
         }
 
         Set<QuickModelEntity> addedModelIds = new HashSet<>();
@@ -342,8 +264,10 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
         uploadedModels.addAll(modelsList);
 
         return ChapterEntity.builder()
+                .id(chapterCreateEntity.getId())
                 .name(chapterCreateEntity.getName())
                 .created(Instant.now())
+                .description("")
                 .content(content)
                 .models(uploadedModels)
                 .build();

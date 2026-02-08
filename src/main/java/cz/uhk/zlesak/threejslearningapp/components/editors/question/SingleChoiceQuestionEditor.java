@@ -42,8 +42,8 @@ public class SingleChoiceQuestionEditor extends QuestionEditorBase<QuestionOptio
      * @return the created QuestionOption
      */
     @Override
-    protected QuestionOption createOption(int index) {
-        return new QuestionOption(index, "quiz.option.label");
+    protected QuestionOption createOption(int index, String... value) {
+        return new QuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -75,6 +75,21 @@ public class SingleChoiceQuestionEditor extends QuestionEditorBase<QuestionOptio
         correctAnswerGroup.setItems(indices);
     }
 
+    @Override
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+        if (questionData instanceof SingleChoiceQuestionData data) {
+            addOptions(data.getOptions());
+        }
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
+        if (answerData instanceof SingleChoiceAnswerData data) {
+            correctAnswerGroup.setValue(data.getCorrectIndex() + 1);
+        }
+    }
+
     /**
      * Gets the question data for SingleChoiceQuestion as SingleChoiceQuestionData.
      *
@@ -102,7 +117,7 @@ public class SingleChoiceQuestionEditor extends QuestionEditorBase<QuestionOptio
      */
     @Override
     public AbstractAnswerData getAnswerData() {
-        Integer selected = correctAnswerGroup.getValue();
+        Integer selected = correctAnswerGroup.getValue() - 1;
 
         return SingleChoiceAnswerData.builder()
                 .questionId(questionId)
@@ -134,4 +149,3 @@ public class SingleChoiceQuestionEditor extends QuestionEditorBase<QuestionOptio
         return correctAnswerGroup.getValue() != null;
     }
 }
-

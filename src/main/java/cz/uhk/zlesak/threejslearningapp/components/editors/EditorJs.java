@@ -7,18 +7,19 @@ import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownModeToggleEvent;
-import cz.uhk.zlesak.threejslearningapp.events.editor.MarkdownValueChangedEvent;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelForSelect;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.ModelListingDataParser;
 import cz.uhk.zlesak.threejslearningapp.domain.parsers.TextureListingDataParser;
-import cz.uhk.zlesak.threejslearningapp.common.TextureMapHelper;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureListingForSelect;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.ScrollToElement;
+import cz.uhk.zlesak.threejslearningapp.events.chapter.ShowSubchapterContentEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
-import elemental.json.JsonValue;
 import org.springframework.context.annotation.Scope;
 
 import java.util.ArrayList;
@@ -42,9 +43,12 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
 
     /**
      * Default constructor for EditorJsComponent.
-     * Does not take any parameters as they are not needed at the time of instantiation.
+     *
+     * @param createMode true for edit mode, false for read-only mode
      */
-    public EditorJs() {
+    public EditorJs(boolean createMode) {
+        getElement().setProperty("readOnly", !createMode);
+        addModelTextureColorAreaClickListener();
     }
 
     /**
@@ -58,16 +62,6 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                     String result = json.asString();
                     return (result == null || result.isEmpty()) ? "{}" : result;
                 });
-    }
-
-    /**
-     * Toggles the read-only mode of the Editor.js instance.
-     * When in read-only mode, users cannot edit the content.
-     *
-     * @param readOnly true to enable read-only mode, false to disable it.
-     */
-    public void toggleReadOnlyMode(boolean readOnly) {
-        getElement().callJsFunction("toggleReadOnlyMode", readOnly);
     }
 
     /**
@@ -86,28 +80,22 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                 .thenApply(ignore -> null);
     }
 
-    /**
-     * Shows the whole chapter data in the Editor.js instance.
-     * This method is used to display all the content of the chapter, including subchapters.
-     * Used when no specific subchapter is selected.
-     */
-    public void showWholeChapterData() {
-        getElement().callJsFunction("showWholeChapterData")
+    public void filterContentByLevel1Header(String headerIdOrText) {
+        getElement().callJsFunction("filterContentByLevel1Header", headerIdOrText, false)
                 .toCompletableFuture()
                 .exceptionally(error -> {
-                    throw new RuntimeException("Chyba při zobrazování dat celé kapitoly " + error.getMessage());
+                    throw new RuntimeException("Chyba při zobrazování dat dle id kapitoly " + error.getMessage());
                 })
                 .thenApply(ignore -> null);
     }
 
-    /**
-     * Sets the selected subchapter data in the Editor.js instance.
-     * This method expects a JSON string that represents the subchapter data.
-     *
-     * @param jsonData JSON string containing the subchapter data.
-     */
-    public void setSelectedSubchapterData(String jsonData) {
-        getElement().callJsFunction("setSelectedSubchapterData", jsonData);
+    public void scrollToHeading(String headerIdOrText) {
+        getElement().callJsFunction("scrollToDataId", headerIdOrText)
+                .toCompletableFuture()
+                .exceptionally(error -> {
+                    throw new RuntimeException("Chyba při scrollování k prkvu " + error.getMessage());
+                })
+                .thenApply(ignore -> null);
     }
 
     /**
@@ -138,19 +126,18 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
      * When a texture color area is clicked in the Editor.js instance, this listener will be triggered.
      * The listener receives the texture ID, hex color, and associated text as parameters.
      *
-     * @param listener the listener to be added
      */
-    public void addModelTextureColorAreaClickListener(ModelTextureAreaClickListener listener) {
+    public void addModelTextureColorAreaClickListener() {
         getElement().addEventListener("texturecolorareaclick", event -> {
-                    String modelId = event.getEventData().getString("event.detail.modelId");
-                    String textureId = event.getEventData().getString("event.detail.textureId");
-                    String hexColor = event.getEventData().getString("event.detail.hexColor");
-                    String text = event.getEventData().getString("event.detail.text");
-                    listener.onTextureColorAreaClick(modelId, textureId, hexColor, text);
+                    String modelId = event.getEventData().get("event.detail.modelId").asString();
+                    String textureId = event.getEventData().get("event.detail.textureId").asString();
+                    String hexColor = event.getEventData().get("event.detail.hexColor").asString();
+                    ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelId, textureId, ThreeJsActions.APPLY_MASK_TO_TEXTURE, true, null, hexColor));
                 }).addEventData("event.detail.modelId")
                 .addEventData("event.detail.textureId")
                 .addEventData("event.detail.hexColor")
                 .addEventData("event.detail.text");
+
     }
 
     /**
@@ -170,32 +157,12 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
     }
 
     /**
-     * Listener interface for handling texture color area click events.
-     * Implement this interface to define custom behavior when a texture color area is clicked.
-     */
-    public interface ModelTextureAreaClickListener {
-        void onTextureColorAreaClick(String modelId, String textureId, String hexColor, String text);
-    }
-
-    /**
-     * Loads provided Markdown string into the editor (converts it to EditorJS blocks).
+     * Loads provided Moodle HTML string into the editor.
      *
-     * @param markdown markdown content
+     * @param html HTML content from Moodle
      */
-    public void loadMarkdown(String markdown) {
-        getElement().callJsFunction("loadMarkdown", markdown);
-    }
-
-    /**
-     * Retrieves current content as Markdown (converts blocks if in block mode).
-     *
-     * @return future with markdown string
-     */
-    public CompletableFuture<String> getMarkdown() {
-        return getElement()
-                .callJsFunction("getMarkdown")
-                .toCompletableFuture()
-                .thenApply(JsonValue::asString);
+    public void loadMoodleHtml(String html) {
+        getElement().callJsFunction("loadMoodleHtml", html);
     }
 
     /**
@@ -216,44 +183,20 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
         });
     }
 
-    /**
-     * Adds a listener for Markdown mode toggle events.
-     * This listener is triggered when the Markdown mode is toggled.
-     *
-     */
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
-                MarkdownModeToggleEvent.class,
-                event -> {
-                    if (event.isMarkdownMode()) {
-                        getMarkdown().whenComplete((markdown, throwable) -> {
-                            if (throwable != null) {
-                                throw new RuntimeException("Chyba při získávání markdown hodnoty: " + throwable.getMessage());
-                            } else {
-                                ComponentUtil.fireEvent(UI.getCurrent(), new MarkdownValueChangedEvent(UI.getCurrent(), markdown, true));
-                                setVisible(false);
-                            }
-                        });
-                    } else {
-                        setVisible(true);
-                    }
-                }
+                ShowSubchapterContentEvent.class,
+                e -> filterContentByLevel1Header(e.getSubchapterId() != null ? e.getSubchapterId() : "")
         ));
-
-        registrations.add(
-                ComponentUtil.addListener(
-                        attachEvent.getUI(),
-                        MarkdownValueChangedEvent.class,
-                        event -> {
-                            if (!event.isMarkdownMode()) {
-                                loadMarkdown(event.getMarkdownValue());
-                            }
-                        }
-                )
-        );
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ScrollToElement.class,
+                e -> scrollToHeading(e.getElement())
+        ));
     }
 
     @Override

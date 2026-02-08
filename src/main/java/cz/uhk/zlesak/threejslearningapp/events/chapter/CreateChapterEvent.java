@@ -9,9 +9,7 @@ import lombok.Getter;
  */
 @Getter
 public class CreateChapterEvent extends ComponentEvent<UI> {
-
     public CreateChapterEvent(UI source) {
-        super(source, false);
+        super(source, true);
     }
-
 }

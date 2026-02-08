@@ -1,4 +1,4 @@
-import { IconLink } from '@codexteam/icons';
+import { IconColor } from '@codexteam/icons';
 import { attachTextureColorListeners } from 'Frontend/js/editorjs/texture-utils.js';
 import './textureColorLinkTool.css';
 
@@ -89,7 +89,7 @@ export default class TextureColorLinkTool {
     this.nodes.button = document.createElement('button');
     this.nodes.button.type = 'button';
     this.nodes.button.classList.add(this.iconClasses.base);
-    this.nodes.button.innerHTML = IconLink;
+    this.nodes.button.innerHTML = IconColor;
 
     this.nodes.button.addEventListener('click', (e) => {
       e.preventDefault();
@@ -116,6 +116,7 @@ export default class TextureColorLinkTool {
    * Called when user clicks the inline tool button.
    */
   openDialog() {
+    this.isModalOpen = true;
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       this._selectedRange = selection.getRangeAt(0).cloneRange();
@@ -241,13 +242,13 @@ export default class TextureColorLinkTool {
         this.textures
           .filter((texture) => String(texture.modelId) === String(selectedModelId) || String(texture.model) === String(selectedModelId))
           .forEach((texture) => {
-            if (!uniqueTextures.has(texture.id)) {
-              uniqueTextures.set(texture.id, texture);
+            if (!uniqueTextures.has(texture.textureId)) {
+              uniqueTextures.set(texture.textureId, texture);
             }
           });
 
         uniqueTextures.forEach((texture) => {
-          this.addOption(this.nodes.selectTexture, texture.textureName, texture.id);
+          this.addOption(this.nodes.selectTexture, texture.textureName, texture.textureId);
         });
       }
     });
@@ -306,8 +307,7 @@ export default class TextureColorLinkTool {
 
     // Close on backdrop click
     this.nodes.backdrop.addEventListener('click', () => {
-      this.clear();
-      this.inlineToolbar.close();
+      this.closeModal();
     });
 
     // Prevent closing when clicking inside the dialog
@@ -347,7 +347,7 @@ export default class TextureColorLinkTool {
     this.surround(range);
 
     attachTextureColorListeners();
-    this.clear();
+    this.closeModal();
   }
 
   /**
@@ -391,7 +391,12 @@ export default class TextureColorLinkTool {
   addOption(element, text, value = null) {
     let option = document.createElement('option');
     option.text = text;
-    option.value = value;
+    if (value === null || value === undefined) {
+      option.value = "";
+    } else {
+      option.value = value;
+    }
+
     element.add(option);
   }
 
@@ -431,6 +436,9 @@ export default class TextureColorLinkTool {
    * Used to clear the tool. Called by Editor.js API.
    */
   clear() {
+    if (this.isModalOpen) {
+      return;
+    }
     this.models = [];
     this.textures = [];
     this.colors = [];
@@ -444,5 +452,31 @@ export default class TextureColorLinkTool {
       this.nodes.div.remove();
       this.nodes.div = null;
     }
+  }
+
+  closeModal() {
+    this.isModalOpen = false;
+    this.clear();
+    this.inlineToolbar.close();
+  }
+
+  checkState(selection) {
+    const text = selection.anchorNode;
+
+    if (!text) {
+      return;
+    }
+
+    const anchorTag = text instanceof Element
+        ? text.closest('a')
+        : text.parentElement.closest('a');
+
+    if (anchorTag && anchorTag.hasAttribute('data-model-id')) {
+      this.nodes.button.classList.add(this.iconClasses.active);
+      return true;
+    }
+
+    this.nodes.button.classList.remove(this.iconClasses.active);
+    return false;
   }
 }

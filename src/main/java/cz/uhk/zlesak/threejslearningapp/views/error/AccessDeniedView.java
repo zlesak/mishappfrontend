@@ -20,6 +20,10 @@ import lombok.extern.slf4j.Slf4j;
 @Tag("access-denied-view")
 @AnonymousAllowed
 public class AccessDeniedView extends VerticalLayout implements HasErrorParameter<AccessDeniedException> {
+    /**
+     * Constructor for AccessDeniedView.
+     * Initializes the view with an error dialog informing the user about the access denial.
+     */
     public AccessDeniedView() {
         super();
         setSizeFull();
@@ -28,6 +32,12 @@ public class AccessDeniedView extends VerticalLayout implements HasErrorParamete
         add(new ErrorDialog(VaadinIcon.BAN, "Přístup odepřen", "Nemáte oprávnění pro přístup k této stránce.", "Pokud si myslíte, že byste měli mít přístup, kontaktujte prosím administrátora."));
     }
 
+    /**
+     * Sets the error parameter for AccessDeniedException.
+     * @param event the before enter event
+     * @param parameter the error parameter containing the AccessDeniedException
+     * @return the HTTP status code for forbidden access (403)
+     */
     @Override
     public int setErrorParameter(BeforeEnterEvent event, ErrorParameter<AccessDeniedException> parameter) {
         return HttpServletResponse.SC_FORBIDDEN;

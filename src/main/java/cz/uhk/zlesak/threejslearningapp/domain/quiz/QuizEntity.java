@@ -9,6 +9,8 @@ import java.util.List;
 
 /**
  * QuizEntity Class - Represents a quiz entity with questions, answers, and time limit.
+ * Extends QuickQuizEntity to inherit common quiz properties.
+ * @see QuickQuizEntity for inherited properties.
  */
 @Data
 @Getter

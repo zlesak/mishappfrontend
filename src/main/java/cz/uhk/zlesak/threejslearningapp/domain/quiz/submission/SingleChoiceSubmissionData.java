@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Submission for single choice question type
+ * Submission for single choice question type where user selects one answer from multiple options.
+ * Contains the index of the selected answer item.
+ * Extends AbstractSubmissionData to inherit common submission properties.
+ * @see AbstractSubmissionData
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("SINGLE_CHOICE")

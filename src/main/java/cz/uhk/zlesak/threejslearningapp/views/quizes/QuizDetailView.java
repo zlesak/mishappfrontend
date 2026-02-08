@@ -1,12 +1,17 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
-import cz.uhk.zlesak.threejslearningapp.services.QuizService;
+import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -22,27 +27,32 @@ import org.springframework.context.annotation.Scope;
 @Tag("quiz-detail")
 @PermitAll
 public class QuizDetailView extends AbstractQuizView {
-    private final QuizService quizService;
 
+    /**
+     * Constructor for QuizDetailView.
+     *
+     * @param quizResultService the quiz result service
+     */
     @Autowired
-    public QuizDetailView(QuizService quizService) {
+    public QuizDetailView(QuizResultService quizResultService) {
         super("page.title.quizView");
-        this.quizService = quizService;
+        replaceModelWithQuizResultListing(quizResultService);
     }
 
     @Override
-    protected void afterNavigationActions() {
+    public void afterNavigation(AfterNavigationEvent event) {
         try {
-            QuickQuizEntity quiz = quizService.readQuick(quizId);
+            QuickQuizEntity quiz = service.readQuick(quizId);
             displayQuizDetails(quiz);
         } catch (Exception e) {
             log.error("Error loading quiz: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage(), 5000);
+            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
         }
     }
 
     /**
      * Displays the quiz details in the view.
+     *
      * @param quiz Quiz entity to display
      */
     private void displayQuizDetails(QuickQuizEntity quiz) {
@@ -55,4 +65,33 @@ public class QuizDetailView extends AbstractQuizView {
         entityContent.add(detailContainer);
     }
 
+    /**
+     * Replaces the 3D model area with a quiz result listing.
+     * @param quizResultService the quiz result service
+     */
+    private void replaceModelWithQuizResultListing(QuizResultService quizResultService) {
+        modelDiv.renderer.dispose(null);
+        modelDiv.setHeight("0");
+        modelDiv.setWidth("0");
+
+        Div resultHistoryListingDiv = new Div(new QuizResultsListingView(quizResultService));
+        resultHistoryListingDiv.setSizeFull();
+        modelSide.addComponentAsFirst(resultHistoryListingDiv);
+        modelSide.addClassNames(LumoUtility.Overflow.HIDDEN);
+    }
+
+    /**
+     * Overridden beforeEnter function to check if the quizId parameter is present in the URL.
+     * If not, it redirects the user to the QuizListingView.
+     *
+     * @param event before navigation event with event details
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        RouteParameters parameters = event.getRouteParameters();
+        if (parameters.getParameterNames().isEmpty() || parameters.get("quizId").isEmpty()) {
+            event.forwardTo(QuizListingView.class);
+        }
+        quizId = parameters.get("quizId").get();
+    }
 }

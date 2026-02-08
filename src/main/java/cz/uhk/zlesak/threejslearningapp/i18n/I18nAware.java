@@ -8,7 +8,6 @@ import java.util.Locale;
 /**
  * Interface providing internationalization (i18n) support.
  * Classes implementing this interface can easily access translation functionalities.
- *
  */
 public interface I18nAware {
     /**
@@ -19,7 +18,10 @@ public interface I18nAware {
     }
 
     /**
-     * Translates a given key using the current UI locale.
+     * Provides a method to translate a given key using the current UI locale.
+     * @param key    the translation key
+     * @param params optional parameters for the translation
+     * @return the string in the current locale corresponding to the key
      */
     default String text(String key, Object... params) {
         Locale locale = UI.getCurrent().getLocale();

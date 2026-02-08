@@ -9,7 +9,9 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Single choice question.
+ * Single choice question data class - Represents an ordering question with a list of items to be ordered.
+ * Extends AbstractQuestionData to inherit common question properties.
+ * @see AbstractQuestionData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

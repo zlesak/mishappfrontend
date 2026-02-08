@@ -10,7 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * Abstract file api client provides common functionality for file-related API clients.
@@ -26,12 +26,12 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     /**
      * Constructor for AbstractFileApiClient.
      *
-     * @param restTemplate rest template
+     * @param restClient rest client
      * @param objectMapper object mapper
      * @param endpoint     API endpoint
      */
-    public AbstractFileApiClient(RestTemplate restTemplate, ObjectMapper objectMapper, String endpoint) {
-        super(restTemplate, objectMapper, endpoint);
+    public AbstractFileApiClient(RestClient restClient, ObjectMapper objectMapper, String endpoint) {
+        super(restClient, objectMapper, endpoint);
         this.type = endpoint.equals("model/") ? "model" : endpoint.equals("texture/") ? "texture" : "file";
     }
 
@@ -49,18 +49,6 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     public E update(String textureId, E textureEntity) throws Exception {
         throw new NotImplementedException("Aktualizace textur není zatím implementováno.");
     }
-
-    /**
-     * Overridden delete method to throw not implemented exception.
-     *
-     * @param id ID of the entity to delete
-     * @return deleted entity
-     * @throws Exception throws exception when delete fails
-     */
-    @Override
-    public boolean delete(String id) throws Exception {
-        throw new NotImplementedException("Mazání textur není zatím implementováno.");
-    }
     //endregion
 
     //region Methods from IFileApiClient
@@ -72,6 +60,11 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
     public Q create(E entity) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        String token = getJwtToken();
+        if (token != null) {
+            headers.setBearerAuth(token);
+        }
 
         MultiValueMap<String, Object> body = prepareFileUploadBody(entity);
 
@@ -93,21 +86,12 @@ public abstract class AbstractFileApiClient<E extends Q, Q extends AbstractFileE
 
     public InputStreamMultipartFile downloadFileEntity(String fileId) throws Exception {
         String url = baseUrl + "download/" + fileId;
-        ResponseEntity<byte[]> response = sendGetRequestRaw(url, byte[].class, "Chyba při stahování " + type + " dle ID", fileId, false);
+        ResponseEntity<byte[]> response = sendGetRequestRaw(url, byte[].class, "Chyba při stahování " + type + " dle ID", fileId, true);
         return parseFileResponse(response, "Nenalezeno nebo chyba při stahování." + getEntityClass().getSimpleName(), fileId);
     }
     //endregion
 
-    /**
-     * Constructs the streaming backend endpoint URL for downloading a file by ID.
-     *
-     * @param id ID of the file
-     * @return streaming backend endpoint URL
-     */
-    public String getStreamBeEndpointUrl(String id) {
-        return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
-    }
     public static String getStreamBeEndpointUrl(String id, String type) {
-        return IApiClient.getLocalBaseBeUrl() + type + "/download/" + id;
+        return IApiClient.getExternalAppUrl() + type + "/download/" + id;
     }
 }

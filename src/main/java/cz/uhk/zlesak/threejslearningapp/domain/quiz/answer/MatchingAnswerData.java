@@ -10,6 +10,10 @@ import java.util.Map;
 
 /**
  * Answer data for matching question.
+ * Contains a map of correct matches where key is the index of the item in the first column
+ * and value is the index of the corresponding item in the second column.
+ * Extends AbstractAnswerData to inherit common answer properties.
+ * @see AbstractAnswerData
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

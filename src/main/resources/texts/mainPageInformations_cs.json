@@ -1,6 +1,35 @@
 {
-  "applicationTitle": "MISH APP",
-  "welcomeMessage": "Moderní metody učení, nejen pro budoucí lékaře",
-  "description": "MISH APP je inovativní vzdělávací platforma navržená pro studenty medicíny a zdravotnické pracovníky, která využívá moderní technologie k usnadnění učení a zlepšení klinických dovedností."
+  "applicationTitle": "MISH",
+  "welcomeMessage": "Interaktivní studium anatomie ve 3D",
+  "description": "Objevte nový rozměr výuky medicíny. MISH (Medical Interactive Study Hub) propojuje detailní 3D modely reálných preparátů s odborným výkladem a testováním znalostí. Moderní, přehledné a efektivní.",
 
+  "cta.start": "Začít studovat",
+  "cta.models": "Prohlédnout modely",
+
+  "about.title": "Co je MISH?",
+  "about.description": "MISH je moderní výuková aplikace zaměřená na inovaci výuky anatomie pomocí interaktivních 3D technologií. Jejím hlavním cílem je doplnit tradiční statické obrázky a schémata realistickými, detailními 3D skeny anatomických modelů. Tyto modely lze plynule otáčet, přibližovat a zkoumat z libovolného úhlu, což studentům umožňuje lépe pochopit prostorové vztahy mezi jednotlivými anatomickými útvary. Kaspitoly, jež 3D modely obsahují, jsou pak doplněny odborně zpracovanými studijní texty, které systematicky vysvětlují anatomickou stavbu, funkci i klinický význam dané oblasti. Student tak může propojit vizuální vjem s teoretickými znalostmi a studovat vlastním tempem, krok za krokem.",
+
+  "features.title": "Klíčové vlastnosti",
+  "features.models.title": "Reálné 3D modely",
+  "features.models.desc": "Věrné digitální kopie skutečných anatomických preparátů s vysokým rozlišením.",
+  "features.chapters.title": "Strukturovaná výuka",
+  "features.chapters.desc": "Logicky řazené kapitoly, které vás provedou od základů až po detaily.",
+  "features.quizzes.title": "Ověření znalostí",
+  "features.quizzes.desc": "Interaktivní kvízy s okamžitou zpětnou vazbou pro upevnění vašich vědomostí.",
+  "features.platform.title": "Dostupné kdekoli",
+  "features.platform.desc": "Studujte na počítači či tabletu, ve škole nebo z pohodlí domova.",
+
+  "showcase.title": "Jak to funguje",
+  "showcase.desc": "Podívejte se na krátké ukázky práce s aplikací.",
+  "showcase.gif1.title": "Prohlížení modelů",
+  "showcase.gif2.title": "Průchod kapitolou",
+  "showcase.gif3.title": "Test v kvízu",
+
+  "collaboration.title": "Spolupráce",
+  "collaboration.description": "Aplikace projektu MISH vznikla v rámci diplomových prací Jakuba Folga a Jana Zlesáka a to ve spolupráci Fakulty informatiky a managementu Univerzity Hradec Králové a Lékařské fakulty Univerzity Karlovy v Hradci Králové. Tato mezioborová spolupráce propojuje moderní softwarové technologie, 3D vizualizaci a uživatelsky přívětivé rozhraní s odbornými znalostmi z oblasti medicíny a anatomie. Výsledkem je nástroj, který odpovídá jak pedagogickým potřebám lékařského vzdělávání, tak současným technologickým standardům.",
+
+  "target.students": "Pro studenty: Učte se efektivněji s vizuální podporou.",
+  "target.teachers": "Pro pedagogy: Obohaťte svou výuku o interaktivní prvky.",
+
+  "footer.rights" : "Vytvořeno ve spolupráci FIM UHK a LFHK UK"
 }

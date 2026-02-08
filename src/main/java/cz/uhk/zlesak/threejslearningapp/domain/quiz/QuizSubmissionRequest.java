@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Request data class for validating quiz answers submitted by a user against the specified answers sttored at the backend.
+ * Request data class for validating quiz answers submitted by a user against the specified answers stored at the backend.
  */
 @Data
 @NoArgsConstructor

@@ -36,8 +36,8 @@ public class OpenTextQuestionEditor extends QuestionEditorBase<QuestionOption> {
      * @return the created QuestionOption
      */
     @Override
-    protected QuestionOption createOption(int index) {
-        return new QuestionOption(index, "quiz.option.label");
+    protected QuestionOption createOption(int index, String... value) {
+        return new QuestionOption(index, "quiz.option.label", value);
     }
 
     /**
@@ -50,6 +50,19 @@ public class OpenTextQuestionEditor extends QuestionEditorBase<QuestionOption> {
             int index = indices.stream().max(Integer::compareTo).orElse(0) + 1;
             indices.add(index);
             option.update(index);
+        }
+    }
+
+    @Override
+    public void initialize(AbstractQuestionData questionData) {
+        super.initialize(questionData);
+    }
+
+    @Override
+    public void setAnswerData(AbstractAnswerData answerData) {
+        if (answerData instanceof OpenTextAnswerData data) {
+            exactMatchCheckbox.setValue(data.getExactMatch());
+            addOptions(data.getAcceptableAnswers());
         }
     }
 
@@ -110,4 +123,3 @@ public class OpenTextQuestionEditor extends QuestionEditorBase<QuestionOption> {
         return true;
     }
 }
-

@@ -1,8 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.api.contracts;
 
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizSubmissionRequest;
-import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 
 /**
  * Interface for Quiz API Client
@@ -11,6 +9,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 public interface IQuizApiClient {
 
     QuizEntity readQuizStudent(String quizId) throws Exception;
+    QuizEntity readAll(String quizId) throws Exception;
 
-    QuizValidationResult validateAnswers(QuizSubmissionRequest submissionRequest) throws Exception;
 }
