@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.security;
 
 import com.vaadin.flow.spring.security.VaadinSecurityConfigurer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,7 +13,6 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProvider
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
-import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -36,32 +37,38 @@ import java.util.Map;
 @Configuration
 class SecurityConfig {
 
+    @Value("${EXTERNAL_GATEWAY_URL:http://mish}")
+    private String externalGatewayUrl;
+
     /**
      * Configures the security filter chain for HTTP requests with OAuth2 login.
      *
      * @param http                         the HttpSecurity object to configure
-     * @param clientRegistrationRepository the repository for client registrations
      * @return the configured SecurityFilterChain
      */
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository) {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http.with(VaadinSecurityConfigurer.vaadin(), configurer ->
                 configurer.oauth2LoginPage("/oauth2/authorization/keycloak?prompt=login")
         );
 
         http.oauth2Login(oauth2 ->
                 oauth2.userInfoEndpoint(userInfo -> userInfo.oidcUserService(this.oidcUserService()))
+                        .defaultSuccessUrl(externalGatewayUrl, true)
+                        .successHandler((request, response, authentication) -> {
+                            try {
+                                response.sendRedirect(externalGatewayUrl);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
         );
-
-        OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler =
-                new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}");
-
-        http.logout(logout -> logout.logoutSuccessHandler(logoutSuccessHandler));
 
         http.authorizeHttpRequests(auth ->
-            auth.requestMatchers("/img/**", "/skybox/**").permitAll()
+                auth.requestMatchers("/img/**", "/skybox/**", "/custom-logout").permitAll()
         );
+
+        http.csrf(csrf -> csrf.ignoringRequestMatchers("/custom-logout"));
 
         return http.build();
     }

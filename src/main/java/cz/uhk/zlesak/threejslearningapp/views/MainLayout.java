@@ -89,7 +89,7 @@ public class MainLayout extends AppLayout {
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
             String username = authentication.getPrincipal() instanceof OidcUser oidcUser ?( oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
-            layout.add(new AvatarListItem(username, getUserRoleName(authentication), new LogoutButton(authenticationContext)));
+            layout.add(new AvatarListItem(username, getUserRoleName(authentication), new LogoutButton()));
         } else {
             LoginButton loginButton = new LoginButton();
             layout.add(loginButton);
