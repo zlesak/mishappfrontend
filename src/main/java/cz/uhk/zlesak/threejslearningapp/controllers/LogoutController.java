@@ -22,10 +22,10 @@ import java.io.IOException;
 @RestController
 public class LogoutController {
 
-    @Value("${KEYCLOAK_EXTERNAL_URL:http://imitgw.uhk.cz:59766/auth}")
+    @Value("${KEYCLOAK_EXTERNAL_URL:http://mock-oidc:8080/auth}")
     private String externalKeycloakUrl;
 
-    @Value("${EXTERNAL_GATEWAY_URL:http://imitgw.uhk.cz:59766}")
+    @Value("${EXTERNAL_GATEWAY_URL:http://localhost:8081}")
     private String externalGatewayUrl;
 
     /**

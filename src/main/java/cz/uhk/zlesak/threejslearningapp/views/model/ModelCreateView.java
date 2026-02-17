@@ -144,7 +144,7 @@ public class ModelCreateView extends AbstractModelView {
     private void navigateToModelDetailView(QuickModelEntity quickModelEntity) {
         skipBeforeLeaveDialog = true;
         VaadinSession.getCurrent().setAttribute("quickModelEntity", quickModelEntity);
-        UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("chapterId", quickModelEntity.getModel().getId())));
+        UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", quickModelEntity.getModel().getId())));
     }
 
     /**
