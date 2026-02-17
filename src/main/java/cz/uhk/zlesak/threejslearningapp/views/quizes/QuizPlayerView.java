@@ -1,10 +1,13 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
@@ -52,15 +55,48 @@ public class QuizPlayerView extends AbstractQuizView {
 
     /**
      * Displays the quiz using QuizPlayerComponent.
+     * Shows timer in the top-right corner if the quiz has a time limit, ensuring it stays visible while scrolling through questions.
+     * Questions are surrounded by a scroller to allow for better navigation, especially for quizzes with many questions or long content.
      *
      * @param quiz the quiz entity to be displayed
      */
     private void displayQuiz(QuizEntity quiz) {
         modelDiv.modelTextureAreaSelectContainer.setEnabled(false);
-        playerComponent = new QuizPlayerComponent(quiz.getQuestions());
+        playerComponent = new QuizPlayerComponent(quiz.getQuestions(), quiz.getTimeLimit());
         playerComponent.setSubmitListener(this::submitQuiz);
 
-        entityContent.add(playerComponent);
+        Scroller scroller = new Scroller(playerComponent, Scroller.ScrollDirection.VERTICAL);
+        scroller.setSizeFull();
+
+        if (quiz.getTimeLimit() != null && quiz.getTimeLimit() > 0) {
+            addTimerToTopRight(scroller);
+        }
+
+        entityContent.add(scroller);
+    }
+
+    /**
+     * Adds the timer to the top-right corner that stays sticky within the scroller.
+     */
+    private void addTimerToTopRight(Scroller scroller) {
+        Div timerContainer = playerComponent.getTimerContainer();
+
+        timerContainer.getStyle()
+                .set("float", "right");
+        timerContainer.addClassNames(
+                LumoUtility.Position.STICKY,
+                LumoUtility.Position.Top.MEDIUM,
+                LumoUtility.Margin.Right.LARGE,
+                LumoUtility.Margin.Bottom.MEDIUM,
+                LumoUtility.ZIndex.LARGE,
+                LumoUtility.Background.BASE,
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.BoxShadow.SMALL,
+                LumoUtility.Border.ALL,
+                LumoUtility.Width.AUTO
+        );
+        scroller.getContent().getElement().insertChild(0, timerContainer.getElement());
     }
 
     /**
@@ -74,6 +110,7 @@ public class QuizPlayerView extends AbstractQuizView {
         } catch (Exception e) {
             log.error("Error při odeslání odpovědí kvízu", e);
             new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage());
+            playerComponent.enable();
         }
     }
 
