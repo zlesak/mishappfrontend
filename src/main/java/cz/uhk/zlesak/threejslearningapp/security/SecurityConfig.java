@@ -37,7 +37,7 @@ import java.util.Map;
 @Configuration
 class SecurityConfig {
 
-    @Value("${EXTERNAL_GATEWAY_URL:http://mish}")
+    @Value("${EXTERNAL_GATEWAY_URL:http://localhost:8081}")
     private String externalGatewayUrl;
 
     /**
