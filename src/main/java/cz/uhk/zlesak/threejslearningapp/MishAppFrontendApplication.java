@@ -21,14 +21,14 @@ import org.springframework.web.client.RestClient;
 @SpringBootApplication(scanBasePackages = "cz.uhk.zlesak.threejslearningapp")
 @Theme(value = "threejslearningapp")
 @Push(transport = Transport.WEBSOCKET_XHR)
-public class Application implements AppShellConfigurator {
+public class MishAppFrontendApplication implements AppShellConfigurator {
 
     /**
      * Main method to run the Spring Boot application.
      * @param args command line arguments
      */
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(MishAppFrontendApplication.class, args);
     }
 
     /**
