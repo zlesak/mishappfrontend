@@ -488,6 +488,43 @@ export class ThreeJSScene {
     }
 
     /**
+     * Get thumbnail of the model with specified dimensions
+     * @param modelId - ID of model to get thumbnail for
+     * @param width - Desired thumbnail width in pixels
+     * @param height - Desired thumbnail height in pixels
+     * @returns Base64 encoded PNG image data URL of the thumbnail
+     */
+    async getThumbnail(modelId: string, width: number, height: number): Promise<string> {
+        const currentModel = this.modelManager.getCurrentModel();
+        if (currentModel == null || currentModel.id !== modelId) {
+            await this.showModelById(modelId);
+        }
+
+        if (!this.renderer || !this.camera) {
+            throw new Error('Renderer or camera not initialized');
+        }
+
+        const originalSize = new THREE.Vector2();
+        this.renderer.getSize(originalSize);
+
+        const originalAspect = this.camera.aspect;
+
+        this.renderer.setSize(width, height);
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.render();
+
+        const thumbnailDataUrl = this.renderer.domElement.toDataURL('image/png');
+
+        this.renderer.setSize(originalSize.x, originalSize.y);
+        this.camera.aspect = originalAspect;
+        this.camera.updateProjectionMatrix();
+        this.render();
+
+        return thumbnailDataUrl;
+    }
+
+    /**
      * Clear model
      *
      * @param modelId - ID of model to clear

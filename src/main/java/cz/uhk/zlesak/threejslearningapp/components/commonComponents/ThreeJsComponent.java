@@ -304,6 +304,43 @@ public class ThreeJsComponent extends Component {
     }
 
     /**
+     * Retrieves a thumbnail image of the specified model in the Three.js scene.
+     * This method calls the JavaScript function getThumbnail to handle the thumbnail generation process.
+     * The generated thumbnail is returned as a data URL, which can be used to display the thumbnail image in the UI.
+     * @param modelId identification of the model for which the thumbnail is to be generated.
+     * @param width the desired width of the generated thumbnail image.
+     * @param height the desired height of the generated thumbnail image.
+     * @param callback a callback function that will be called with the generated thumbnail data URL once it is ready.
+     */
+    public void getThumbnailDataUrl(String modelId, int width, int height, java.util.function.Consumer<String> callback) {
+        getElement().executeJs("""
+                try {
+                    if (typeof window.getThumbnail === 'function') {
+                        window.getThumbnail($0, $1, $2, $3).then(dataUrl => {
+                            $4.$server.onThumbnailReady(dataUrl);
+                        });
+                    } else {
+                        $4.$server.onThumbnailReady(null);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in getThumbnailDataUrl:', e);
+                    $4.$server.onThumbnailReady(null);
+                }
+                """, getElement(), modelId, width, height, this);
+        this.thumbnailCallback = callback;
+    }
+
+    private java.util.function.Consumer<String> thumbnailCallback;
+
+    @ClientCallable
+    private void onThumbnailReady(String dataUrl) {
+        if (thumbnailCallback != null) {
+            thumbnailCallback.accept(dataUrl);
+            thumbnailCallback = null;
+        }
+    }
+
+    /**
      * This method is called from the JavaScript side when a color is picked by the user.
      * As of now it logs the selected color to the console and can be used to trigger further actions based on the chosen color.
      * This is a precondition to functionality of exercises

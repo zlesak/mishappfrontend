@@ -267,6 +267,25 @@ function setInstance(element: IVaadinElement, inst: ThreeJSScene): void {
         await inst.applyMaskToMainTexture(modelId, textureId, maskColor);
     }
 };
+/**
+ * Get thumbnail image for model created from current scene
+ * @param element - Vaadin canvas element
+ * @param modelId - ID of model to generate thumbnail for
+ * @param width - Desired thumbnail width in pixels
+ * @param height - Desired thumbnail height in pixels
+ * @returns Promise that resolves to a Base64 encoded thumbnail image
+ */
+(window as any).getThumbnail = async function(
+    element: IVaadinElement,
+    modelId: string,
+    width: number,
+    height: number
+): Promise<any> {
+    const inst = getInstance(element);
+    if (inst) {
+        return await inst.getThumbnail(modelId, width, height);
+    }
+}
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
