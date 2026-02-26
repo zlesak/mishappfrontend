@@ -2,7 +2,7 @@ import { ThreeJSScene } from './ThreeJSScene';
 import type { IVaadinElement } from './types/interfaces';
 
 // Multi-instance management
-const instances = new WeakMap<IVaadinElement, ThreeJSScene>();
+const instances = new WeakMap<IVaadinElement, any>();
 
 /**
  * Get Three.js scene instance for element
@@ -10,7 +10,7 @@ const instances = new WeakMap<IVaadinElement, ThreeJSScene>();
  * @param element - Vaadin canvas element
  * @returns Three.js scene instance or undefined if not found
  */
-function getInstance(element: IVaadinElement): ThreeJSScene | undefined {
+function getInstance(element: IVaadinElement): any {
     return instances.get(element);
 }
 
@@ -20,7 +20,7 @@ function getInstance(element: IVaadinElement): ThreeJSScene | undefined {
  * @param element - Vaadin canvas element
  * @param inst - Three.js scene instance to store
  */
-function setInstance(element: IVaadinElement, inst: ThreeJSScene): void {
+function setInstance(element: IVaadinElement, inst: any): void {
     instances.set(element, inst);
 }
 
@@ -255,18 +255,22 @@ function setInstance(element: IVaadinElement, inst: ThreeJSScene): void {
  * @param modelId - ID of model to apply mask to
  * @param textureId - ID of texture containing the mask
  * @param maskColor - Color code of the mask to apply
+ * @param opacity - Optional opacity value for the mask (0..1). If omitted uses GUI default.
  */
 (window as any).applyMaskToMainTexture = async function(
     element: IVaadinElement,
     modelId: string,
     textureId: string,
-    maskColor: string
+    maskColor: string,
+    opacity?: number
 ): Promise<void> {
     const inst = getInstance(element);
     if (inst) {
-        await inst.applyMaskToMainTexture(modelId, textureId, maskColor);
+        const op = typeof opacity === 'number' ? opacity : (window as any).THREEJS_MASK_OPACITY ?? 0.5;
+        await inst.applyMaskToMainTexture(modelId, textureId, maskColor, op);
     }
 };
+
 /**
  * Get thumbnail image for model created from current scene
  * @param element - Vaadin canvas element

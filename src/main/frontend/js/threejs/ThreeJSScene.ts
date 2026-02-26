@@ -57,6 +57,8 @@ export class ThreeJSScene {
         controlsTargetTarget: null
     };
 
+    private currentBackgroundTexture: THREE.Texture | null = null;
+
     /**
      * Constructor for ThreeJSScene
      *
@@ -120,11 +122,20 @@ export class ThreeJSScene {
             () => {
                 const model = this.modelManager.getCurrentModel();
                 if (model) {
-                    this.centerCameraOnModel(model);
+                    this.fitCameraToModel(model.id);
                 }
             }
         );
         this.guiManager.attachToCanvas(this.element);
+
+        window.addEventListener('threejs-set-background', async (ev: any) => {
+            try {
+                const detail = ev.detail;
+                await this.setBackground(detail);
+            } catch (e) {
+                console.error('background event handler error', e);
+            }
+        });
 
         resizeHandler();
         this.startAnimation();
@@ -308,7 +319,7 @@ export class ThreeJSScene {
         
         if (currentModel != null && currentModel.id === modelId) {
             await this.textureManager.switchToMainTexture(currentModel);
-            this.centerCameraOnModel(currentModel);
+            await this.fitCameraToModel(currentModel.id);
             return {
                 model: currentModel,
                 lastSelectedTextureId: this.lastSelectedTextureId
@@ -318,7 +329,7 @@ export class ThreeJSScene {
         await this.doingActions('Switching model');
         const result = await this.modelManager.showModelById(
             modelId,
-            (model) => this.centerCameraOnModel(model),
+            (model) => { void this.fitCameraToModel(model.id); },
             await this.getAuthHeaders()
         );
         this.lastSelectedTextureId = result.lastSelectedTextureId;
@@ -447,11 +458,13 @@ export class ThreeJSScene {
      * @param modelId - ID of model to apply mask to
      * @param textureId - ID of texture containing the mask
      * @param maskColor - Color code of the mask to apply
+     * @param opacity - Opacity of the applied mask (0..1), default 0.5
      */
     async applyMaskToMainTexture(
         modelId: string,
         textureId: string,
-        maskColor: string
+        maskColor: string,
+        opacity: number = 0.5
     ): Promise<void> {
         const currentModel = this.modelManager.getCurrentModel();
         if (currentModel == null || currentModel.id !== modelId) {
@@ -470,7 +483,8 @@ export class ThreeJSScene {
                 model,
                 textureId,
                 maskColor,
-                () => this.render()
+                () => this.render(),
+                opacity
             );
             
             if (result == null) {
@@ -602,18 +616,90 @@ export class ThreeJSScene {
         }
     }
 
-    // ========== Helper Methods ==========
+    /**
+     * Fit camera to given modelId; if modelId is null uses current model
+     * @param modelId - ID of model to fit camera to, or null to use current model
+     * @param margin - Optional margin factor to apply to the fitted view (default: 1.2 for 20% extra space)
+     */
+    async fitCameraToModel(modelId: string | null, margin: number = 1.2): Promise<void> {
+        if (!this.camera || !this.controls) return;
+
+        let model: Model | null;
+         if (modelId) {
+             model = this.modelManager.findModel(modelId);
+             if (!model) {
+                 try {
+                     await this.showModelById(modelId);
+                     model = this.modelManager.getCurrentModel();
+                 } catch (e) {
+                     console.warn('fitCameraToModel: model not found', modelId);
+                     return;
+                 }
+             }
+         } else {
+             model = this.modelManager.getCurrentModel();
+         }
+
+        if (!model || !model.modelLoader) return;
+
+        const box = new THREE.Box3().setFromObject(model.modelLoader);
+        const { center, targetPos } = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
+
+        this.cameraAnimation.startPos = this.camera.position.clone();
+        this.cameraAnimation.targetPos = targetPos.clone();
+        this.cameraAnimation.controlsStartTarget = this.controls.target.clone();
+        this.cameraAnimation.controlsTargetTarget = center.clone();
+        this.cameraAnimation.start = Date.now();
+        this.cameraAnimation.active = true;
+
+        this.startAnimation();
+    }
 
     /**
-     * Center camera on model
-     *
-     * @param model - The model to center the camera on
+     * Set scene background. bgSpec: { type: 'color'|'image'|'cube'|'gradient', value }
+     * @param bgSpec - Background specification object with type and value
      */
-    private centerCameraOnModel(model: Model): void {
-        if (this.camera && this.controls) {
-            SceneSetup.centerCameraOnModel(this.camera, this.controls, model);
-            this.render();
+    async setBackground(bgSpec: { type: string; value: any }): Promise<void> {
+        if (!this.scene) return;
+
+        if (this.currentBackgroundTexture) {
+            try {
+                this.currentBackgroundTexture.dispose();
+            } catch (e) {
+                // ignore
+            }
+            this.currentBackgroundTexture = null;
         }
+
+        switch (bgSpec.type) {
+            case 'color':
+                this.scene.background = new THREE.Color(bgSpec.value || 0x000000);
+                break;
+            case 'image':
+                try {
+                    const tex = await this.textureManager.loadTextureWithAuth(bgSpec.value, await this.getAuthHeaders());
+                    tex.needsUpdate = true;
+                    this.scene.background = tex;
+                    this.currentBackgroundTexture = tex;
+                } catch (e) {
+                    console.error('setBackground image error', e);
+                }
+                break;
+            case 'cube':
+                try {
+                    const loader = new THREE.CubeTextureLoader().setPath(bgSpec.value.path || 'skybox/');
+                    const tex = loader.load(bgSpec.value.files);
+                    this.scene.background = tex;
+                    this.currentBackgroundTexture = tex as unknown as THREE.Texture;
+                } catch (e) {
+                    console.error('setBackground cube error', e);
+                }
+                break;
+            default:
+                console.warn('Unknown background type', bgSpec.type);
+        }
+
+        this.render();
     }
 
     /**

@@ -208,13 +208,15 @@ export class TextureManager {
      * @param textureId - ID of the mask texture in model's other textures
      * @param maskColor - Hex color string (e.g., "#ff0000") for highlighted areas
      * @param renderFn - Callback function to trigger scene re-render after mask is applied
+     * @param opacity - Opacity of the mask application (default: 0.5)
      * @returns Promise with result containing model, texture ID, and optional 3D mask center position, or null if main texture not found
      */
     async applyMaskToMainTexture(
         model: Model,
         textureId: string,
         maskColor: string,
-        renderFn: () => void
+        renderFn: () => void,
+        opacity: number = 0.5
     ): Promise<IMaskResult | null> {
         if (!model.loadedMainTexture) {
             return null;
@@ -263,10 +265,17 @@ export class TextureManager {
 
         await new Promise<void>((resolve, reject) => {
             worker.onmessage = async (e: MessageEvent) => {
-                const { mainData: resultData } = e.data;
-                for (let i = 0; i < resultData.length; i++) {
-                    mainImageData.data[i] = resultData[i];
+                if (e.data && e.data.error) {
+                    console.error('Worker error message:', e.data.error);
+                    worker.terminate();
+                    reject(new Error(e.data.error));
+                    return;
                 }
+
+                const resultBuffer: ArrayBuffer = e.data.mainData;
+                const resultArray = new Uint8ClampedArray(resultBuffer);
+
+                mainImageData.data.set(resultArray);
                 ctx.putImageData(mainImageData, 0, 0);
 
                 const resultTexture = new THREE.CanvasTexture(resultCanvas);
@@ -282,7 +291,7 @@ export class TextureManager {
                 reject(e);
             };
 
-            worker.postMessage({ mainData, maskData, maskColorRgb, width, height });
+            worker.postMessage({ mainData: mainData.buffer, maskData: maskData.buffer, maskColorRgb, width, height, opacity }, [mainData.buffer, maskData.buffer]);
         });
 
         const maskCenter = this.findMaskCenterOn3DSurface(

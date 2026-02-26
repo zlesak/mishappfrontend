@@ -188,8 +188,8 @@ export class ModelManager {
                     obj.traverse((child: any) => {
                         if ((child as THREE.Mesh).isMesh && model.loadedMainTexture) {
                             const mesh = child as THREE.Mesh;
-                            mesh.material = new THREE.MeshStandardMaterial({ 
-                                map: model.loadedMainTexture 
+                            mesh.material = new THREE.MeshStandardMaterial({
+                                map: model.loadedMainTexture
                             });
                             (mesh.material as THREE.Material).needsUpdate = true;
                         }
