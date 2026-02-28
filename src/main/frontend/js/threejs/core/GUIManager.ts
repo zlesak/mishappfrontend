@@ -79,7 +79,6 @@ export class GUIManager {
         gui.appendChild(toggleButton);
 
         const controlsContainer = this.createControlsContainer(controls, camera, renderFn, centerCameraFn);
-        const zoomContainer = this.createZoomContainer(controls, camera, renderFn);
         const bgContainer = this.createBackgroundContainer();
 
         const opacityContainer = document.createElement('div');
@@ -142,7 +141,6 @@ export class GUIManager {
         `;
 
         controlStack.appendChild(controlsContainer);
-        controlStack.appendChild(zoomContainer);
         controlStack.appendChild(opacityContainer);
         controlStack.appendChild(bgContainer);
 
@@ -215,10 +213,11 @@ export class GUIManager {
         const container = document.createElement('div');
         container.style.cssText = `
             display: grid;
-            grid-template-columns: repeat(3, 35px);
-            grid-template-rows: repeat(3, 35px);
+            grid-template-columns: repeat(3, 33%);
+            grid-template-rows: repeat(3, 33%);
             gap: 4px;
             width: 100%;
+            aspect-ratio: 1 / 1;
         `;
 
         const rotateSpeed = 0.1;
@@ -272,60 +271,27 @@ export class GUIManager {
         }, renderFn, true);
         resetButton.title = 'Vycentrovat kameru na model';
 
-        container.appendChild(upButton);
-        container.appendChild(downButton);
-        container.appendChild(leftButton);
-        container.appendChild(rightButton);
-        container.appendChild(resetButton);
-
-        return container;
-    }
-
-    /**
-     * Create zoom controls container
-     *
-     * Creates vertical buttons for zoom in/out functionality.
-     *
-     * @param controls - OrbitControls for camera manipulation
-     * @param camera - PerspectiveCamera to control
-     * @param renderFn - Function to call after camera updates
-     * @returns HTML element containing zoom control buttons
-     */
-    private createZoomContainer(
-        controls: OrbitControls,
-        camera: THREE.PerspectiveCamera,
-        renderFn: () => void
-    ): HTMLElement {
-        const container = document.createElement('div');
-        container.style.cssText = `
-            display: flex;
-            flex-direction: row;
-            gap: 4px;
-            width: 100%;
-        `;
-
         const moveSpeed = 0.5;
 
-        const zoomInButton = this.createControlButton('+', 'auto', () => {
+        const zoomInButton = this.createControlButton('+', '3 / 3 / 4 / 4', () => {
             const direction = new THREE.Vector3();
             direction.subVectors(controls.target, camera.position).normalize();
             camera.position.add(direction.multiplyScalar(moveSpeed));
             controls.update();
         }, renderFn);
-        zoomInButton.style.width = '50%';
-        zoomInButton.style.height = '35px';
-        zoomInButton.style.fontSize = '16px';
 
-        const zoomOutButton = this.createControlButton('−', 'auto', () => {
+        const zoomOutButton = this.createControlButton('−', '3 / 1 / 4 / 2', () => {
             const direction = new THREE.Vector3();
             direction.subVectors(controls.target, camera.position).normalize();
             camera.position.sub(direction.multiplyScalar(moveSpeed));
             controls.update();
         }, renderFn);
-        zoomOutButton.style.width = '50%';
-        zoomOutButton.style.height = '35px';
-        zoomOutButton.style.fontSize = '16px';
 
+        container.appendChild(upButton);
+        container.appendChild(downButton);
+        container.appendChild(leftButton);
+        container.appendChild(rightButton);
+        container.appendChild(resetButton);
         container.appendChild(zoomInButton);
         container.appendChild(zoomOutButton);
 
@@ -459,8 +425,8 @@ export class GUIManager {
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 35px;
-            width: 35px;
+            height: 100%;
+            width: 100%;
         `;
 
         button.addEventListener('mouseenter', () => {
