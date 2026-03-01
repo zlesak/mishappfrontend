@@ -277,17 +277,15 @@ export class ThreeJSScene {
      * @param modelId - Unique identifier for this model
      * @param mainModel - Whether this is the default/primary model
      * @param questionId - Optional quiz question association
-     * @param isAdvanced - true for GLTF/GLB, false for OBJ
      */
     async loadModel(
         modelUrl: string,
         modelId: string,
         mainModel: boolean,
-        questionId: string | null,
-        isAdvanced: boolean
+        questionId: string | null
     ): Promise<void> {
         await this.doingActions('Loading model');
-        await this.modelManager.loadModel(modelUrl, modelId, mainModel, questionId, isAdvanced);
+        await this.modelManager.loadModel(modelUrl, modelId, mainModel, questionId);
         this.finishedActions();
     }
 

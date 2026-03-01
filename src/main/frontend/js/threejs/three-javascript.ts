@@ -74,19 +74,17 @@ function setInstance(element: IVaadinElement, inst: any): void {
  * @param modelId - Unique identifier for this model
  * @param mainModel - Whether this is the default/primary model
  * @param questionId - Optional quiz question association
- * @param isAdvanced - true for GLTF/GLB, false for OBJ
  */
 (window as any).loadModel = async function(
     element: IVaadinElement,
     modelUrl: string,
     modelId: string,
     mainModel: boolean,
-    questionId: string | null,
-    isAdvanced: boolean
+    questionId: string | null
 ): Promise<void> {
     const inst = getInstance(element);
     if (inst) {
-        await inst.loadModel(modelUrl, modelId, mainModel, questionId, isAdvanced);
+        await inst.loadModel(modelUrl, modelId, mainModel, questionId);
     }
 };
 

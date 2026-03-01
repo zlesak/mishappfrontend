@@ -46,13 +46,13 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
      * Creates a new entity.
      *
      * @param createEntity Entity to create.
-     * @return Created entity.
+     * @return Created entity id to confirm creation was successful.
      * @throws RuntimeException if an error occurs during the creation process.
      */
     @Override
-    public Q create(E createEntity) throws RuntimeException {
+    public String create(E createEntity) throws RuntimeException {
         try {
-            return apiClient.create(createFinalEntity(validateCreateEntity(createEntity)));
+            return apiClient.create(createFinalEntity(validateCreateEntity(createEntity))).getId();
         } catch (Exception e) {
             log.error("Chyba při vytváření enity: {}", e.getMessage(), e);
             throw new RuntimeException("Chyba při vytváření entity: " + e.getMessage(), e);
@@ -128,11 +128,11 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
      *
      * @param id     Entity ID.
      * @param entity Entity to update.
-     * @return Updated entity.
+     * @return Updated entity id to confirm update was successful.
      * @throws RuntimeException if an error occurs during the update operation.
      */
     @Override
-    public E update(String id, E entity) throws RuntimeException {
+    public String update(String id, E entity) throws RuntimeException {
         try {
             if (id == null || id.isEmpty()) {
                 throw new RuntimeException("ID entity nesmí být prázdné.");
@@ -143,7 +143,7 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
             throw new RuntimeException("Chyba při validaci entity před aktualizací: " + e.getMessage(), e);
         }
         try {
-            return apiClient.update(id, createFinalEntity(entity));
+            return apiClient.update(id, createFinalEntity(entity)).getId();
         } catch (Exception e) {
             log.error("Chyba při aktualizaci kapitoly: {}", e.getMessage(), e);
             throw new RuntimeException("Chyba při aktualizaci kapitoly: " + e.getMessage(), e);

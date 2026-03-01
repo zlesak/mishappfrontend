@@ -165,7 +165,7 @@ export class TextureManager {
      * @returns Promise with model and last selected texture ID (null for main texture)
      */
     async switchToMainTexture(model: Model): Promise<IModelSwitchResult> {
-        if (!model.advanced) {
+        if (!model.loadedMainTexture) {
             return { model, lastSelectedTextureId: null };
         }
         

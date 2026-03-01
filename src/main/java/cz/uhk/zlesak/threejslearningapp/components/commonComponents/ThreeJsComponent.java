@@ -90,27 +90,23 @@ public class ThreeJsComponent extends Component {
     }
 
     /**
-     * Loads an advanced 3D model into the Three.js scene.
-     * This method expects two base64 encoded strings: one for the object data and one for the texture data.
-     * It calls the JavaScript function loadAdvancedModel to handle the loading process.
-     * This method is used for models that require both an object file and a texture file.
-     * This allows for models to be loaded into the scene with multiple textures.
-     * This loading methods needs only the main texture, as other may not be provided.
-     * Other textures can be added later using the addOtherTexture method.
+     * Loads a 3D model into the Three.js scene.
+     * The correct loader (GLTF vs OBJ) is determined on the JS side by reading magic bytes.
      *
-     * @param modelUrl the base64 encoded string of the model data.
-     * @param modelId  id of the loaded model.
+     * @param modelUrl  the base64 encoded string or URL of the model data.
+     * @param modelId   id of the loaded model.
+     * @param mainModel whether this is the primary model.
      */
-    private void loadModel(String modelUrl, String modelId, boolean mainModel, boolean advanced, String... questionId) {
+    private void loadModel(String modelUrl, String modelId, boolean mainModel, String... questionId) {
         getElement().executeJs("""
                 try {
                     if (typeof window.loadModel === 'function') {
-                        window.loadModel($0, $1, $2, $3, $4, $5).then(_ => {});
+                        window.loadModel($0, $1, $2, $3, $4).then(_ => {});
                     }
                 } catch (e) {
-                    console.error('[JS] Error in loadAdvancedModel:', e);
+                    console.error('[JS] Error in loadModel:', e);
                 }
-                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null, advanced);
+                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null);
     }
 
     private void removeModel(String modelId) {
@@ -395,7 +391,7 @@ public class ThreeJsComponent extends Component {
                 event -> {
                     switch (event.getFileType()) {
                         case MODEL -> {
-                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.isAdvanced(), event.getQuestionId());
+                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.getQuestionId());
                             if (event.isFromClient()){
                                 showModel(event.getModelId());
                             }

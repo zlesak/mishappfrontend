@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.domain.model;
 
-import cz.uhk.zlesak.threejslearningapp.domain.file.QuickFileEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -10,8 +10,8 @@ import java.util.List;
 
 /**
  * QuickModelEntity Class - Represents a lightweight model entity with associated textures and metadata.
- * Extends QuickFileEntity to inherit common file properties.
- * @see QuickFileEntity
+ * Extends AbstractEntity to inherit common properties.
+ * @see AbstractEntity
  */
 @Data
 @Getter
@@ -20,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class QuickModelEntity extends QuickFileEntity {
+public class QuickModelEntity extends AbstractEntity {
     String metadataId;
     ModelFileEntity model;
     boolean isAdvanced;

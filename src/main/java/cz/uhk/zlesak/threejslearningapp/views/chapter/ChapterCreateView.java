@@ -210,7 +210,7 @@ public class ChapterCreateView extends AbstractChapterView {
                                 .modelHeaderMap(allModels)
                                 .content(bodyData)
                                 .models(allModels.values().stream().toList())
-                                .build()).getId();
+                                .build());
 
                 new SuccessNotification(text("chapter.create.success"));
                 skipBeforeLeaveDialog = true;

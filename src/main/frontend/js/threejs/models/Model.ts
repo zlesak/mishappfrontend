@@ -18,20 +18,18 @@ import type { IModelData, ITextureData } from '../types/interfaces';
  * 5. Disposed when no longer needed
  * 
  * Format support:
- * - Advanced: GLTF/GLB with embedded materials (advanced=true)
- * - Basic: OBJ without materials (advanced=false)
+ * - GLTF/GLB/OBJ with autodetection
  * 
  * Question linking allows single model to be used across multiple quiz questions
  *
  * @param id - Unique identifier for the model
  * @param modelUrl - URL or path to the 3D model file
- * @param isAdvanced - Whether model uses advanced format (GLTF/GLB) with materials (default: false)
  * @param isMain - Whether this is the main/default model (default: false)
  * @param questionId - Optional quiz question ID to associate with model (default: null)
  */
 export class Model implements IModelData {
     id: string;
-    advanced: boolean;
+    modelName: string;
     model: string;
     mainTexture: string | null;
     otherTextures: ITextureData[];
@@ -45,13 +43,12 @@ export class Model implements IModelData {
     constructor(
         id: string,
         modelUrl: string,
-        isAdvanced: boolean = false,
         isMain: boolean = false,
         questionId: string | null = null
     ) {
         this.id = id;
         this.model = modelUrl;
-        this.advanced = isAdvanced;
+        this.modelName = '';
         this.main = isMain;
         this.mainTexture = null;
         this.otherTextures = [];

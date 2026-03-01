@@ -7,6 +7,7 @@
   "button.search": "Hledat",
   "button.createChapter": "Vytvořit kapitolu",
   "button.createModel": "Vytvořit model",
+  "button.updateModel": "Upravit model",
   "button.createQuiz": "Vytvořit kvíz",
   "loginButton.label": "Přihlásit se",
   "logoutButton.label": "Odhlásit se",

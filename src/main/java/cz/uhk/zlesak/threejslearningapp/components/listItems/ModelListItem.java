@@ -29,16 +29,16 @@ public class ModelListItem extends AbstractListItem {
         setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
             if (listView) {
-                UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
+                UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getMetadataId())));
             } else {
-                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getId());
+                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getMetadataId());
             }
         });
 
         setEditButtonClickListener(e -> {
             if (administrationView) {
                 VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
-                UI.getCurrent().navigate(ModelCreateView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
+                UI.getCurrent().navigate(ModelCreateView.class, new RouteParameters(new RouteParam("modelId", model.getMetadataId())));
             }
         });
 
@@ -47,7 +47,7 @@ public class ModelListItem extends AbstractListItem {
                 ConfirmDialog dialog = ConfirmDialog.createDeleteConfirmation(
                     "model",
                     model.getModel().getName(),
-                    () -> deleteModel(model.getModel().getId())
+                    () -> deleteModel(model.getMetadataId())
                 );
                 dialog.open();
             }

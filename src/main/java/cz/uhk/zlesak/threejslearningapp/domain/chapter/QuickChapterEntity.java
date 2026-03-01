@@ -1,5 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.domain.chapter;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -18,5 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class QuickChapterEntity extends AbstractEntity {
+    /** FE only **/
+    @JsonIgnore
     List<String> subChapters;
 }

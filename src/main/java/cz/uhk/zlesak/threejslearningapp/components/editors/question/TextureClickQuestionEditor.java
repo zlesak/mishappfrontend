@@ -17,6 +17,8 @@ import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import org.apache.commons.lang3.NotImplementedException;
 
+import java.util.List;
+
 /**
  * Editor for texture click questions.
  */
@@ -82,8 +84,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         super.initialize(questionData);
         if (questionData instanceof TextureClickQuestionData data) {
             var quickModelEntity = QuickModelEntity.builder()
-                    .model(ModelFileEntity.builder().id(data.getModelId()).build())
-                    .isAdvanced(true)
+                    .model(ModelFileEntity.builder().id(data.getModelId()).related(List.of()).build())
                     .build();
 
             ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, data.getQuestionId()));

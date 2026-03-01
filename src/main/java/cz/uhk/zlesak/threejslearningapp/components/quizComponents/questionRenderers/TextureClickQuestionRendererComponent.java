@@ -7,11 +7,11 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.domain.model.FileSenseType;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.TextureClickSubmissionData;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 
@@ -38,11 +38,15 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
         selectColorButton.addClickListener(e -> {
 
                     var quickModelEntity = QuickModelEntity.builder()
-                            .model(ModelFileEntity.builder().id(question.getModelId()).build())
-                            .otherTextures(List.of(
-                                    QuickTextureEntity.builder().textureFileId(question.getTextureId()).build()
-                            ))
-                            .isAdvanced(true)
+                            .model(ModelFileEntity.builder()
+                                    .id(question.getModelId())
+                                    .related(List.of(
+                                            ModelFileEntity.builder()
+                                                    .id(question.getTextureId())
+                                                    .senseType(FileSenseType.OTHER_TEXTURE)
+                                                    .build()
+                                    ))
+                                    .build())
                             .build();
 
                     ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, question.getQuestionId()));

@@ -211,13 +211,11 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     protected <R> ResponseEntity<R> sendGetRequestRaw(String url, Class<R> responseType, String errorMessage, String entityId, boolean includeHeaders) throws Exception {
-        HttpHeaders headers = includeHeaders ? createAcceptJsonHeaders() : null;
+        HttpHeaders headers = includeHeaders ? createAcceptJsonHeaders() : setJwtToken(getHttpHeaders());
 
         try {
             RestClient.RequestHeadersSpec<?> spec = restClient.get().uri(url);
-            if (headers != null) {
-                spec = spec.headers(h -> h.addAll(headers));
-            }
+            spec = spec.headers(h -> h.addAll(headers));
             return spec.retrieve().toEntity(responseType);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
@@ -326,15 +324,13 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @return HttpHeaders with JSON content type and Authorization header
      */
     private HttpHeaders createJsonHeaders() {
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = getHttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
+        return setJwtToken(headers);
+    }
 
-        String token = getJwtToken();
-        if (token != null) {
-            headers.setBearerAuth(token);
-        }
-
-        return headers;
+    private static HttpHeaders getHttpHeaders() {
+        return new HttpHeaders();
     }
 
     /**
@@ -343,14 +339,16 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @return HttpHeaders with JSON accept type and Authorization header
      */
     private HttpHeaders createAcceptJsonHeaders() {
-        HttpHeaders headers = new HttpHeaders();
+        HttpHeaders headers = getHttpHeaders();
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
+        return setJwtToken(headers);
+    }
 
+    private HttpHeaders setJwtToken(HttpHeaders headers) {
         String token = getJwtToken();
         if (token != null) {
             headers.setBearerAuth(token);
         }
-
         return headers;
     }
 
@@ -436,5 +434,9 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
             return urlBuilder.toString();
         }
         return url;
+    }
+
+    public static String getStreamBeEndpointUrl(String id) {
+        return IApiClient.getExternalAppUrl() + "model/download/" + id;
     }
 }

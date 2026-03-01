@@ -6,7 +6,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 
 import java.util.ArrayList;
@@ -41,7 +41,7 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
      * Shows a success notification.
      */
     protected void showSuccessNotification() {
-        new InfoNotification(text("notification.uploadSuccess"));
+        new SuccessNotification(text("notification.uploadSuccess"));
     }
 
     /**

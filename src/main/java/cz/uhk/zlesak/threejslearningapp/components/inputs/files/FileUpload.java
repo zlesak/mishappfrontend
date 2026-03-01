@@ -9,8 +9,8 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.streams.InMemoryUploadHandler;
 import com.vaadin.flow.server.streams.UploadHandler;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Getter;
 import lombok.Setter;
@@ -34,6 +34,7 @@ public class FileUpload extends Upload implements I18nAware {
     private final List<InputStreamMultipartFile> uploadedFiles = new ArrayList<>();
     @Setter
     private BiConsumer<String, InputStreamMultipartFile> uploadListener;
+    private final boolean canNameFiles;
 
     /**
      * Constructor for UploadComponent.
@@ -48,6 +49,7 @@ public class FileUpload extends Upload implements I18nAware {
 
     public FileUpload(List<String> acceptedFileTypes, boolean maxOneFile, boolean canNameFiles, boolean dragAndDropEnabled) {
         super();
+        this.canNameFiles = canNameFiles;
         InMemoryUploadHandler temporaryFileUploadHandler = UploadHandler.inMemory(
                 (metadata, data) -> {
                     String fileName = metadata.fileName();
@@ -116,9 +118,9 @@ public class FileUpload extends Upload implements I18nAware {
      * @param file     the InputStreamMultipartFile object containing the file data
      * @return a HorizontalLayout containing the file name and display name text field
      */
-    private HorizontalLayout getHorizontalLayout(String fileName, InputStreamMultipartFile file) {
+    HorizontalLayout getHorizontalLayout(String fileName, InputStreamMultipartFile file) {
         TextField displayNameField = new TextField(text("upload.horizontalLayout.file.displayName"));
-        displayNameField.setValue(fileName);
+        displayNameField.setValue(file.getDisplayName());
         displayNameField.addValueChangeListener(e -> file.setDisplayName(e.getValue()));
         displayNameField.setWidthFull();
         Span fileNameLabel = new Span(fileName);
@@ -127,6 +129,38 @@ public class FileUpload extends Upload implements I18nAware {
         fileRow.setId("file-row-" + fileName.hashCode());
         fileRow.setWidthFull();
         return fileRow;
+    }
+
+    /**
+     * Pre-fills the component with saved files related to current edited model entity.
+     * This is used when editing an existing model entity, where the files are already stored in the backend and need to be displayed in the upload component.
+     * The method adds the provided file to the list of uploaded files and updates the UI to reflect the pre-filled file, including triggering the upload listener and adding a row for the file if naming is enabled.
+     *
+     * @param file the pre-downloaded file to inject
+     */
+    public void addPrefilledFile(InputStreamMultipartFile file) {
+        uploadedFiles.add(file);
+
+        if (uploadListener != null) {
+            uploadListener.accept(file.getOriginalFilename(), file);
+        }
+
+        if (canNameFiles) {
+            HorizontalLayout fileRow = getHorizontalLayout(file.getOriginalFilename(), file);
+            fileListLayout.add(fileRow);
+        }
+
+        getElement().executeJs("""
+                    const file = {
+                        name: $0,
+                        progress: 100,
+                        complete: true,
+                        error: false
+                    };
+                    this.files = this.files || [];
+                    this.files.push(file);
+                    this.requestContentUpdate();
+                """, file.getOriginalFilename());
     }
 
     /**

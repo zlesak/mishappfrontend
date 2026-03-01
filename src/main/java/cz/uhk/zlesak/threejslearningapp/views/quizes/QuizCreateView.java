@@ -205,7 +205,7 @@ public class QuizCreateView extends AbstractQuizView {
                                 .timeLimit(quizForm.getTimeLimit())
                                 .chapterId(quizForm.getSelectedChapter())
                                 .build()
-                ).getId();
+                );
 
                 new SuccessNotification(text("quiz.create.success"));
                 log.info("Quiz created with ID: {}", newQuizId);

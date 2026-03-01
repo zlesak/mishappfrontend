@@ -43,38 +43,30 @@ export class ModelManager {
     }
 
     /**
-     * Load 3D model with metadata
-     * 
-     * Behavior logic:
-     * - New model: Creates Model object and stores it
-     * - Existing + questionId: Associates additional question with model
-     * - Existing + no questionId: Updates model URL and format
-     * 
-     * 3D data loading happens in showModelById(), not here
-     * 
+     * Load 3D model with metadata.
+     *
+     * The correct loader (GLTF vs OBJ) is determined automatically by reading magic bytes from the file.
+     *
      * @param modelUrl - Base64 encoded model data or remote URL
      * @param modelId - Unique identifier for model lookup
      * @param isMainModel - Whether this is the primary/default model
      * @param questionId - Optional quiz question ID
-     * @param isAdvanced - true for GLTF/GLB, false for OBJ
      */
     async loadModel(
         modelUrl: string,
         modelId: string,
         isMainModel: boolean,
-        questionId: string | null,
-        isAdvanced: boolean
+        questionId: string | null
     ): Promise<void> {
         const existingModel = this.findModel(modelId);
         
         if (!existingModel) {
-            const model = new Model(modelId, modelUrl, isAdvanced, isMainModel, questionId);
+            const model = new Model(modelId, modelUrl, isMainModel, questionId);
             this.models.push(model);
         } else if (questionId) {
             existingModel.addQuestion(questionId);
         } else {
             existingModel.model = modelUrl;
-            existingModel.advanced = isAdvanced;
         }
     }
 
@@ -152,10 +144,10 @@ export class ModelManager {
             }
         }
 
-        if (targetModel.advanced) {
-            await this.loadAdvancedModel(targetModel, auth);
+        if (await this.isGltfFormat(targetModel.model, auth)) {
+            await this.loadGltfModel(targetModel, auth);
         } else {
-            await this.loadBasicModel(targetModel, auth);
+            await this.loadObjModel(targetModel, auth);
         }
 
         if (targetModel.modelLoader && this.scene) {
@@ -170,36 +162,30 @@ export class ModelManager {
     }
 
     /**
-     * Load advanced model (OBJ format)
-     *
-     * Loads OBJ format models with authentication.
+     * Load OBJ model with authentication.
      * Applies main texture to all mesh materials if available.
-     *
-     * @param model - Model instance containing URL and metadata
-     * @param auth - Authentication headers for secure loading
-     * @returns Promise that resolves when model is fully loaded
      */
-    private async loadAdvancedModel(model: Model, auth: IAuthHeaders): Promise<void> {
+    private async loadObjModel(model: Model, auth: IAuthHeaders): Promise<void> {
         return new Promise((resolve, reject) => {
             const objLoader = this.createObjLoader(auth);
             objLoader.load(
                 model.model,
                 (obj: any) => {
-                    obj.traverse((child: any) => {
-                        if ((child as THREE.Mesh).isMesh && model.loadedMainTexture) {
-                            const mesh = child as THREE.Mesh;
-                            mesh.material = new THREE.MeshStandardMaterial({
-                                map: model.loadedMainTexture
-                            });
-                            (mesh.material as THREE.Material).needsUpdate = true;
-                        }
-                    });
+                    if (model.loadedMainTexture) {
+                        obj.traverse((child: any) => {
+                            if ((child as THREE.Mesh).isMesh) {
+                                const mesh = child as THREE.Mesh;
+                                mesh.material = new THREE.MeshStandardMaterial({ map: model.loadedMainTexture });
+                                (mesh.material as THREE.Material).needsUpdate = true;
+                            }
+                        });
+                    }
                     model.modelLoader = obj;
                     resolve();
                 },
                 undefined,
                 (error: any) => {
-                    console.error('Error loading advanced model:', error);
+                    console.error('Error loading OBJ model:', error);
                     reject(error);
                 }
             );
@@ -207,16 +193,11 @@ export class ModelManager {
     }
 
     /**
-     * Load basic model (GLTF format)
-     *
-     * Loads GLTF/GLB format models with authentication.
-     * Centers the geometry of the first child if available.
-     *
-     * @param model - Model instance containing URL and metadata
-     * @param auth - Authentication headers for secure loading
-     * @returns Promise that resolves when model is fully loaded
+     * Load GLTF/GLB model with authentication.
+     * Applies main texture to all mesh materials if available; otherwise keeps embedded materials.
+     * Centers the geometry of the first child if accessible.
      */
-    private async loadBasicModel(model: Model, auth: IAuthHeaders): Promise<void> {
+    private async loadGltfModel(model: Model, auth: IAuthHeaders): Promise<void> {
         return new Promise((resolve, reject) => {
             const gltfLoader = this.createGltfLoader(auth);
             gltfLoader.load(
@@ -227,18 +208,48 @@ export class ModelManager {
                         try {
                             ((model.modelLoader.children[0] as any).geometry as THREE.BufferGeometry).center();
                         } catch (e) {
-                            console.error('Error loading basic model:', e);
+                            console.error('Error centering GLTF geometry:', e);
                         }
+                    }
+                    if (model.loadedMainTexture) {
+                        model.modelLoader?.traverse((child: any) => {
+                            if ((child as THREE.Mesh).isMesh) {
+                                const mesh = child as THREE.Mesh;
+                                mesh.material = new THREE.MeshStandardMaterial({ map: model.loadedMainTexture });
+                                (mesh.material as THREE.Material).needsUpdate = true;
+                            }
+                        });
                     }
                     resolve();
                 },
                 undefined,
                 (error: any) => {
-                    console.error('Error loading basic model:', error);
+                    console.error('Error loading GLTF model:', error);
                     reject(error);
                 }
             );
         });
+    }
+
+    /**
+     * Detects GLB/GLTF format by reading magic bytes from the model source.
+     * Falls back to false (OBJ) on any error.
+     */
+    private async isGltfFormat(modelSrc: string, auth: IAuthHeaders): Promise<boolean> {
+        try {
+            if (modelSrc.startsWith('data:')) {
+                const base64Start = modelSrc.indexOf(',') + 1;
+                return modelSrc.substring(base64Start, base64Start + 6) === 'Z2xURg';
+            }
+            const resp = await fetch(modelSrc, {
+                headers: { ...auth, Range: 'bytes=0-3' }
+            });
+            const buf = await resp.arrayBuffer();
+            const bytes = new Uint8Array(buf);
+            return bytes[0] === 0x67 && bytes[1] === 0x6C && bytes[2] === 0x54 && bytes[3] === 0x46;
+        } catch {
+            return false;
+        }
     }
 
     /**

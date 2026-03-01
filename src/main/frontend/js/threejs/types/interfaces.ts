@@ -5,7 +5,7 @@ import * as THREE from 'three';
  */
 export interface IModelData {
     id: string;
-    advanced: boolean;
+    modelName: string;
     model: string;
     mainTexture: string | null;
     otherTextures: ITextureData[];
