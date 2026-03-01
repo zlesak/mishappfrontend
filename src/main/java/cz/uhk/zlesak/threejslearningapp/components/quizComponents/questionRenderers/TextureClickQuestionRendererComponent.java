@@ -12,6 +12,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.TextureClickSubmissionData;
+import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 
@@ -38,6 +39,7 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
         selectColorButton.addClickListener(e -> {
 
                     var quickModelEntity = QuickModelEntity.builder()
+                            .metadataId(question.getModelId())
                             .model(ModelFileEntity.builder()
                                     .id(question.getModelId())
                                     .related(List.of(
@@ -47,6 +49,10 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
                                                     .build()
                                     ))
                                     .build())
+                            .otherTextures(List.of(
+                                    QuickTextureEntity.builder().id(question.getTextureId()).build()
+                            ))
+                            .isAdvanced(true)
                             .build();
 
                     ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, question.getQuestionId()));

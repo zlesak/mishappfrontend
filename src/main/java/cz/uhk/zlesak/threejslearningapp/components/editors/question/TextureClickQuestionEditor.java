@@ -2,11 +2,10 @@ package cz.uhk.zlesak.threejslearningapp.components.editors.question;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelTextureAreaSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.quizes.TextureQuestionOption;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.TextureClickAnswerData;
@@ -15,9 +14,8 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestio
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import org.apache.commons.lang3.NotImplementedException;
-
-import java.util.List;
 
 /**
  * Editor for texture click questions.
@@ -25,6 +23,8 @@ import java.util.List;
 public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuestionOption> {
 
     private final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
+
+    private static ModelService modelService = SpringContextUtils.getBean(ModelService.class);
 
     /**
      * Constructor for TextureClickQuestionEditor.
@@ -83,9 +83,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
     public void initialize(AbstractQuestionData questionData) {
         super.initialize(questionData);
         if (questionData instanceof TextureClickQuestionData data) {
-            var quickModelEntity = QuickModelEntity.builder()
-                    .model(ModelFileEntity.builder().id(data.getModelId()).related(List.of()).build())
-                    .build();
+            var quickModelEntity = modelService.read(data.getModelId());
 
             ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(UI.getCurrent(), quickModelEntity, data.getQuestionId()));
         }
@@ -114,7 +112,6 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
                 .modelId(modelTextureAreaSelectContainer.getModelListingSelect().getValue().id())
                 .textureId(modelTextureAreaSelectContainer.getTextureListingSelect().getValue().textureId())
                 .build();
-
     }
 
     /**

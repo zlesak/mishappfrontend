@@ -8,9 +8,9 @@ import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
@@ -21,6 +21,7 @@ import cz.uhk.zlesak.threejslearningapp.events.quiz.CreateQuizEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.RolesAllowed;
@@ -48,6 +49,7 @@ public class QuizCreateView extends AbstractQuizView {
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
     private boolean isEditMode = false;
     private QuizEntity loadedQuiz;
+    private ModelService modelService;
 
     /**
      * Constructor for QuizCreateView.
@@ -56,9 +58,10 @@ public class QuizCreateView extends AbstractQuizView {
      * @param chapterService chapter service for handling chapter operations
      */
     @Autowired
-    public QuizCreateView(QuizService quizService, ChapterService chapterService) {
+    public QuizCreateView(QuizService quizService, ChapterService chapterService, ModelService modelService) {
         super("page.title.createQuizView", false, quizService);
         this.chapterService = chapterService;
+        this.modelService = modelService;
 
         quizForm = new CreateQuizForm();
         quizForm.setAddQuestionListener(this::addQuestion);
@@ -100,7 +103,7 @@ public class QuizCreateView extends AbstractQuizView {
         editor.getRemoveButton().addClickListener(e -> removeQuestion(editor));
         editor.getValidateButton().addClickListener(e -> {
             if (editor.validate()) {
-                new InfoNotification(text("quiz.question.validated"));
+                new SuccessNotification(text("quiz.question.validated"));
             } else {
                 new ErrorNotification(text("quiz.question.validation.failed"));
             }
@@ -233,7 +236,10 @@ public class QuizCreateView extends AbstractQuizView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelSelectedFromDialogEvent.class,
-                event -> loadSingleModelWithTextures(event.getSelectedModel(), event.getBlockId(), event.getSelectedModel().getModel().getId(), true)
+                event -> {
+                    QuickModelEntity quickModelEntity = modelService.read(event.getSelectedModel().getMetadataId());
+                    loadSingleModelWithTextures(quickModelEntity, event.getBlockId(), event.getSelectedModel().getModel().getId(), true);
+                }
         ));
 
         registrations.add(ComponentUtil.addListener(

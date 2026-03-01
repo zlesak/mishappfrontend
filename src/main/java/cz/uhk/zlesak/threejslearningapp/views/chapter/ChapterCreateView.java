@@ -14,6 +14,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.CreateChapterEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelSelectedFromDialogEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
@@ -44,8 +45,8 @@ public class ChapterCreateView extends AbstractChapterView {
      * @param chapterService service for handling chapter-related operations
      */
     @Autowired
-    public ChapterCreateView(ChapterService chapterService) {
-        super("page.title.createChapterView", true, false, chapterService);
+    public ChapterCreateView(ChapterService chapterService, ModelService modelService) {
+        super("page.title.createChapterView", true, false, chapterService, modelService);
         configureVisibility();
         setupChapterForm();
     }

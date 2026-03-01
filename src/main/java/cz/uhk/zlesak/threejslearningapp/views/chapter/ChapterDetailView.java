@@ -10,6 +10,7 @@ import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotificati
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubchapterInitEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -38,8 +39,8 @@ public class ChapterDetailView extends AbstractChapterView {
      * @param chapterService service for handling chapter-related operations
      */
     @Autowired
-    public ChapterDetailView(ChapterService chapterService) {
-        super("page.title.chapterView" ,chapterService);
+    public ChapterDetailView(ChapterService chapterService, ModelService modelService) {
+        super("page.title.chapterView", chapterService, modelService);
         configureReadOnlyMode();
         this.chapterService = chapterService;
     }

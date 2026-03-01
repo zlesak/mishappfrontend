@@ -8,6 +8,7 @@ import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeLeaveEvent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractApiClient;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelContainer;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.leaveDialogs.BeforeLeaveActionDialog;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
@@ -17,6 +18,7 @@ import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 
 import java.util.Map;
 import java.util.Objects;
@@ -34,6 +36,7 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
 
     protected ModelContainer modelDiv = new ModelContainer();
     protected boolean skipBeforeLeaveDialog;
+    private ModelService modelService = SpringContextUtils.getBean(ModelService.class);
 
     /**
      * Constructor for AbstractEntityView.
@@ -94,18 +97,6 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
             return;
         }
         BeforeLeaveActionDialog.leave(event, this::disposeRendererAndProceed);
-    }
-
-    /**
-     * Loads multiple models along with their associated textures by firing UploadFileEvent events.
-     *
-     * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects
-     */
-    protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
-        quickModelEntityMap.forEach((key, quickModelEntity) -> {
-            boolean show = Objects.equals(key, "main");
-            loadSingleModelWithTextures(quickModelEntity, null, key, show);
-        });
     }
 
     /**
