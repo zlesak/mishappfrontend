@@ -18,6 +18,7 @@ import cz.uhk.zlesak.threejslearningapp.components.listItems.MenuListItem;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.CookiesNotification;
 import cz.uhk.zlesak.threejslearningapp.views.administration.AdministrationView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
+import cz.uhk.zlesak.threejslearningapp.views.documentation.DocumentationView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizListingView;
 import lombok.extern.slf4j.Slf4j;
@@ -128,7 +129,8 @@ public class MainLayout extends AppLayout {
                 new MenuListItem("MISH - Úvod", logo, MainPageView.class),
                 new MenuListItem("Kapitoly", VaadinIcon.OPEN_BOOK.create(), ChapterListingView.class),
                 new MenuListItem("Modely", VaadinIcon.CUBES.create(), ModelListingView.class),
-                new MenuListItem("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class)
+                new MenuListItem("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class),
+                new MenuListItem("Dokumentace", VaadinIcon.QUESTION.create(), DocumentationView.class)
         ));
     }
 

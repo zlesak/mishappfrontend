@@ -1,0 +1,22 @@
+{
+  "doc.view.title": "Dokumentace",
+  "doc.nav.all": "Vše",
+  "doc.nav.chapters": "Kapitoly",
+  "doc.nav.models": "Modely",
+  "doc.nav.quizzes": "Kvízy",
+  "doc.admin.edit": "Upravit",
+  "doc.admin.save": "Uložit",
+  "doc.admin.cancel": "Zrušit",
+  "doc.admin.add": "Přidat nový blok",
+  "doc.list.empty": "Žádné položky k zobrazení.",
+  "doc.list.showAll": "--- Zobrazit vše ---",
+  "doc.notification.saved": "Změny byly úspěšně uloženy",
+
+  "doc.editor.id": "ID",
+  "doc.editor.type": "Typ",
+  "doc.editor.title": "Nadpis",
+  "doc.editor.title.placeholder": "Zadejte název bloku...",
+  "doc.editor.roles": "Viditelné pro role",
+  "doc.editor.remove": "Odstranit"
+
+}
