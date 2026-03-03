@@ -25,8 +25,7 @@ public abstract class AbstractListDialog<Q extends AbstractEntity> extends Dialo
      */
     public AbstractListDialog(AbstractListingView<Q, ?, ?, ?> listView) {
         this.listView = listView;
-        setWidth("800px");
-        setHeight("600px");
+        setSizeFull();
         add(listView);
     }
 

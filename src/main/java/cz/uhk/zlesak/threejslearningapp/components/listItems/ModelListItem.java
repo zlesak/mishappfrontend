@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
@@ -16,13 +17,25 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelCreateView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Tag("div")
 public class ModelListItem extends AbstractListItem {
 
     public ModelListItem(QuickModelEntity model, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.CUBES);
+
+        try {
+            String desc = model.getDescription();
+
+            if (desc != null && !desc.isBlank()) {
+                Image thumb = new Image(desc, model.getModel().getName());
+                thumb.setWidthFull();
+                addComponentAsFirst(thumb);
+            }
+
+        } catch (Exception ex) {
+            log.warn("Failed to extract thumbnail from model description: {}", ex.getMessage());
+        }
 
         titleSpan.setText(model.getModel().getName());
 

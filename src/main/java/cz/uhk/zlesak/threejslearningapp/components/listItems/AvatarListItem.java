@@ -7,11 +7,17 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.buttons.LogoutButton;
 
+/**
+ * AvatarListItem class - A custom list item component that displays a user's avatar and name.
+ */
 public class AvatarListItem extends Div {
 
-    public AvatarListItem(String name, String description, LogoutButton logoutButton) {
+    /**
+     * Constructs an AvatarListItem with the given name. The avatar is generated based on the name, and the full name is displayed next to it.
+     * @param name the name of the user to display in the list item, which is also used to generate the avatar.
+     */
+    public AvatarListItem(String name) {
         HorizontalLayout userInfo = new HorizontalLayout();
         userInfo.addClassName("userMenuHeader");
         userInfo.setSpacing(false);
@@ -22,19 +28,15 @@ public class AvatarListItem extends Div {
 
         VerticalLayout nameLayout = new VerticalLayout();
         nameLayout.setSpacing(false);
-        nameLayout.setPadding(false);
 
         Div fullName = new Div(name);
         fullName.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.BOLD);
 
-        Div descriptionDiv = new Div(description);
-        descriptionDiv.addClassNames(LumoUtility.FontSize.SMALL);
-
         nameLayout.addClassName(LumoUtility.Padding.SMALL);
 
-        nameLayout.add(fullName, descriptionDiv);
+        nameLayout.add(fullName);
 
-        userInfo.add(userAvatar, nameLayout, logoutButton);
+        userInfo.add(userAvatar, nameLayout);
         userInfo.setAlignItems(FlexComponent.Alignment.CENTER);
         add(userInfo);
     }

@@ -94,10 +94,14 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
 
         itemListLayout.addClassNames(
                 LumoUtility.Display.GRID,
+                LumoUtility.Grid.Column.COLUMNS_1,
+                LumoUtility.Grid.Breakpoint.Small.COLUMNS_2,
+                LumoUtility.Grid.Breakpoint.Medium.COLUMNS_3,
+                LumoUtility.Grid.Breakpoint.Large.COLUMNS_4,
+                LumoUtility.Grid.Breakpoint.XLarge.COLUMNS_5,
                 LumoUtility.Gap.MEDIUM,
                 LumoUtility.Padding.MEDIUM
         );
-        itemListLayout.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(350px, 1fr))");
 
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
         listScroller.setSizeFull();
