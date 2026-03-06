@@ -3,10 +3,8 @@ package cz.uhk.zlesak.threejslearningapp.api.clients;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
 import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -26,7 +24,6 @@ import java.util.List;
  * Overrides {@link #create} and {@link #update} to use multipart requests matching the
  * backend's {@code /create} and {@code /update} endpoints.
  */
-@Slf4j
 @Component
 public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEntity, ModelFilter> {
 
@@ -86,118 +83,16 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
     }
 
     /**
-     * Reads a single {@link ModelEntity} by its metadata ID.
-     *
-     * @param id of the entity
-     * @return the converted ModelEntity
+     * Reads backend file tree for a model by metadata ID.
+     * Transport-only method; mapping to ModelEntity is handled in ModelService.
      */
+    public FileEntityTree readFileEntityTree(String id) throws Exception {
+        return sendGetRequest(baseUrl + id, FileEntityTree.class, "Chyba při získávání FileEntityTree", id);
+    }
+
     @Override
-    public ModelEntity read(String id) throws Exception {
-        FileEntityTree tree = sendGetRequest(baseUrl + id, FileEntityTree.class, "Chyba při získávání FileEntityTree", id);
-        if (tree == null) return null;
-        return mapFileEntityTreeToModelEntity(tree, id);
-    }
-
-    private ModelEntity mapFileEntityTreeToModelEntity(FileEntityTree tree, String modelMetadataId) {
-        List<ModelFileEntity> allRelatedFiles = new ArrayList<>();
-        if (tree.getAllRelatedFiles() != null) {
-            for (FileEntityRecursive fr : tree.getAllRelatedFiles()) {
-                allRelatedFiles.add(convertRecursiveToModelFileEntity(fr));
-            }
-        }
-
-        ModelFileEntity root = ModelFileEntity.builder()
-                .id(tree.getId())
-                .name(tree.getName())
-                .related(allRelatedFiles)
-                .build();
-
-        ModelEntity model = ModelEntity.builder()
-                .id(tree.getId())
-                .model(root)
-                .metadataId(modelMetadataId)
-                .name(tree.getName())
-                .creatorId(tree.getCreatorId())
-                .description(tree.getDescription())
-                .created(tree.getCreated())
-                .updated(tree.getUpdated())
-                .isAdvanced(tree.isAdvanced())
-                .build();
-        populateTextures(model, allRelatedFiles);
-        return model;
-    }
-
-    /**
-     * Recursively converts a {@link FileEntityRecursive} tree to a {@link ModelFileEntity} tree.
-     *
-     * @param fr the FileEntityRecursive to convert
-     * @return the converted ModelFileEntity
-     */
-    private ModelFileEntity convertRecursiveToModelFileEntity(FileEntityRecursive fr) {
-        ModelFileEntity mfe = new ModelFileEntity();
-        mfe.setId(fr.getId());
-        mfe.setName(fr.getName());
-        mfe.setSenseType(fr.getSenseType());
-        if (fr.getRelatedFiles() != null) {
-            List<ModelFileEntity> nested = new ArrayList<>();
-            for (FileEntityRecursive child : fr.getRelatedFiles()) {
-                nested.add(convertRecursiveToModelFileEntity(child));
-            }
-            mfe.setRelated(nested);
-        }
-        return mfe;
-    }
-
-    /**
-     * Populates textures from the flat related-file list using {@link FileSenseType}.
-     * CSV files linked to a texture are downloaded and attached.
-     *
-     * @param entity          ModelEntity to get the texture data from
-     * @param allRelatedFiles to relate the proper textures with
-     */
-    private void populateTextures(ModelEntity entity, List<ModelFileEntity> allRelatedFiles) {
-        List<QuickTextureEntity> others = new ArrayList<>();
-        for (ModelFileEntity f : allRelatedFiles) {
-            if (f == null) continue;
-            if (f.getSenseType() == FileSenseType.MAIN_TEXTURE && entity.getMainTexture() == null) {
-                entity.setMainTexture(buildQuickTexture(f));
-            } else if (f.getSenseType() == FileSenseType.OTHER_TEXTURE) {
-                others.add(buildQuickTexture(f));
-            }
-        }
-        if (!others.isEmpty()) entity.setOtherTextures(others);
-    }
-
-    /**
-     * Builds a {@link QuickTextureEntity} from a {@link ModelFileEntity}, attaching CSV content
-     * if a linked CSV file exists in the related list.
-     *
-     * @param f ModelEntity to get the texture data from
-     * @return QuickTextureEntity with the texture data
-     */
-    private QuickTextureEntity buildQuickTexture(ModelFileEntity f) {
-        QuickTextureEntity.QuickTextureEntityBuilder<?, ?> builder = QuickTextureEntity.builder()
-                .id(f.getId())
-                .name(f.getName());
-
-        if (f.getRelated() != null) {
-            for (ModelFileEntity child : f.getRelated()) {
-                if (child != null && child.getSenseType() == FileSenseType.CSV_FILE) {
-                    try {
-                        String url = AbstractApiClient.getStreamBeEndpointUrl(child.getId());
-                        var resp = sendGetRequestRaw(url, byte[].class, "Chyba při stahování CSV", child.getId(), true);
-                        InputStreamMultipartFile csvFile = parseFileResponse(resp, "Chyba při zpracování CSV", child.getId());
-                        if (csvFile != null) {
-                            builder.csvContent(new String(csvFile.getBytes(), java.nio.charset.StandardCharsets.UTF_8));
-                        }
-                    } catch (Throwable ex) {
-                        log.warn(ex.getMessage(), ex);
-                    }
-                    break;
-                }
-            }
-        }
-        return builder.build();
+    public ModelEntity read(String id) {
+        throw new UnsupportedOperationException("ModelApiClient.read is not supported. Use ModelService.read().");
     }
 
     /**

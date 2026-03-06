@@ -22,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
-import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -185,38 +184,22 @@ public class ChapterCreateView extends AbstractChapterView {
      */
     private void createChapterAndNavigate(String bodyData, Map<String, QuickModelEntity> allModels) {
         try {
-            if (isEditMode) {
-                service.update(chapterId,
-                        ChapterEntity.builder()
-                                .id(chapterId)
-                                .name(nameTextField.getValue().trim())
-                                .description(loadedChapter.getDescription())
-                                .creatorId(loadedChapter.getCreatorId())
-                                .created(loadedChapter.getCreated())
-                                .updated(Instant.now())
-                                .subChapters(loadedChapter.getSubChapters())
-                                .modelHeaderMap(allModels)
-                                .content(bodyData)
-                                .models(allModels.values().stream().toList())
-                                .quizzes(loadedChapter.getQuizzes())
-                                .build());
-                
-                new SuccessNotification(text("chapter.update.success"));
-                skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", chapterId)));
-            } else {
-                String newChapterId = service.create(
-                        ChapterEntity.builder()
-                                .name(nameTextField.getValue().trim())
-                                .modelHeaderMap(allModels)
-                                .content(bodyData)
-                                .models(allModels.values().stream().toList())
-                                .build());
+            String savedChapterId = service.saveChapter(
+                    chapterId,
+                    isEditMode,
+                    nameTextField.getValue(),
+                    bodyData,
+                    allModels,
+                    loadedChapter
+            );
 
+            if (isEditMode) {
+                new SuccessNotification(text("chapter.update.success"));
+            } else {
                 new SuccessNotification(text("chapter.create.success"));
-                skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", newChapterId)));
             }
+            skipBeforeLeaveDialog = true;
+            UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", savedChapterId)));
         } catch (Exception e) {
             log.error("Error saving chapter: {}", e.getMessage(), e);
             throw new ApplicationContextException(
@@ -253,4 +236,3 @@ public class ChapterCreateView extends AbstractChapterView {
         ));
     }
 }
-

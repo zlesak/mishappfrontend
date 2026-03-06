@@ -30,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +48,7 @@ public class QuizCreateView extends AbstractQuizView {
     private final List<QuestionEditorBase<?>> questionEditors = new ArrayList<>();
     private boolean isEditMode = false;
     private QuizEntity loadedQuiz;
-    private ModelService modelService;
+    private final ModelService modelService;
 
     /**
      * Constructor for QuizCreateView.
@@ -179,42 +178,36 @@ public class QuizCreateView extends AbstractQuizView {
                 if (!editor.validate()) {
                     throw new ApplicationContextException(text("quiz.validation.question.invalid"));
                 }
-                service.addQuestion(editor.getQuestionData());
-                service.addAnswer(editor.getAnswerData());
             }
+
+            List<AbstractQuestionData> questionData = questionEditors.stream()
+                    .map(QuestionEditorBase::getQuestionData)
+                    .collect(Collectors.toList());
+            List<AbstractAnswerData> answerData = questionEditors.stream()
+                    .map(QuestionEditorBase::getAnswerData)
+                    .collect(Collectors.toList());
+
+            String savedQuizId = service.saveQuiz(
+                    quizId,
+                    isEditMode,
+                    loadedQuiz,
+                    name,
+                    quizForm.getDescription(),
+                    quizForm.getTimeLimit(),
+                    quizForm.getSelectedChapter(),
+                    questionData,
+                    answerData
+            );
 
             if (isEditMode) {
-                service.update(quizId,
-                        QuizEntity.builder()
-                                .id(quizId)
-                                .name(name)
-                                .description(quizForm.getDescription())
-                                .timeLimit(quizForm.getTimeLimit())
-                                .chapterId(quizForm.getSelectedChapter())
-                                .creatorId(loadedQuiz.getCreatorId())
-                                .created(loadedQuiz.getCreated())
-                                .updated(Instant.now())
-                                .build());
-
                 new SuccessNotification(text("quiz.update.success"));
-                log.info("Quiz updated with ID: {}", quizId);
-                skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate(QuizListingView.class);
+                log.info("Quiz updated with ID: {}", savedQuizId);
             } else {
-                String newQuizId = service.create(
-                        QuizEntity.builder()
-                                .name(name)
-                                .description(quizForm.getDescription())
-                                .timeLimit(quizForm.getTimeLimit())
-                                .chapterId(quizForm.getSelectedChapter())
-                                .build()
-                );
-
                 new SuccessNotification(text("quiz.create.success"));
-                log.info("Quiz created with ID: {}", newQuizId);
-                skipBeforeLeaveDialog = true;
-                UI.getCurrent().navigate(QuizListingView.class);
+                log.info("Quiz created with ID: {}", savedQuizId);
             }
+            skipBeforeLeaveDialog = true;
+            UI.getCurrent().navigate(QuizListingView.class);
 
         } catch (Exception e) {
             log.error("Error saving quiz", e);

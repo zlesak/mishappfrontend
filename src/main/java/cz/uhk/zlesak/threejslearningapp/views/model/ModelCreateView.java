@@ -7,20 +7,13 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.*;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelCreateEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * View for creating or updating a 3D model.
@@ -92,54 +85,11 @@ public class ModelCreateView extends AbstractModelView {
      */
     private void prefillFormFiles() {
         try {
-            InputStreamMultipartFile modelFile = service.downloadFile(modelEntity.getModel().getId());
-
-            InputStreamMultipartFile mainTexture = null;
-            if (modelEntity.getMainTexture() != null) {
-                try {
-                    mainTexture = service.downloadFile(modelEntity.getMainTexture().getId());
-                    mainTexture.setDisplayName(modelEntity.getMainTexture().getName());
-                } catch (Exception e) {
-                    log.warn("Could not download main texture for prefill: {}", e.getMessage());
-                }
-            }
-
-            List<InputStreamMultipartFile> otherTextures = new ArrayList<>();
-            List<InputStreamMultipartFile> csvFiles = new ArrayList<>();
-
-            if (modelEntity.getOtherTextures() != null) {
-                for (QuickTextureEntity tex : modelEntity.getOtherTextures()) {
-                    try {
-                        InputStreamMultipartFile ot = service.downloadFile(tex.getId());
-                        ot.setDisplayName(tex.getName());
-                        otherTextures.add(ot);
-                        if (tex.getCsvContent() != null && !tex.getCsvContent().isEmpty()) {
-                            String csvName = toCsvName(ot.getOriginalFilename());
-                            csvFiles.add(new InputStreamMultipartFile(
-                                    new java.io.ByteArrayInputStream(tex.getCsvContent().getBytes(java.nio.charset.StandardCharsets.UTF_8)),
-                                    csvName, csvName));
-                        }
-                    } catch (Exception e) {
-                        log.warn("Could not download other texture {} for prefill: {}", tex.getId(), e.getMessage());
-                    }
-                }
-            }
-
-            modelUploadForm.prefillExistingFiles(
-                    modelFile,
-                    mainTexture,
-                    otherTextures.isEmpty() ? null : otherTextures,
-                    csvFiles.isEmpty() ? null : csvFiles
-            );
+            ModelService.ModelPrefillData prefillData = service.buildPrefillData(modelEntity);
+            modelUploadForm.prefillExistingFiles(prefillData.modelFile(), prefillData.mainTexture(), prefillData.otherTextures(), prefillData.csvFiles());
         } catch (Exception e) {
             log.error("Could not download model file for prefill: {}", e.getMessage(), e);
         }
-    }
-
-    private static String toCsvName(String textureName) {
-        if (textureName == null) return "texture.csv";
-        int dot = textureName.lastIndexOf('.');
-        return (dot > 0 ? textureName.substring(0, dot) : textureName) + ".csv";
     }
 
     /**
@@ -148,70 +98,35 @@ public class ModelCreateView extends AbstractModelView {
      */
     private void uploadModel() {
         try {
-            if (modelUploadForm.getModelName().getValue() == null || modelUploadForm.getModelName().getValue().trim().isEmpty()) {
-                throw new ApplicationContextException(text("model.upload.error.emptyName"));
-            }
-            if (modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()) {
-                throw new ApplicationContextException(text("model.upload.error.emptyModelFile"));
-            }
-
-            boolean hasMainTexture = !modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty();
-            boolean hasOtherTextures = !modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles().isEmpty();
-            boolean hasTextures = hasMainTexture || hasOtherTextures;
-
-            final ModelEntity.ModelEntityBuilder<?, ?> builder = ModelEntity.builder()
-                    .name(modelUploadForm.getModelName().getValue().trim())
-                    .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
-                    .isAdvanced(hasTextures);
-
-            if (hasMainTexture) {
-                builder.fullMainTexture(
-                        TextureEntity.builder()
-                                .textureFile(modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst())
-                                .build()
-                );
-            }
-            if (hasOtherTextures) {
-                builder.fullOtherTextures(
-                        modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles()
-                                .stream()
-                                .map(file -> TextureEntity.builder().textureFile(file).build())
-                                .collect(Collectors.toList())
-                );
-            }
-            if (!modelUploadForm.getCsvFileUpload().getUploadedFiles().isEmpty()) {
-                builder.csvFiles(modelUploadForm.getCsvFileUpload().getUploadedFiles());
-            }
-
-            boolean isUpdate = modelId != null;
+            String modelName = modelUploadForm.getModelName().getValue();
+            InputStreamMultipartFile modelFile = modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()
+                    ? null
+                    : modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst();
+            InputStreamMultipartFile mainTexture = modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()
+                    ? null
+                    : modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst();
 
             modelDiv.renderer.getThumbnailDataUrl("modelId", 256, 256, dataUrl -> {
                 try {
-                    if (dataUrl != null) {
-                        builder.description(dataUrl);
-                    }
-
-                    if (isUpdate) {
-                        String updatedEntityId = service.update(modelEntity.getMetadataId(), builder.build());
-                        UI.getCurrent().access(() -> {
-                            showSuccessNotification();
-                            navigateToModelDetailView(updatedEntityId);
-                        });
-                    } else {
-                        String createdEntityId = service.create(builder.build());
-                        UI.getCurrent().access(() -> {
-                            showSuccessNotification();
-                            navigateToModelDetailView(createdEntityId);
-                        });
-                    }
-                } catch (ApplicationContextException e) {
-                    UI.getCurrent().access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
+                    String savedEntityId = service.saveFromUpload(
+                            modelEntity != null ? modelEntity.getMetadataId() : null,
+                            modelName,
+                            modelFile,
+                            mainTexture,
+                            modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
+                            modelUploadForm.getCsvFileUpload().getUploadedFiles(),
+                            dataUrl
+                    );
+                    UI.getCurrent().access(() -> {
+                        showSuccessNotification();
+                        navigateToModelDetailView(savedEntityId);
+                    });
                 } catch (Exception e) {
                     log.error("Unexpected error while saving model", e);
                     UI.getCurrent().access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
                 }
             });
-        } catch (ApplicationContextException e) {
+        } catch (Exception e) {
             showErrorNotification(text("notification.uploadError"), e.getMessage());
         }
     }

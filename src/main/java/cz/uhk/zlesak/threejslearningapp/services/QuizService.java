@@ -97,21 +97,69 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
     }
 
     /**
-     * Adds a question to the current quiz being built.
-     *
-     * @param question Question to add
+     * Saves a quiz, either by creating a new one or updating an existing one based on the edit mode.
+     * @param quizId Quiz ID (used for update, can be null for create)
+     * @param editMode Flag indicating whether it's an edit (true) or create (false) operation
+     * @param loadedQuiz Loaded quiz entity (required for edit mode, can be null for create mode)
+     * @param name Quiz name
+     * @param description Quiz description
+     * @param timeLimit Time limit for the quiz in seconds
+     * @param chapterId ID of the chapter the quiz belongs to
+     * @param questionData List of question data to be included in the quiz
+     * @param answerData List of answer data to be included in the quiz
+     * @return ID of the saved quiz
+       * @throws ApplicationContextException if validation fails or if update is attempted without loaded quiz data
      */
-    public void addQuestion(AbstractQuestionData question) {
-        this.questions.add(question);
-    }
+    public String saveQuiz(
+            String quizId,
+            boolean editMode,
+            QuizEntity loadedQuiz,
+            String name,
+            String description,
+            Integer timeLimit,
+            String chapterId,
+            List<AbstractQuestionData> questionData,
+            List<AbstractAnswerData> answerData
+    ) {
+        clearQuestionsAndAnswers();
+        if (questionData != null) {
+            this.questions.addAll(questionData);
+        }
+        if (answerData != null) {
+            this.answers.addAll(answerData);
+        }
 
-    /**
-     * Adds an answer to the current quiz being built.
-     *
-     * @param answer Answer to add
-     */
-    public void addAnswer(AbstractAnswerData answer) {
-        this.answers.add(answer);
+        try {
+            if (editMode) {
+                if (loadedQuiz == null) {
+                    throw new ApplicationContextException("Nelze aktualizovat kvíz bez načtených dat.");
+                }
+                return update(
+                        quizId,
+                        QuizEntity.builder()
+                                .id(quizId)
+                                .name(name)
+                                .description(description)
+                                .timeLimit(timeLimit)
+                                .chapterId(chapterId)
+                                .creatorId(loadedQuiz.getCreatorId())
+                                .created(loadedQuiz.getCreated())
+                                .updated(Instant.now())
+                                .build()
+                );
+            }
+
+            return create(
+                    QuizEntity.builder()
+                            .name(name)
+                            .description(description)
+                            .timeLimit(timeLimit)
+                            .chapterId(chapterId)
+                            .build()
+            );
+        } finally {
+            clearQuestionsAndAnswers();
+        }
     }
 
     /**

@@ -109,11 +109,12 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * The result is a map where each key is a Triple containing the level 1 header's ID, text, and modelId,
      * and the value is a list of Tuples representing the sub-headers with their IDs and texts.
      * Replaces any HTML tags in the header texts with plain text.
+     *
      * @param chapterId the ID of the chapter to process
      * @return a map of level 1 headers to their associated sub-headers
      * @throws Exception if there is an error reading or parsing the chapter content
      */
-    public Map<Triple<String, String,String>, List<Tuple<String, String>>> processHeaders(String chapterId) throws Exception {
+    public Map<Triple<String, String, String>, List<Tuple<String, String>>> processHeaders(String chapterId) throws Exception {
         read(chapterId);
         JsonNode root = objectMapper.readTree(entity.getContent());
         JsonNode blocks = root.get("blocks");
@@ -233,7 +234,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             blocks.forEach(blockNode -> {
                 if (blockNode.has("id") && blockNode.has("type") && "header".equals(blockNode.get("type").asText())) {
                     String blockId = blockNode.get("id").asText();
-                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().containsKey(blockId) ? chapterCreateEntity.getModelHeaderMap().get(blockId) :  chapterCreateEntity.getModelHeaderMap().get("main");
+                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().containsKey(blockId) ? chapterCreateEntity.getModelHeaderMap().get(blockId) : chapterCreateEntity.getModelHeaderMap().get("main");
                     ObjectNode dataNode = (ObjectNode) blockNode.get("data");
                     dataNode.put("modelId", model.getModel().getId());
                 }
@@ -271,5 +272,60 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
                 .content(content)
                 .models(uploadedModels)
                 .build();
+    }
+
+    /**
+     * Saves the chapter by either creating a new chapter or updating an existing one based on the editMode flag.
+     *
+     * @param chapterId     the ID of the chapter to update (if editMode is true) or null (if creating a new chapter)
+     * @param editMode      a boolean flag indicating whether to update an existing chapter (true) or create a new one (false)
+     * @param chapterName   the name of the chapter to be saved
+     * @param bodyData      the content of the chapter in JSON format
+     * @param allModels     a map of all models associated with the chapter, where the key is the block ID and the value is the corresponding QuickModelEntity
+     * @param loadedChapter the currently loaded ChapterEntity (required for update operations, can be null for create operations)
+     * @return the ID of the saved chapter
+     * @throws ApplicationContextException if validation fails or if update is attempted without loaded chapter data
+     * @throws RuntimeException            if any error occurs during the save operation
+     * @see ChapterEntity
+     */
+
+    public String saveChapter(
+            String chapterId,
+            boolean editMode,
+            String chapterName,
+            String bodyData,
+            Map<String, QuickModelEntity> allModels,
+            ChapterEntity loadedChapter
+    ) {
+        if (editMode) {
+            if (loadedChapter == null) {
+                throw new ApplicationContextException("Nelze aktualizovat kapitolu bez načtených dat.");
+            }
+            return update(
+                    chapterId,
+                    ChapterEntity.builder()
+                            .id(chapterId)
+                            .name(chapterName.trim())
+                            .description(loadedChapter.getDescription())
+                            .creatorId(loadedChapter.getCreatorId())
+                            .created(loadedChapter.getCreated())
+                            .updated(Instant.now())
+                            .subChapters(loadedChapter.getSubChapters())
+                            .modelHeaderMap(allModels)
+                            .content(bodyData)
+                            .models(allModels.values().stream().toList())
+                            .quizzes(loadedChapter.getQuizzes())
+                            .build()
+            );
+        }
+
+        return create(
+                ChapterEntity.builder()
+                        .name(chapterName.trim())
+                        .modelHeaderMap(allModels)
+                        .content(bodyData)
+                        .models(allModels.values().stream().toList())
+                        .build()
+        );
     }
 }
