@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import cz.uhk.zlesak.threejslearningapp.api.clients.ChapterApiClient;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
@@ -31,7 +30,6 @@ import java.util.*;
 @Scope("prototype")
 public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> { //TODO quick chapter entity on BE side
     private final ObjectMapper objectMapper;
-    private final List<QuickModelEntity> uploadedModels = new ArrayList<>();
 
     /**
      * Constructor for ChapterService that initializes the ChapterApiClient.
@@ -174,6 +172,9 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             subChaptersNames.addFirst(new SubChapterForSelect("main", null, null));
             Map<String, QuickModelEntity> modelsMap = new HashMap<>();
             List<QuickModelEntity> modelsList = new ArrayList<>(entity.getModels());
+            if (modelsList.isEmpty()) {
+                return modelsMap;
+            }
             modelsMap.put("main", modelsList.getFirst());
 
             for (SubChapterForSelect subChapter : subChaptersNames) {
@@ -222,7 +223,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
     @Override
     protected ChapterEntity createFinalEntity(ChapterEntity chapterCreateEntity) throws RuntimeException {
 
-        String content = "";
+        String content;
         try {
             ObjectNode bodyJson = (ObjectNode) objectMapper.readTree(chapterCreateEntity.getContent());
             ArrayNode blocks = (ArrayNode) bodyJson.get("blocks");
@@ -244,7 +245,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             throw e;
         } catch (Exception e) {
             log.error("Chyba při úpravě bloků editorjs: {}", e.getMessage(), e);
-            new ErrorNotification("Chyba při úpravě bloků editorjs: " + e.getMessage());
+            throw new ApplicationContextException("Chyba při úpravě bloků editorjs: " + e.getMessage(), e);
         }
 
         Set<QuickModelEntity> addedModelIds = new HashSet<>();
@@ -262,15 +263,13 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             modelsList.addFirst(mainModel);
         }
 
-        uploadedModels.addAll(modelsList);
-
         return ChapterEntity.builder()
                 .id(chapterCreateEntity.getId())
                 .name(chapterCreateEntity.getName())
-                .created(Instant.now())
+                .created(chapterCreateEntity.getCreated() != null ? chapterCreateEntity.getCreated() : Instant.now())
                 .description("")
                 .content(content)
-                .models(uploadedModels)
+                .models(modelsList)
                 .build();
     }
 

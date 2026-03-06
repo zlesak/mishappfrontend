@@ -117,6 +117,11 @@ public class QuizTimerComponent extends Div implements I18nAware {
 
         String timeText = String.format("%02d:%02d", remainingTimeSeconds / 60, remainingTimeSeconds % 60);
         timerDisplay.setText(timeText);
+        timerDisplay.removeClassNames(
+                LumoUtility.TextColor.PRIMARY,
+                LumoUtility.TextColor.WARNING,
+                LumoUtility.TextColor.ERROR
+        );
 
         if (remainingTimeSeconds <= 60) {
             timerDisplay.addClassNames(LumoUtility.TextColor.ERROR);

@@ -202,7 +202,7 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         return createEntity.toBuilder()
                 .questions(questions)
                 .answers(answers)
-                .created(Instant.now())
+                .created(createEntity.getCreated() != null ? createEntity.getCreated() : Instant.now())
                 .build();
     }
 }

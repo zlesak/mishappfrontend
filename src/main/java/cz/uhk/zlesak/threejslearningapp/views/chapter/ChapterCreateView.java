@@ -165,14 +165,21 @@ public class ChapterCreateView extends AbstractChapterView {
      * @param allModels map of all selected models
      */
     private void retrieveEditorDataAndCreateChapter(Map<String, QuickModelEntity> allModels) {
+        UI ui = UI.getCurrent();
         editorjs.getData()
-                .whenComplete((bodyData, error) -> {
-                    if (error != null) {
-                        log.error("Error retrieving editor data: {}", error.getMessage(), error);
-                        throw new ApplicationContextException(text("error.editorDataRetrievalFailed") + ": " + error.getMessage());
+                .thenAccept(bodyData -> {
+                    if (ui == null || ui.isClosing()) {
+                        log.warn("UI is not available for chapter save callback");
+                        return;
                     }
-
-                    createChapterAndNavigate(bodyData, allModels);
+                    ui.access(() -> createChapterAndNavigate(bodyData, allModels));
+                })
+                .exceptionally(error -> {
+                    log.error("Error retrieving editor data: {}", error.getMessage(), error);
+                    if (ui != null && !ui.isClosing()) {
+                        ui.access(() -> new ErrorNotification(text("error.editorDataRetrievalFailed") + ": " + error.getMessage()));
+                    }
+                    return null;
                 });
     }
 
