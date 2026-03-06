@@ -42,6 +42,7 @@ public class ModelDetailView extends AbstractModelView {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty()) {
             event.forwardTo(ModelListingView.class);
+            return;
         }
 
         if (parameters.get("modelId").orElse(null) == null) {

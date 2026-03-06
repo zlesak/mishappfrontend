@@ -98,6 +98,10 @@ public class ModelCreateView extends AbstractModelView {
      */
     private void uploadModel() {
         try {
+            UI ui = UI.getCurrent();
+            if (ui == null) {
+                throw new IllegalStateException("UI is not available");
+            }
             String modelName = modelUploadForm.getModelName().getValue();
             InputStreamMultipartFile modelFile = modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()
                     ? null
@@ -117,13 +121,13 @@ public class ModelCreateView extends AbstractModelView {
                             modelUploadForm.getCsvFileUpload().getUploadedFiles(),
                             dataUrl
                     );
-                    UI.getCurrent().access(() -> {
+                    ui.access(() -> {
                         showSuccessNotification();
                         navigateToModelDetailView(savedEntityId);
                     });
                 } catch (Exception e) {
                     log.error("Unexpected error while saving model", e);
-                    UI.getCurrent().access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
+                    ui.access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
                 }
             });
         } catch (Exception e) {

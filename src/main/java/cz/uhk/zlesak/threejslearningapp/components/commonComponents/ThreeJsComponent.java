@@ -317,7 +317,7 @@ public class ThreeJsComponent extends Component {
         dispatchJsAsync("""
                 try {
                     if (typeof window.applyMaskToMainTexture === 'function') {
-                        window.applyMaskToMainTexture($0, $1, $2, $3, $4).then(_ => {});
+                        window.applyMaskToMainTexture($0, $1, $2, $3).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in applyMaskToMainTexture:', e);
