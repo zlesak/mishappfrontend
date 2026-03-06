@@ -45,6 +45,8 @@ export class ThreeJSScene {
     private gui: HTMLElement | null = null;
     private DEBUG_IMAGE: boolean = false;
     private _resizeObserver: ResizeObserver | null = null;
+    private _windowResizeHandler: (() => void) | null = null;
+    private _backgroundHandler: ((ev: Event) => void) | null = null;
 
     // Camera animation
     private cameraAnimation: ICameraAnimation = {
@@ -87,64 +89,71 @@ export class ThreeJSScene {
      * @param element - Vaadin canvas element with $server callbacks for Java communication
      */
     async init(element: IVaadinElement): Promise<void> {
-        this.element = element;
-        await this.doingActions('Initializing Three.js');
+        await this.runWithAction('Initializing Three.js', async () => {
+            this.element = element;
 
-        // Create scene components
-        this.camera = SceneSetup.createCamera();
-        this.scene = SceneSetup.createScene();
-        this.renderer = SceneSetup.createRenderer(this.element as HTMLCanvasElement);
-        this.ambientLight = SceneSetup.createAmbientLight();
-        this.scene.add(this.ambientLight);
-        this.controls = SceneSetup.createControls(this.camera, this.renderer.domElement);
+            // Create scene components
+            this.camera = SceneSetup.createCamera();
+            this.scene = SceneSetup.createScene();
+            this.renderer = SceneSetup.createRenderer(this.element as HTMLCanvasElement);
+            this.ambientLight = SceneSetup.createAmbientLight();
+            this.scene.add(this.ambientLight);
+            this.controls = SceneSetup.createControls(this.camera, this.renderer.domElement);
 
-        // Set scene in model manager (it may have been used before init)
-        this.modelManager.setScene(this.scene);
+            // Set scene in model manager (it may have been used before init)
+            this.modelManager.setScene(this.scene);
 
-        this.eventManager = new EventManager(
-            this.camera,
-            this.scene,
-            this.renderer,
-            this.element,
-            this.DEBUG_IMAGE
-        );
+            this.eventManager = new EventManager(
+                this.camera,
+                this.scene,
+                this.renderer,
+                this.element,
+                this.DEBUG_IMAGE
+            );
 
-        // Setup event handlers
-        const resizeHandler = this.eventManager.createResizeHandler(() => this.render());
-        window.addEventListener('resize', resizeHandler);
-        this._resizeObserver = this.eventManager.registerResizeObserver(resizeHandler);
+            // Setup event handlers
+            const resizeHandler = this.eventManager.createResizeHandler(() => this.render());
+            if (this._windowResizeHandler) {
+                window.removeEventListener('resize', this._windowResizeHandler);
+            }
+            this._windowResizeHandler = resizeHandler;
+            window.addEventListener('resize', resizeHandler);
+            this._resizeObserver = this.eventManager.registerResizeObserver(resizeHandler);
 
-        // Setup GUI
-        this.gui = this.guiManager.createGUI(
-            this.controls,
-            this.camera,
-            () => this.render(),
-            () => {
-                const model = this.modelManager.getCurrentModel();
-                if (model) {
-                    this.fitCameraToModel(model.id);
+            // Setup GUI
+            this.gui = this.guiManager.createGUI(
+                this.controls,
+                this.camera,
+                () => this.render(),
+                () => {
+                    const model = this.modelManager.getCurrentModel();
+                    if (model) {
+                        this.fitCameraToModel(model.id);
+                    }
                 }
-            }
-        );
-        this.guiManager.attachToCanvas(this.element);
+            );
+            this.guiManager.attachToCanvas(this.element);
 
-        window.addEventListener('threejs-set-background', async (ev: any) => {
-            try {
-                const detail = ev.detail;
-                await this.setBackground(detail);
-            } catch (e) {
-                console.error('background event handler error', e);
+            if (this._backgroundHandler) {
+                window.removeEventListener('threejs-set-background', this._backgroundHandler);
             }
+            this._backgroundHandler = async (ev: Event) => {
+                try {
+                    const customEv = ev as CustomEvent;
+                    await this.setBackground(customEv.detail);
+                } catch (e) {
+                    console.error('background event handler error', e);
+                }
+            };
+            window.addEventListener('threejs-set-background', this._backgroundHandler);
+
+            resizeHandler();
+            this.startAnimation();
+            this.eventManager.registerClickHandler(
+                () => this.modelManager.getCurrentModel(),
+                () => this.lastSelectedTextureId
+            );
         });
-
-        resizeHandler();
-        this.startAnimation();
-        this.eventManager.registerClickHandler(
-            () => this.modelManager.getCurrentModel(),
-            () => this.lastSelectedTextureId
-        );
-
-        this.finishedActions();
     }
 
     /**
@@ -284,9 +293,9 @@ export class ThreeJSScene {
         mainModel: boolean,
         questionId: string | null
     ): Promise<void> {
-        await this.doingActions('Loading model');
-        await this.modelManager.loadModel(modelUrl, modelId, mainModel, questionId);
-        this.finishedActions();
+        await this.runWithAction('Loading model', async () => {
+            await this.modelManager.loadModel(modelUrl, modelId, mainModel, questionId);
+        });
     }
 
     /**
@@ -297,13 +306,13 @@ export class ThreeJSScene {
      * @param modelId - ID of model to remove
      */
     async removeModel(modelId: string): Promise<void> {
-        await this.doingActions('Removing model');
-        await this.modelManager.removeModel(
-            modelId,
-            (obj) => this.disposalManager.disposeObject(obj)
-        );
-        this.finishedActions();
-        this.render();
+        await this.runWithAction('Removing model', async () => {
+            await this.modelManager.removeModel(
+                modelId,
+                (obj) => this.disposalManager.disposeObject(obj)
+            );
+            this.render();
+        });
     }
 
     /**
@@ -324,30 +333,30 @@ export class ThreeJSScene {
             };
         }
 
-        await this.doingActions('Switching model');
-        const progressHandler = (percent: number, description?: string) => {
-            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
-                this.element.$server.loadingProgress(percent, description || '');
+        return await this.runWithAction('Switching model', async () => {
+            const progressHandler = (percent: number, description?: string) => {
+                if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                    this.element.$server.loadingProgress(percent, description || '');
+                }
+            };
+
+            const result = await this.modelManager.showModelById(
+                modelId,
+                (m) => {
+                    void this.fitCameraToModel(m.id);
+                },
+                await this.getAuthHeaders(),
+                progressHandler
+            );
+
+            if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+                this.element.$server.loadingProgress(100, '');
             }
-        };
 
-        const result = await this.modelManager.showModelById(
-            modelId,
-            (m) => {
-                void this.fitCameraToModel(m.id);
-            },
-            await this.getAuthHeaders(),
-            progressHandler
-        );
-
-        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
-            this.element.$server.loadingProgress(100, '');
-        }
-
-        this.lastSelectedTextureId = result.lastSelectedTextureId;
-        this.finishedActions();
-        this.render();
-        return result;
+            this.lastSelectedTextureId = result.lastSelectedTextureId;
+            this.render();
+            return result;
+        });
     }
 
     /**
@@ -357,21 +366,21 @@ export class ThreeJSScene {
      * @param modelId - ID of model to add texture to
      */
     async addMainTexture(textureUrl: string, modelId: string): Promise<void> {
-        await this.doingActions('Adding main texture');
-        const model = this.modelManager.findModel(modelId);
-        const progressHandler = (percent: number, description?: string) => {
-            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
-                this.element.$server.loadingProgress(percent, description || '');
+        await this.runWithAction('Adding main texture', async () => {
+            const model = this.modelManager.findModel(modelId);
+            const progressHandler = (percent: number, description?: string) => {
+                if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                    this.element.$server.loadingProgress(percent, description || '');
+                }
+            };
+            if (model) {
+                await this.textureManager.addMainTexture(textureUrl, model, await this.getAuthHeaders(), progressHandler);
             }
-        };
-        if (model) {
-            await this.textureManager.addMainTexture(textureUrl, model, await this.getAuthHeaders(), progressHandler);
-        }
 
-        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
-            this.element.$server.loadingProgress(100, 'Done loading main texture');
-        }
-        this.finishedActions();
+            if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+                this.element.$server.loadingProgress(100, 'Done loading main texture');
+            }
+        });
     }
 
     /**
@@ -380,12 +389,12 @@ export class ThreeJSScene {
      * @param modelId - ID of model to remove main texture from
      */
     async removeMainTexture(modelId: string): Promise<void> {
-        await this.doingActions('Removing main texture');
-        const model = this.modelManager.findModel(modelId);
-        if (model) {
-            this.lastSelectedTextureId = await this.textureManager.removeMainTexture(model);
-        }
-        this.finishedActions();
+        await this.runWithAction('Removing main texture', async () => {
+            const model = this.modelManager.findModel(modelId);
+            if (model) {
+                this.lastSelectedTextureId = await this.textureManager.removeMainTexture(model);
+            }
+        });
     }
 
     /**
@@ -396,28 +405,27 @@ export class ThreeJSScene {
      * @param modelId - ID of model to add texture to
      */
     async addOtherTexture(textureUrl: string, textureId: string, modelId: string): Promise<void> {
-        await this.doingActions('Adding other texture');
-        const model = this.modelManager.findModel(modelId);
-        const progressHandler = (percent: number, description?: string) => {
-            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
-                this.element.$server.loadingProgress(percent, description || '');
+        await this.runWithAction('Adding other texture', async () => {
+            const model = this.modelManager.findModel(modelId);
+            const progressHandler = (percent: number, description?: string) => {
+                if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                    this.element.$server.loadingProgress(percent, description || '');
+                }
+            };
+            if (model) {
+                await this.textureManager.addOtherTexture(
+                    textureUrl,
+                    textureId,
+                    model,
+                    await this.getAuthHeaders(),
+                    progressHandler
+                );
             }
-        };
-        if (model) {
-            await this.textureManager.addOtherTexture(
-                textureUrl,
-                textureId,
-                model,
-                await this.getAuthHeaders(),
-                progressHandler
-            );
-        }
 
-        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
-            this.element.$server.loadingProgress(100, '');
-        }
-
-        this.finishedActions();
+            if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+                this.element.$server.loadingProgress(100, '');
+            }
+        });
     }
 
     /**
@@ -433,12 +441,12 @@ export class ThreeJSScene {
             return;
         }
 
-        await this.doingActions('Removing texture');
-        const model = this.modelManager.findModel(modelId);
-        if (model) {
-            this.lastSelectedTextureId = await this.textureManager.removeOtherTexture(model, textureId);
-        }
-        this.finishedActions();
+        await this.runWithAction('Removing texture', async () => {
+            const model = this.modelManager.findModel(modelId);
+            if (model) {
+                this.lastSelectedTextureId = await this.textureManager.removeOtherTexture(model, textureId);
+            }
+        });
     }
 
     /**
@@ -453,14 +461,14 @@ export class ThreeJSScene {
             await this.showModelById(modelId);
         }
 
-        await this.doingActions('Switching to other texture');
-        const model = this.modelManager.getCurrentModel();
-        if (model) {
-            const result = await this.textureManager.switchOtherTexture(textureId, model);
-            this.lastSelectedTextureId = result.lastSelectedTextureId;
-        }
-        this.finishedActions();
-        this.render();
+        await this.runWithAction('Switching to other texture', async () => {
+            const model = this.modelManager.getCurrentModel();
+            if (model) {
+                const result = await this.textureManager.switchOtherTexture(textureId, model);
+                this.lastSelectedTextureId = result.lastSelectedTextureId;
+            }
+            this.render();
+        });
     }
 
     /**
@@ -474,14 +482,14 @@ export class ThreeJSScene {
             await this.showModelById(modelId);
         }
 
-        await this.doingActions('Switching to main texture');
-        const model = this.modelManager.getCurrentModel();
-        if (model && (model.loadedMainTexture != null || model.mainTexture != null)) {
-            const result = await this.textureManager.switchToMainTexture(model);
-            this.lastSelectedTextureId = result.lastSelectedTextureId;
-        }
-        this.finishedActions();
-        this.render();
+        await this.runWithAction('Switching to main texture', async () => {
+            const model = this.modelManager.getCurrentModel();
+            if (model && (model.loadedMainTexture != null || model.mainTexture != null)) {
+                const result = await this.textureManager.switchToMainTexture(model);
+                this.lastSelectedTextureId = result.lastSelectedTextureId;
+            }
+            this.render();
+        });
     }
 
     /**
@@ -508,29 +516,28 @@ export class ThreeJSScene {
             return;
         }
 
-        await this.doingActions('Applying mask to texture');
-        const model = this.modelManager.getCurrentModel();
-        if (model) {
-            const result = await this.textureManager.applyMaskToMainTexture(
-                model,
-                textureId,
-                maskColor,
-                () => this.render(),
-                opacity
-            );
+        await this.runWithAction('Applying mask to texture', async () => {
+            const model = this.modelManager.getCurrentModel();
+            if (model) {
+                const result = await this.textureManager.applyMaskToMainTexture(
+                    model,
+                    textureId,
+                    maskColor,
+                    () => this.render(),
+                    opacity
+                );
 
-            if (result == null) {
-                this.finishedActions();
-                return;
+                if (result == null) {
+                    return;
+                }
+
+                this.lastSelectedTextureId = result.lastSelectedTextureId;
+
+                if (result.maskCenter) {
+                    this.animateCameraToMask(result.maskCenter);
+                }
             }
-
-            this.lastSelectedTextureId = result.lastSelectedTextureId;
-
-            if (result.maskCenter) {
-                this.animateCameraToMask(result.maskCenter);
-            }
-        }
-        this.finishedActions();
+        });
     }
 
     /**
@@ -605,44 +612,42 @@ export class ThreeJSScene {
      * @param force - Whether to force removal regardless of other questions
      */
     async clearModel(modelId: string, questionId: string, force: boolean): Promise<void> {
-        await this.doingActions('Clearing model');
+        await this.runWithAction('Clearing model', async () => {
+            await this.modelManager.removeQuestionId(modelId, questionId);
 
-        await this.modelManager.removeQuestionId(modelId, questionId);
+            const model = this.modelManager.findModel(modelId);
+            if (!force && model && model.hasQuestions()) {
+                return;
+            }
 
-        const model = this.modelManager.findModel(modelId);
-        if (!force && model && model.hasQuestions()) {
-            this.finishedActions();
-            return;
-        }
+            if (model) {
+                await this.textureManager.removeMainTexture(model);
+                await this.textureManager.removeOtherTextures(model);
+            }
 
-        if (model) {
-            await this.textureManager.removeMainTexture(model);
-            await this.textureManager.removeOtherTextures(model);
-        }
+            await this.modelManager.removeModel(
+                modelId,
+                (obj) => this.disposalManager.disposeObject(obj)
+            );
 
-        await this.modelManager.removeModel(
-            modelId,
-            (obj) => this.disposalManager.disposeObject(obj)
-        );
-
-        this.modelManager.removeFromList(modelId);
-        this.finishedActions();
-        this.render();
+            this.modelManager.removeFromList(modelId);
+            this.render();
+        });
     }
 
     /**
      * Clear entire scene
      */
     async clear(): Promise<void> {
-        await this.doingActions('Clearing scene');
-        this.disposalManager.clearScene(
-            this.scene!,
-            this.ambientLight!,
-            this.modelManager.getCurrentModel()
-        );
-        await new Promise(resolve => setTimeout(resolve, 100));
-        this.finishedActions();
-        this.render();
+        await this.runWithAction('Clearing scene', async () => {
+            this.disposalManager.clearScene(
+                this.scene!,
+                this.ambientLight!,
+                this.modelManager.getCurrentModel()
+            );
+            await new Promise(resolve => setTimeout(resolve, 100));
+            this.render();
+        });
     }
 
     /**
@@ -652,6 +657,14 @@ export class ThreeJSScene {
         this.stopAnimation();
         this.disposalManager.disposeRenderer(this.renderer);
         this.disposalManager.disposeSceneMaterials(this.scene);
+        if (this._windowResizeHandler) {
+            window.removeEventListener('resize', this._windowResizeHandler);
+            this._windowResizeHandler = null;
+        }
+        if (this._backgroundHandler) {
+            window.removeEventListener('threejs-set-background', this._backgroundHandler);
+            this._backgroundHandler = null;
+        }
 
         if (this._resizeObserver) {
             try {
@@ -822,6 +835,15 @@ export class ThreeJSScene {
             if (this.element?.$server?.doingActions) {
                 this.element.$server.doingActions(this.actionQueue[this.actionQueue.length - 1]);
             }
+        }
+    }
+
+    private async runWithAction<T>(description: string, action: () => Promise<T>): Promise<T> {
+        await this.doingActions(description);
+        try {
+            return await action();
+        } finally {
+            this.finishedActions();
         }
     }
 }

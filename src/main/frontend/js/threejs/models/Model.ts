@@ -207,10 +207,21 @@ export class Model implements IModelData {
         this.modelLoader.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 const mesh = child as THREE.Mesh;
+                const oldMaterial = mesh.material;
+                if (Array.isArray(oldMaterial)) {
+                    oldMaterial.forEach((material) => this.disposeOldMaterial(material));
+                } else if (oldMaterial) {
+                    this.disposeOldMaterial(oldMaterial);
+                }
                 mesh.material = new THREE.MeshStandardMaterial({ map: texture });
                 (mesh.material as THREE.Material).needsUpdate = true;
             }
         });
+    }
+
+    private disposeOldMaterial(material: THREE.Material): void {
+        if (!material) return;
+        material.dispose();
     }
 
     /**

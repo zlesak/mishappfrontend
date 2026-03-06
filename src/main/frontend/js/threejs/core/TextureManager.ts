@@ -52,13 +52,23 @@ export class TextureManager {
                 (data: string | ArrayBuffer) => {
                     const blob = data as unknown as Blob;
                     const img = document.createElement('img');
-                    img.src = URL.createObjectURL(blob);
-                    
-                    const texture = new THREE.Texture();
-                    texture.image = img;
-                    texture.needsUpdate = true;
-                    onProgress?.(100, 'Texture loaded');
-                    resolve(texture);
+                    const objectUrl = URL.createObjectURL(blob);
+                    img.onload = () => {
+                        try {
+                            const texture = new THREE.Texture();
+                            texture.image = img;
+                            texture.needsUpdate = true;
+                            onProgress?.(100, 'Texture loaded');
+                            resolve(texture);
+                        } finally {
+                            URL.revokeObjectURL(objectUrl);
+                        }
+                    };
+                    img.onerror = (err) => {
+                        URL.revokeObjectURL(objectUrl);
+                        reject(err);
+                    };
+                    img.src = objectUrl;
                 },
                 (xhr: ProgressEvent) => {
                     if (xhr && (xhr as any).lengthComputable) {
