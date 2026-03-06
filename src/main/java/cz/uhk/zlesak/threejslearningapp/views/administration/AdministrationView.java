@@ -82,8 +82,7 @@ public class AdministrationView extends AbstractView<ChapterService> {
         navigationTabs.add(chaptersTab, chapterListingView);
         navigationTabs.add(modelsTab, modelListingView);
         navigationTabs.add(quizzesTab, quizListingView);
-        navigationTabs.setWidthFull();
-
+        navigationTabs.setSizeFull();
 
         Button createButton = new Button(text("button.createChapter"), VaadinIcon.PLUS.create());
         createButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -106,6 +105,8 @@ public class AdministrationView extends AbstractView<ChapterService> {
 
         getContent().add(navigationTabs);
         getContent().setSizeFull();
+        getContent().setSpacing(true);
+        getContent().setPadding(false);
     }
 
     /**

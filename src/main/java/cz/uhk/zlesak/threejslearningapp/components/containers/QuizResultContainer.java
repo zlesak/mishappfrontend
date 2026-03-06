@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizResultDetailCardComponent;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizScoreCardComponent;
@@ -26,8 +27,11 @@ public class QuizResultContainer extends VerticalLayout implements I18nAware {
 
         QuizScoreCardComponent scoreCard = new QuizScoreCardComponent(result, possibleScore);
         QuizResultDetailCardComponent detailsCard = new QuizResultDetailCardComponent(result, quiz);
+        Scroller scroller = new Scroller(detailsCard);
+        scroller.setWidthFull();
+        scroller.setSizeFull();
 
-        add(title, scoreCard, detailsCard);
+        add(title, scoreCard, scroller);
         setWidthFull();
     }
 }

@@ -15,5 +15,6 @@
   "page.title.documentation" : "MISH - Dokumentace",
 
   "page.info.noItemsFound" : "Nebyly nalezeny žádné položky.",
+  "page.info.quizResultsInfo" : "Výsledky předchozích pokusů.",
   "page.info.errorLoadingItems" : "Chyba při načítání položek."
 }

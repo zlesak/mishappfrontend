@@ -23,27 +23,29 @@ import type { IAuthHeaders, IMaskResult, IModelSwitchResult, IRGB } from '../typ
 export class TextureManager {
     /**
      * Load texture from URL with Bearer token authentication
-     * 
+     *
      * Uses FileLoader to support authenticated requests (unlike TextureLoader).
      * Converts blob response to HTMLImageElement for THREE.Texture compatibility.
-     * 
+     *
      * Process:
      * 1. FileLoader fetches with auth headers
      * 2. Response as Blob
      * 3. Creates object URL from Blob
      * 4. Loads into HTMLImageElement
      * 5. Wraps in THREE.Texture
-     * 
+     *
      * @param url - Texture URL (can be base64 or remote)
      * @param auth - Authentication headers object (e.g., { Authorization: "Bearer ..." })
+     * @param onProgress - Optional callback for progress updates (percent, description)
      * @returns THREE.Texture ready for material application
      * @throws Error if texture loading fails
      */
-    async loadTextureWithAuth(url: string, auth: IAuthHeaders): Promise<THREE.Texture> {
+    async loadTextureWithAuth(url: string, auth: IAuthHeaders, onProgress?: (percent: number, description?: string) => void): Promise<THREE.Texture> {
         return new Promise((resolve, reject) => {
             const fileLoader = new THREE.FileLoader();
             fileLoader.setResponseType('blob');
             (fileLoader as any).setRequestHeader(auth);
+            onProgress?.(0, 'Preparing download');
 
             fileLoader.load(
                 url,
@@ -55,10 +57,17 @@ export class TextureManager {
                     const texture = new THREE.Texture();
                     texture.image = img;
                     texture.needsUpdate = true;
-                    
+                    onProgress?.(100, 'Texture loaded');
                     resolve(texture);
                 },
-                undefined,
+                (xhr: ProgressEvent) => {
+                    if (xhr && (xhr as any).lengthComputable) {
+                        const p = Math.round(((xhr as any).loaded / (xhr as any).total) * 100);
+                        onProgress?.(p, 'Downloading texture');
+                    } else {
+                        onProgress?.(-1, 'Downloading texture');
+                    }
+                },
                 (error: any) => {
                     console.error('Error loading texture:', error);
                     reject(error);
@@ -69,16 +78,17 @@ export class TextureManager {
 
     /**
      * Add or update the main texture for a model
-     * 
+     *
      * The main texture is the base texture that is displayed by default when model loads
      * Can have masks applied to highlight areas
-     * 
+     *
      * @param textureUrl - Texture data (base64 or URL)
      * @param model - Target model to receive texture
      * @param auth - Authentication headers for secure loading
+     * @param onProgress - Optional callback for progress updates (percent, description)
      */
-    async addMainTexture(textureUrl: string, model: Model, auth: IAuthHeaders): Promise<void> {
-        const texture = await this.loadTextureWithAuth(textureUrl, auth);
+    async addMainTexture(textureUrl: string, model: Model, auth: IAuthHeaders, onProgress?: (percent: number, description?: string) => void): Promise<void> {
+        const texture = await this.loadTextureWithAuth(textureUrl, auth, onProgress);
         model.setMainTexture(textureUrl, texture);
     }
 
@@ -102,19 +112,21 @@ export class TextureManager {
      * @param textureId - Unique identifier for this texture
      * @param model - Target model to receive texture
      * @param auth - Authentication headers for secure loading
+     * @param onProgress - Optional callback for progress updates (percent, description)
      */
     async addOtherTexture(
         textureUrl: string,
         textureId: string,
         model: Model,
-        auth: IAuthHeaders
+        auth: IAuthHeaders,
+        onProgress?: (percent: number, description?: string) => void
     ): Promise<void> {
         if (model.hasOtherTexture(textureId)) {
             console.error('addOtherTexture: textureId already present', textureId);
             return;
         }
         
-        const texture = await this.loadTextureWithAuth(textureUrl, auth);
+        const texture = await this.loadTextureWithAuth(textureUrl, auth, onProgress);
         model.addOtherTexture(textureId, texture);
     }
 

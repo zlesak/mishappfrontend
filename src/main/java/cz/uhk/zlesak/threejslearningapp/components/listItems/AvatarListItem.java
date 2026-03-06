@@ -24,13 +24,14 @@ public class AvatarListItem extends Div {
 
         Avatar userAvatar = new Avatar(name);
         userAvatar.getElement().setAttribute("tabindex", "-1");
-        userAvatar.addThemeVariants(AvatarVariant.LUMO_SMALL);
+        userAvatar.addThemeVariants(AvatarVariant.LUMO_XSMALL);
+        userAvatar.addClassNames(LumoUtility.Margin.XSMALL);
 
         VerticalLayout nameLayout = new VerticalLayout();
         nameLayout.setSpacing(false);
 
         Div fullName = new Div(name);
-        fullName.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.BOLD);
+        fullName.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.SECONDARY);
 
         nameLayout.addClassName(LumoUtility.Padding.SMALL);
 

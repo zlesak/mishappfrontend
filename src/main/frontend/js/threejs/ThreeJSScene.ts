@@ -1,23 +1,23 @@
 import * as THREE from 'three';
-import type { OrbitControls } from 'three/addons';
-import { ModelManager } from './core/ModelManager';
-import { TextureManager } from './core/TextureManager';
-import { EventManager } from './core/EventManager';
-import { DisposalManager } from './core/DisposalManager';
-import { GUIManager } from './core/GUIManager';
-import { SceneSetup } from './utils/SceneSetup';
-import { Model } from './models/Model';
-import type { 
-    IVaadinElement, 
-    ISceneConfig, 
-    ICameraAnimation,
+import type {OrbitControls} from 'three/addons';
+import {ModelManager} from './core/ModelManager';
+import {TextureManager} from './core/TextureManager';
+import {EventManager} from './core/EventManager';
+import {DisposalManager} from './core/DisposalManager';
+import {GUIManager} from './core/GUIManager';
+import {SceneSetup} from './utils/SceneSetup';
+import {Model} from './models/Model';
+import type {
     IAuthHeaders,
-    IModelSwitchResult
+    ICameraAnimation,
+    IModelSwitchResult,
+    ISceneConfig,
+    IVaadinElement
 } from './types/interfaces';
 
 /**
  * Main Three.js class - Orchestrator
- * 
+ *
  * This class serves as the primary coordinator for all 3D rendering operations.
  * It manages the lifecycle of the Three.js scene and delegates responsibilities to managers
  */
@@ -74,16 +74,16 @@ export class ThreeJSScene {
 
     /**
      * Initialize the Three.js scene and all subsystems
-     * 
+     *
      * This method performs the full initialization sequence:
      * 1. Creates Three.js core components (camera, scene, renderer, lights)
      * 2. Connects scene to ModelManager (enables models registered before init)
      * 3. Sets up event handlers (resize, click with color picking)
      * 4. Creates GUI controls for camera manipulation
      * 5. Starts the animation loop
-     * 
+     *
      * Must be called before any rendering operations. Models can be loaded before, but they won't be displayed until init() completes.
-     * 
+     *
      * @param element - Vaadin canvas element with $server callbacks for Java communication
      */
     async init(element: IVaadinElement): Promise<void> {
@@ -100,7 +100,7 @@ export class ThreeJSScene {
 
         // Set scene in model manager (it may have been used before init)
         this.modelManager.setScene(this.scene);
-        
+
         this.eventManager = new EventManager(
             this.camera,
             this.scene,
@@ -149,7 +149,7 @@ export class ThreeJSScene {
 
     /**
      * Render the current frame to the canvas
-     * 
+     *
      * Main rendering method that draws the 3D scene.
      * Called automatically by the animation loop and after scene changes (model loading, texture switching, etc.)
      */
@@ -204,7 +204,7 @@ export class ThreeJSScene {
 
     /**
      * Start the animation loop
-     * 
+     *
      * Idempotent - can be called multiple times safely.
      * Uses requestAnimationFrame for browser-optimized frame timing.
      */
@@ -216,7 +216,7 @@ export class ThreeJSScene {
 
     /**
      * Stop the animation loop and release frame callbacks
-     * 
+     *
      * Important for cleanup.
      * Cancels both requestAnimationFrame and renderer's animation loop.
      */
@@ -233,7 +233,7 @@ export class ThreeJSScene {
 
     /**
      * Animate camera to focus on a mask position with smooth transition
-     * 
+     *
      * @param maskCenter - 3D position in world space to focus on
      */
     private animateCameraToMask(maskCenter: THREE.Vector3): void {
@@ -241,8 +241,8 @@ export class ThreeJSScene {
 
         const currentDistance = this.camera.position.distanceTo(this.controls.target);
         const currentModel = this.modelManager.getCurrentModel();
-        const surfaceNormal = currentModel 
-            ? this.textureManager.getSurfaceNormal(currentModel, maskCenter) 
+        const surfaceNormal = currentModel
+            ? this.textureManager.getSurfaceNormal(currentModel, maskCenter)
             : null;
 
         let newCameraPos: THREE.Vector3;
@@ -272,7 +272,7 @@ export class ThreeJSScene {
 
     /**
      * Load or register a 3D model
-     * 
+     *
      * @param modelUrl - Base64 encoded model data or URL
      * @param modelId - Unique identifier for this model
      * @param mainModel - Whether this is the default/primary model
@@ -291,7 +291,7 @@ export class ThreeJSScene {
 
     /**
      * Remove model from scene and dispose all associated resources
-     * 
+     *
      * Performs complete cleanup
      *
      * @param modelId - ID of model to remove
@@ -314,7 +314,7 @@ export class ThreeJSScene {
      */
     async showModelById(modelId: string): Promise<IModelSwitchResult> {
         const currentModel = this.modelManager.getCurrentModel();
-        
+
         if (currentModel != null && currentModel.id === modelId) {
             await this.textureManager.switchToMainTexture(currentModel);
             await this.fitCameraToModel(currentModel.id);
@@ -325,11 +325,25 @@ export class ThreeJSScene {
         }
 
         await this.doingActions('Switching model');
+        const progressHandler = (percent: number, description?: string) => {
+            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                this.element.$server.loadingProgress(percent, description || '');
+            }
+        };
+
         const result = await this.modelManager.showModelById(
             modelId,
-            (model) => { void this.fitCameraToModel(model.id); },
-            await this.getAuthHeaders()
+            (m) => {
+                void this.fitCameraToModel(m.id);
+            },
+            await this.getAuthHeaders(),
+            progressHandler
         );
+
+        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+            this.element.$server.loadingProgress(100, '');
+        }
+
         this.lastSelectedTextureId = result.lastSelectedTextureId;
         this.finishedActions();
         this.render();
@@ -345,8 +359,17 @@ export class ThreeJSScene {
     async addMainTexture(textureUrl: string, modelId: string): Promise<void> {
         await this.doingActions('Adding main texture');
         const model = this.modelManager.findModel(modelId);
+        const progressHandler = (percent: number, description?: string) => {
+            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                this.element.$server.loadingProgress(percent, description || '');
+            }
+        };
         if (model) {
-            await this.textureManager.addMainTexture(textureUrl, model, await this.getAuthHeaders());
+            await this.textureManager.addMainTexture(textureUrl, model, await this.getAuthHeaders(), progressHandler);
+        }
+
+        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+            this.element.$server.loadingProgress(100, 'Done loading main texture');
         }
         this.finishedActions();
     }
@@ -375,14 +398,25 @@ export class ThreeJSScene {
     async addOtherTexture(textureUrl: string, textureId: string, modelId: string): Promise<void> {
         await this.doingActions('Adding other texture');
         const model = this.modelManager.findModel(modelId);
+        const progressHandler = (percent: number, description?: string) => {
+            if (this.element && this.element.$server && this.element.$server.loadingProgress) {
+                this.element.$server.loadingProgress(percent, description || '');
+            }
+        };
         if (model) {
             await this.textureManager.addOtherTexture(
                 textureUrl,
                 textureId,
                 model,
-                await this.getAuthHeaders()
+                await this.getAuthHeaders(),
+                progressHandler
             );
         }
+
+        if ((this.element && this.element.$server && this.element.$server.loadingProgress)) {
+            this.element.$server.loadingProgress(100, '');
+        }
+
         this.finishedActions();
     }
 
@@ -484,14 +518,14 @@ export class ThreeJSScene {
                 () => this.render(),
                 opacity
             );
-            
+
             if (result == null) {
                 this.finishedActions();
                 return;
             }
-            
+
             this.lastSelectedTextureId = result.lastSelectedTextureId;
-            
+
             if (result.maskCenter) {
                 this.animateCameraToMask(result.maskCenter);
             }
@@ -512,7 +546,8 @@ export class ThreeJSScene {
             await this.showModelById(modelId);
         }
 
-        if (!this.renderer || !this.camera) {
+        const model = this.modelManager.getCurrentModel();
+        if (!this.renderer || !this.camera || !this.controls || !model || !model.modelLoader) {
             throw new Error('Renderer or camera not initialized');
         }
 
@@ -520,20 +555,46 @@ export class ThreeJSScene {
         this.renderer.getSize(originalSize);
 
         const originalAspect = this.camera.aspect;
+        const originalCameraPosition = this.camera.position.clone();
+        const originalControlsTarget = this.controls.target.clone();
+        const originalAnimationActive = this.cameraAnimation.active;
+        const originalSelectedTextureId = this.lastSelectedTextureId;
 
-        this.renderer.setSize(width, height);
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
-        this.render();
+        try {
+            if (model.loadedMainTexture) {
+                await this.textureManager.switchToMainTexture(model);
+                this.lastSelectedTextureId = null;
+            }
 
-        const thumbnailDataUrl = this.renderer.domElement.toDataURL('image/png');
+            this.frameCameraToModelInstant(model, 1.2);
 
-        this.renderer.setSize(originalSize.x, originalSize.y);
-        this.camera.aspect = originalAspect;
-        this.camera.updateProjectionMatrix();
-        this.render();
+            this.renderer.setSize(width, height);
+            this.camera.aspect = width / height;
+            this.camera.updateProjectionMatrix();
+            this.render();
 
-        return thumbnailDataUrl;
+            return this.renderer.domElement.toDataURL('image/png');
+        } finally {
+            this.renderer.setSize(originalSize.x, originalSize.y);
+            this.camera.aspect = originalAspect;
+            this.camera.position.copy(originalCameraPosition);
+            this.controls.target.copy(originalControlsTarget);
+            this.controls.update();
+            this.camera.updateProjectionMatrix();
+            this.cameraAnimation.active = originalAnimationActive;
+
+            if (originalSelectedTextureId && model.getOtherTexture(originalSelectedTextureId)) {
+                const restored = await this.textureManager.switchOtherTexture(originalSelectedTextureId, model);
+                this.lastSelectedTextureId = restored.lastSelectedTextureId;
+            } else {
+                this.lastSelectedTextureId = originalSelectedTextureId;
+                if (originalSelectedTextureId === null && model.loadedMainTexture) {
+                    await this.textureManager.switchToMainTexture(model);
+                }
+            }
+
+            this.render();
+        }
     }
 
     /**
@@ -623,25 +684,25 @@ export class ThreeJSScene {
         if (!this.camera || !this.controls) return;
 
         let model: Model | null;
-         if (modelId) {
-             model = this.modelManager.findModel(modelId);
-             if (!model) {
-                 try {
-                     await this.showModelById(modelId);
-                     model = this.modelManager.getCurrentModel();
-                 } catch (e) {
-                     console.warn('fitCameraToModel: model not found', modelId);
-                     return;
-                 }
-             }
-         } else {
-             model = this.modelManager.getCurrentModel();
-         }
+        if (modelId) {
+            model = this.modelManager.findModel(modelId);
+            if (!model) {
+                try {
+                    await this.showModelById(modelId);
+                    model = this.modelManager.getCurrentModel();
+                } catch (e) {
+                    console.warn('fitCameraToModel: model not found', modelId);
+                    return;
+                }
+            }
+        } else {
+            model = this.modelManager.getCurrentModel();
+        }
 
         if (!model || !model.modelLoader) return;
 
         const box = new THREE.Box3().setFromObject(model.modelLoader);
-        const { center, targetPos } = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
+        const {center, targetPos} = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
 
         this.cameraAnimation.startPos = this.camera.position.clone();
         this.cameraAnimation.targetPos = targetPos.clone();
@@ -651,6 +712,24 @@ export class ThreeJSScene {
         this.cameraAnimation.active = true;
 
         this.startAnimation();
+    }
+
+    /**
+     * Immediately frame whole model in camera view without animation.
+     * Used for deterministic thumbnail rendering.
+     */
+    private frameCameraToModelInstant(model: Model, margin: number = 1.2): void {
+        if (!this.camera || !this.controls || !model.modelLoader) {
+            return;
+        }
+
+        const box = new THREE.Box3().setFromObject(model.modelLoader);
+        const {center, targetPos} = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
+
+        this.cameraAnimation.active = false;
+        this.camera.position.copy(targetPos);
+        this.controls.target.copy(center);
+        this.controls.update();
     }
 
     /**
@@ -708,7 +787,7 @@ export class ThreeJSScene {
     private async getAuthHeaders(): Promise<IAuthHeaders> {
         if (this.element?.$server?.getToken) {
             const token = await this.element.$server.getToken();
-            return token ? { Authorization: 'Bearer ' + token } : {};
+            return token ? {Authorization: 'Bearer ' + token} : {};
         }
         return {};
     }

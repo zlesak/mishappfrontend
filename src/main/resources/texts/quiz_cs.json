@@ -44,7 +44,7 @@
   "quiz.openText.placeholder.label": "Placeholder",
   "quiz.openText.placeholder.placeholder": "Text nápovědy pro odpověď",
   "quiz.openText.maxLength": "Maximální délka",
-  "quiz.openText.exactMatch": "Přesná shoda",
+  "quiz.openText.exactMatch": "Přesná shoda",
   "quiz.openText.addAcceptableAnswer": "Přidat přijatelnou odpověď",
   "quiz.openText.acceptableAnswer": "Přijatelná odpověď",
   "quiz.openText.acceptableAnswer.placeholder": "Zadejte přijatelnou odpověď",

@@ -71,6 +71,6 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
         quizId = event.getRouteParameters().get("quizId").orElse("");
         filterParameters.getFilter().setQuizId(quizId);
         filter.setSearchFieldValue("");
-        listEntities();
+        listEntities("page.info.quizResultsInfo", "quizResult");
     }
 }

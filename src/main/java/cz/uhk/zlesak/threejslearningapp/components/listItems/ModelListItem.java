@@ -38,6 +38,8 @@ public class ModelListItem extends AbstractListItem {
         }
 
         titleSpan.setText(model.getModel().getName());
+        details.removeAll();
+        remove(details);
 
         setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);

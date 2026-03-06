@@ -12,6 +12,7 @@ public class NoItemInfoComponent extends Div implements I18nAware {
         getStyle().set("display", "flex");
         getStyle().set("justify-content", "center");
         getStyle().set("align-items", "center");
+        getStyle().set("grid-column", "1 / -1");
 
         H1 header = new H1(text(infoTextKey));
         header.getStyle().set("font-size", "2em");
