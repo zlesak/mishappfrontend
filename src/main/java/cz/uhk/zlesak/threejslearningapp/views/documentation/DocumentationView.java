@@ -78,6 +78,7 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         saveButton = new Button(text("doc.admin.save"), e -> saveChanges());
         cancelButton = new Button(text("doc.admin.cancel"), e -> cancelEdit());
         addEntryButton = new Button(text("doc.admin.add"));
+        addEntryButton.addClickListener(e -> addNewEntry());
 
         saveButton.setVisible(false);
         cancelButton.setVisible(false);
@@ -330,7 +331,6 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         entries.forEach(this::addEntryEditor);
 
         addEntryButton.setIcon(VaadinIcon.PLUS.create());
-        addEntryButton.addClickListener(e -> addNewEntry());
 
         contentContainer.add(entriesEditContainer, addEntryButton);
     }

@@ -125,7 +125,7 @@ export class EventManager {
             const intersects = raycaster.intersectObjects(this.scene.children, true);
 
             if (intersects.length > 0) {
-                const intersect = intersects[intersects.length - 1];
+                const intersect = intersects[0];
                 const uv = intersect.uv;
                 const mesh = intersect.object as THREE.Mesh;
                 const material = mesh.material as THREE.MeshStandardMaterial;
@@ -156,8 +156,10 @@ export class EventManager {
                     ctx.imageSmoothingEnabled = false;
                     ctx.drawImage(image, 0, 0);
 
-                    const x = Math.round(uv.x * image.width);
-                    const y = Math.round((1 - uv.y) * image.height);
+                    const rawX = Math.floor(uv.x * image.width);
+                    const rawY = Math.floor((1 - uv.y) * image.height);
+                    const x = Math.max(0, Math.min(image.width - 1, rawX));
+                    const y = Math.max(0, Math.min(image.height - 1, rawY));
                     const pixel = ctx.getImageData(x, y, 1, 1).data;
                     const hex = '#' + ((1 << 24) | (pixel[0] << 16) | (pixel[1] << 8) | pixel[2])
                         .toString(16).slice(1);

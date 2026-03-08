@@ -297,9 +297,13 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             ChapterEntity loadedChapter
     ) {
         if (editMode) {
-            if (loadedChapter == null) {
+            if (chapterId == null || chapterId.isBlank()) {
+                throw new ApplicationContextException("Nelze aktualizovat kapitolu bez ID.");
+            }
+            if (loadedChapter == null && (allModels == null || allModels.isEmpty())) {
                 throw new ApplicationContextException("Nelze aktualizovat kapitolu bez načtených dat.");
             }
+
             return update(
                     chapterId,
                     ChapterEntity.builder()

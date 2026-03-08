@@ -265,15 +265,16 @@ function initializeEditorJs({
 }
 
 async function initializeContainer(parentElement: HTMLElement): Promise<HTMLElement> {
-  let container = document.createElement('div');
-  container.id = 'editorjs';
+  const container = document.createElement('div');
+  container.id = `editorjs-${Math.random().toString(36).slice(2, 10)}`;
+  container.className = 'editorjs-container';
   container.style.width = '100%';
   container.style.minHeight = '300px';
   parentElement.appendChild(container);
   const style = document.createElement('style');
   style.innerHTML = `
-    #editorjs .ce-toolbar__actions.ce-toolbar__actions--opened { position: absolute; right: 0px; z-index: 10; }
-    #editorjs { position: relative; }
+    .editorjs-container .ce-toolbar__actions.ce-toolbar__actions--opened { position: absolute; right: 0px; z-index: 10; }
+    .editorjs-container { position: relative; }
   `;
   container.appendChild(style);
   return container;

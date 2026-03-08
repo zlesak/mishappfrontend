@@ -107,7 +107,7 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
      */
     public void initializeTextureSelects(Map<String, QuickModelEntity> quickModelEntityList) {
         List<ModelForSelect> modelForSelects = ModelListingDataParser.modelForSelectDataParser(quickModelEntityList);
-        List<TextureListingForSelect> otherTexturesMap = TextureListingDataParser.textureListingForSelectDataParser(quickModelEntityList, false, text("textureListingSelect.noOtherTextures"));
+        List<TextureListingForSelect> otherTexturesMap = TextureListingDataParser.textureListingForSelectDataParser(quickModelEntityList, true, text("textureListingSelect.noOtherTextures"));
         List<TextureAreaForSelect> textureAreaForSelect = TextureMapHelper.createTextureAreaForSelectRecordList(quickModelEntityList);
 
         ObjectMapper mapper = new ObjectMapper();

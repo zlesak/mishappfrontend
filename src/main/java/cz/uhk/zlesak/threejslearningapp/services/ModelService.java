@@ -195,6 +195,7 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         ModelFileEntity root = ModelFileEntity.builder()
                 .id(tree.getId())
                 .name(tree.getName())
+                .senseType(tree.getSenseType())
                 .related(allRelatedFiles)
                 .build();
 

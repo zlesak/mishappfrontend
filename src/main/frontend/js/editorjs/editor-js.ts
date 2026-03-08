@@ -65,7 +65,7 @@ export class EditorJs extends LitElement {
       this.editor = await initializeEditor(this, { readOnly: this.readOnly });
       TextureColorLinkTool.setGlobalModelsTexturesAndColors([], [], []);
       this.resolveEditorReadyPromise();
-      attachTextureColorListeners();
+      attachTextureColorListeners(this);
     } catch (e) {
       console.error('Editor initialization failed in firstUpdated:', e);
       this.rejectEditorReadyPromise(e);
@@ -112,7 +112,7 @@ export class EditorJs extends LitElement {
     }
     this._chapterContentData = JSON.parse(jsonData);
     await this.setData(this._chapterContentData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -125,7 +125,7 @@ export class EditorJs extends LitElement {
     const finalSubChapterDataOutputData: any = structuredClone(this._chapterContentData);
     finalSubChapterDataOutputData.blocks = JSON.parse(jsonData);
     await this.setData(finalSubChapterDataOutputData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -136,7 +136,7 @@ export class EditorJs extends LitElement {
       return;
     }
     await this.setData(this._chapterContentData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -176,7 +176,7 @@ export class EditorJs extends LitElement {
   }
 
   async scrollToDataId (dataId : string ) {
-    const element = document.querySelector(`[data-id="${dataId}"]`);
+    const element = this.querySelector(`[data-id="${dataId}"]`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
@@ -195,7 +195,7 @@ export class EditorJs extends LitElement {
     try {
       await this.editor.blocks.clear();
       await this.editor.blocks.render(value);
-      attachTextureColorListeners();
+      attachTextureColorListeners(this);
 
       // Add data-id attributes to image blocks for scroll-to functionality
       this.attachImageDataIds();
@@ -237,11 +237,15 @@ export class EditorJs extends LitElement {
   /**
    * Attach click handlers to links with data-target-id to scroll to referenced images
    */
-  private attachImageReferenceClickHandlers(): void {
+  private attachImageReferenceClickHandlers(): void { //TODO
     setTimeout(() => {
       const links = this.querySelectorAll('a[data-target-id]');
       links.forEach((link: Element) => {
         const anchor = link as HTMLAnchorElement;
+        if (anchor.hasAttribute('data-image-reference-listener')) {
+          return;
+        }
+        anchor.setAttribute('data-image-reference-listener', 'true');
         anchor.addEventListener('click', (e: Event) => {
           e.preventDefault();
           const targetId = anchor.getAttribute('data-target-id');
@@ -296,7 +300,7 @@ export class EditorJs extends LitElement {
         models = JSON.parse(modelsJson);
       }
       TextureColorLinkTool.setGlobalModelsTexturesAndColors(models, textures, colors);
-      removeLinksByModelIds(models)
+      removeLinksByModelIds(models, this)
     } catch (error) {
       console.error('Error initializing texture selects:', error);
       throw error;

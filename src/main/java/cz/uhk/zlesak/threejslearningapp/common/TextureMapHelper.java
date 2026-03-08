@@ -32,10 +32,11 @@ public abstract class TextureMapHelper {
         });
 
         for (QuickModelEntity modelEntity : uniqueModels.values()) {
-            if (modelEntity.getOtherTextures() == null) continue;
-            for (QuickTextureEntity textureEntity : modelEntity.getAllTextures()) {
+            List<QuickTextureEntity> allTextures = modelEntity.getOtherTextures();
+            if (allTextures == null || allTextures.isEmpty()) continue;
+            for (QuickTextureEntity textureEntity : allTextures) {
                 if (textureEntity == null) continue;
-                String textureId = textureEntity.getTextureFileId();
+                String textureId = textureEntity.getId();
                 String csvContent = textureEntity.getCsvContent();
                 if (csvContent == null || csvContent.isEmpty()) continue;
                 csvParse(modelEntity.getModel().getId(), csvContent, records, textureId);
