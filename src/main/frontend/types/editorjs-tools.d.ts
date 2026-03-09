@@ -70,7 +70,7 @@ declare module '@sotaproject/strikethrough' {
     export default Strikethrough;
 }
 
-declare module 'editorjs-hyperlink' {
+declare module 'editorjs-hyperlink-es' {
     class Hyperlink {
         static get toolbox(): {
             title: string;
@@ -87,6 +87,8 @@ declare module 'editorjs-hyperlink' {
 
     export default Hyperlink;
 }
+
+declare module 'editorjs-hyperlink-es/hyperlink.css';
 
 declare module '@editorjs/paragraph' {
     class Paragraph {
