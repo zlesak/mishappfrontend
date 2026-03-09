@@ -117,6 +117,10 @@ export default class TextureColorLinkTool {
    */
   openDialog() {
     this.isModalOpen = true;
+    this.models = TextureColorLinkTool.globalModels;
+    this.textures = TextureColorLinkTool.globalTextures;
+    this.colors = TextureColorLinkTool.globalColors;
+
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       this._selectedRange = selection.getRangeAt(0).cloneRange();

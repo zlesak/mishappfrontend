@@ -178,8 +178,3 @@ declare module 'editorjs-md-parser' {
 
     export function MDtoBlocks(markdown: string): Promise<any[]>;
 }
-
-declare module '@coolbytes/editorjs-link' {
-    const Link: any;
-    export default Link;
-}

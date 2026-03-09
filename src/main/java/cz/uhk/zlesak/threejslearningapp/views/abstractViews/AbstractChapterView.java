@@ -85,9 +85,7 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     protected void setupData(Map<String, QuickModelEntity> quickModelEntityMap) {
         loadModelsWithTextures(quickModelEntityMap);
-        if (createMode) {
-            editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
-        }
+        editorjs.initializeTextureSelects(quickModelEntityMap);
     }
 
     /**
@@ -96,7 +94,11 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects
      */
     protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
-        quickModelEntityMap.forEach((key, quickModelEntity) -> loadSingleModelWithTextures(modelService.read(quickModelEntity.getMetadataId()), null, key, Objects.equals(key, "main")));
+        for (Map.Entry<String, QuickModelEntity> entry : quickModelEntityMap.entrySet()) {
+            QuickModelEntity fullEntity = modelService.read(entry.getValue().getMetadataId());
+            entry.setValue(fullEntity);
+            loadSingleModelWithTextures(fullEntity, null, entry.getKey(), Objects.equals(entry.getKey(), "main"));
+        }
     }
 
     /**
