@@ -13,7 +13,14 @@ import cz.uhk.zlesak.threejslearningapp.events.model.ModelCreateEvent;
 public class CreateModelButton extends AbstractButton<UI> {
 
     public CreateModelButton(ModelUploadForm modelUploadForm) {
-        super("button.createModel", new ModelCreateEvent(UI.getCurrent(), modelUploadForm.getModelName().getValue().trim(), modelUploadForm.getIsAdvanced().getValue()), VaadinIcon.PLUS_CIRCLE, ButtonVariant.LUMO_PRIMARY);
+        super("button.createModel", new ModelCreateEvent(UI.getCurrent(), modelUploadForm.getModelName().getValue().trim()), VaadinIcon.PLUS_CIRCLE, ButtonVariant.LUMO_PRIMARY);
+    }
+
+    /**
+     * Switches the button label when edit mode is enabled.
+     */
+    public void setUpdateMode() {
+        setText(text("button.updateModel"));
     }
 }
 

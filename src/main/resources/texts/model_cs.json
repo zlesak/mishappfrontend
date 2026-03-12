@@ -1,8 +1,8 @@
 {
-  "model.creator": "Vytvořil",
-  "model.creationDate": "Datum vytvoření",
-  "model.lastModified": "Naposledy upraveno",
-  "model.title": "Název modelu",
+  "model.creator": "Autor",
+  "model.creationDate": "Vytvořeno",
+  "model.lastModified": "Upraveno",
+  "model.title": "Název",
   "model.mainTexture": "Hlavní textura",
   "model.otherTextures": "Další textury",
   "notification.modelLoadFailed" : "Nepodařilo se načíst model: "

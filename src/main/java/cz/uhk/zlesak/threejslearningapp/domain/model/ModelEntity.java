@@ -11,8 +11,9 @@ import lombok.experimental.SuperBuilder;
 import java.util.List;
 
 /**
- * Model entity data class - holds data about model on FE side or when communicating with backend API endpoints.
- * Includes additional fields compared to QuickModelEntity for full model representation.
+ * Model entity data class - holds upload data and quick model metadata.
+ * Upload-only fields (inputStreamMultipartFile, fullMainTexture, fullOtherTextures, csvFiles)
+ * are populated when creating or updating a model. Quick metadata fields are inherited from QuickModelEntity.
  * @see QuickModelEntity
  */
 @Data

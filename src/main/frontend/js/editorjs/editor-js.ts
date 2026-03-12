@@ -19,6 +19,8 @@ export class EditorJs extends LitElement {
   private resolveEditorReadyPromise!: () => void;
   private rejectEditorReadyPromise!: (reason?: any) => void;
   private _chapterContentData: OutputData = { time: Date.now(), blocks: [], version: '' };
+  private _currentChapterContentData: OutputData = { time: Date.now(), blocks: [], version: '' };
+  private blockIdMap: Map<string, string> = new Map();
 
   constructor() {
     super();
@@ -56,6 +58,75 @@ export class EditorJs extends LitElement {
                 color: #000000;
                 font-weight: bold;
               }
+              a[data-target-id] {
+                color: #2e7d32;
+                text-decoration: underline;
+                text-decoration-style: dashed;
+                text-underline-offset: 2px;
+                cursor: pointer;
+              }
+              a[data-target-id]:hover {
+                color: #1b5e20;
+                text-decoration-style: solid;
+                background-color: rgba(46, 125, 50, 0.1);
+              }
+              a[href^="http"], a[href^="//"] {
+                color: #1565c0;
+                text-decoration: underline;
+                text-underline-offset: 2px;
+              }
+              a[href^="http"]:hover, a[href^="//"]:hover {
+                 color: #0d47a1;
+                 background-color: rgba(21, 101, 192, 0.1);
+              }
+              a[href^="http"]::after, a[href^="//"]::after {
+                content: " ↗";
+                font-size: 0.8em;
+                display: inline-block;
+              }
+              a[href*="moodle."] {
+                color: #f98012;
+              }
+              a[href*="moodle."]:hover {
+                color: #d96e0d;
+                background-color: rgba(249, 128, 18, 0.1);
+              }
+              a[href*="moodle."]::after {
+                content: "";
+                display: inline-block;
+                width: 1em;
+                height: 1em;
+                margin-left: 0.2em;
+                vertical-align: middle;
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f98012' d='M12 0C5.3726 0 0 5.3726 0 12s5.3726 12 12 12 12-5.3726 12-12S18.6274 0 12 0Zm1.1348 5.7402.0351.123-2.7363 1.9903c.3694.2606.7968.609 1.0078.8438l.0762.1035c-1.2878 2.2571-3.737 3.0557-6.3164 2.1816l.0195-.1601h-.002c-.0784-.5679-.0962-1.0524-.0585-1.463-.7507-.003-1.5298-.0402-2.2832-.0663l-.5157.0175c-.0994.8449-.0351 2.135-.0254 2.3223.3492 1.2819.2977 2.2907.295 3.5293-.4134-1.0028-.8995-2.097-.416-3.4668l-.0098-.3183c-.0007-.0143-.0683-1.1532.037-2.0625l-.4081.0136-.0371-.1191C5.7922 6.8402 8.5032 6.218 13.1348 5.7402Zm1.623 2.5137c1.2202 0 2.1885.2691 2.9043.8066.8138.601 1.2207 1.4866 1.2207 2.6582v5.6856h-2.7344v-5.3691c0-1.1225-.4634-1.6836-1.3906-1.6836-.9278 0-1.3906.561-1.3906 1.6836v5.3691h-2.7344v-5.3691c0-.5183-.0986-.9144-.293-1.1934.6172-.435 1.1534-1.0124 1.5723-1.7246.0297.029.0597.0574.0879.0879.5044-.6349 1.4233-.9512 2.7578-.9512zm-9.6094 3.2344c.932.3 1.8614.393 2.7364.287a3.5455 3.5455 0 0 0-.0098.2599v5.3691H5.1426v-5.6855c0-.0787.0022-.1544.0058-.2305z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: contain;
+              }
+              a[data-texture-id] {
+                color: #e65100;
+                font-weight: 500;
+              }
+              a[data-texture-id]:hover {
+                background-color: rgba(255, 152, 0, 0.1);
+                color: #ef6c00;
+              }
+              a[data-texture-id]::before {
+                content: "🎨 ";
+                font-size: 0.9em;
+              }
+              svg.icon--link{
+                background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='0.5em' height='0.5em' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M7.5 17.5q-2.3 0-3.9-1.6T2 12q0-2.3 1.6-3.9t3.9-1.6H18q1.65 0 2.825 1.175T22 10.5q0 1.65-1.175 2.825T18 14.5H8.5q-1.05 0-1.775-.725T6 12q0-1.05.725-1.775T8.5 9.5H18V11H8.5q-.425 0-.713.288T7.5 12q0 .425.288.713T8.5 13H18q1.05 0 1.775-.725T20.5 10.5q0-1.05-.725-1.775T18 8H7.5Q5.85 8 4.675 9.175T3.5 12q0 1.65 1.175 2.825T7.5 16H18v1.5H7.5Z'/%3E%3C/svg%3E" );
+                background-repeat: no-repeat;
+                background-size: cover;
+                background-position: bottom center, 50%, 50%;
+                }
+              svg.icon--unlink{
+                background-image: url( "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='0.5em' height='0.5em' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M7.5 17.5q-2.3 0-3.9-1.6T2 12q0-2.3 1.6-3.9t3.9-1.6H18q1.65 0 2.825 1.175T22 10.5q0 1.65-1.175 2.825T18 14.5H8.5q-1.05 0-1.775-.725T6 12q0-1.05.725-1.775T8.5 9.5H18V11H8.5q-.425 0-.713.288T7.5 12q0 .425.288.713T8.5 13H18q1.05 0 1.775-.725T20.5 10.5q0-1.05-.725-1.775T18 8H7.5Q5.85 8 4.675 9.175T3.5 12q0 1.65 1.175 2.825T7.5 16H18v1.5H7.5Z'/%3E%3C/svg%3E" );
+                background-repeat: no-repeat;
+                background-size: cover;
+                background-position: bottom center, 50%, 50%;
+                }
               `;
     this.appendChild(style);
   }
@@ -65,7 +136,7 @@ export class EditorJs extends LitElement {
       this.editor = await initializeEditor(this, { readOnly: this.readOnly });
       TextureColorLinkTool.setGlobalModelsTexturesAndColors([], [], []);
       this.resolveEditorReadyPromise();
-      attachTextureColorListeners();
+      attachTextureColorListeners(this);
     } catch (e) {
       console.error('Editor initialization failed in firstUpdated:', e);
       this.rejectEditorReadyPromise(e);
@@ -112,7 +183,7 @@ export class EditorJs extends LitElement {
     }
     this._chapterContentData = JSON.parse(jsonData);
     await this.setData(this._chapterContentData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -125,7 +196,7 @@ export class EditorJs extends LitElement {
     const finalSubChapterDataOutputData: any = structuredClone(this._chapterContentData);
     finalSubChapterDataOutputData.blocks = JSON.parse(jsonData);
     await this.setData(finalSubChapterDataOutputData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -136,7 +207,7 @@ export class EditorJs extends LitElement {
       return;
     }
     await this.setData(this._chapterContentData);
-    attachTextureColorListeners();
+    attachTextureColorListeners(this);
   }
 
   // @ts-ignore - Method is used by external components
@@ -173,10 +244,11 @@ export class EditorJs extends LitElement {
     }
 
     await this.setData({ time: this._chapterContentData.time, version: this._chapterContentData.version, blocks : filteredBlocks });
+    this.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async scrollToDataId (dataId : string ) {
-    const element = document.querySelector(`[data-id="${dataId}"]`);
+    const element = this.querySelector(`[data-id="${dataId}"]`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
@@ -193,9 +265,10 @@ export class EditorJs extends LitElement {
       return;
     }
     try {
+      this._currentChapterContentData = value;
       await this.editor.blocks.clear();
       await this.editor.blocks.render(value);
-      attachTextureColorListeners();
+      attachTextureColorListeners(this);
 
       // Add data-id attributes to image blocks for scroll-to functionality
       this.attachImageDataIds();
@@ -219,10 +292,11 @@ export class EditorJs extends LitElement {
         if (imgElement) {
           // Try to get data-id from block data or filename
           const blockData = (block as any).__data;
-          if (blockData && blockData['data-id']) {
-            block.setAttribute('data-id', blockData['data-id']);
-          } else if (imgElement.src) {
-            // Extract filename without extension as fallback
+          const customId = blockData ? (blockData['data-id'] || blockData['interlink']) : null;
+          
+          if (customId) {
+            block.setAttribute('data-id', customId);
+          } else if (imgElement.src && !/^data:/i.test(imgElement.src)) {
             const filename = imgElement.src.split('/').pop() || '';
             const dataId = filename.replace(/\.[^.]+$/, '');
             if (dataId) {
@@ -235,6 +309,34 @@ export class EditorJs extends LitElement {
   }
 
   /**
+   * Builds a map of custom interlink -> EditorJS block id
+   */
+  private async buildBlockIdMap() {
+    this.blockIdMap.clear();
+
+    if (this.readOnly || !this.editor || typeof this.editor.save !== 'function') {
+      const blocks = this._currentChapterContentData?.blocks || [];
+      blocks.forEach((block: any) => {
+        if (block.data && block.data['interlink'] && block.id) {
+          this.blockIdMap.set(block.data['interlink'], block.id);
+        }
+      });
+      return;
+    }
+
+    try {
+      const savedData = await this.editor.save();
+      savedData.blocks.forEach((block: any) => {
+        if (block.data && block.data['interlink']) {
+          this.blockIdMap.set(block.data['interlink'], block.id);
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to build block ID map', e);
+    }
+  }
+
+  /**
    * Attach click handlers to links with data-target-id to scroll to referenced images
    */
   private attachImageReferenceClickHandlers(): void {
@@ -242,11 +344,41 @@ export class EditorJs extends LitElement {
       const links = this.querySelectorAll('a[data-target-id]');
       links.forEach((link: Element) => {
         const anchor = link as HTMLAnchorElement;
-        anchor.addEventListener('click', (e: Event) => {
+        if (anchor.hasAttribute('data-image-reference-listener')) {
+          return;
+        }
+        anchor.setAttribute('data-image-reference-listener', 'true');
+        anchor.addEventListener('click', async (e: Event) => {
           e.preventDefault();
           const targetId = anchor.getAttribute('data-target-id');
           if (targetId) {
-            const targetBlock = this.querySelector(`.ce-block[data-id="${targetId}"]`);
+            let blockId = this.blockIdMap.get(targetId);
+            if (!blockId) {
+              await this.buildBlockIdMap();
+              blockId = this.blockIdMap.get(targetId);
+            }
+            
+            let targetBlock = blockId ? this.querySelector(`.ce-block[data-id="${blockId}"]`) : null;
+
+            if (!targetBlock) {
+              const blockExistsInRawData = this._chapterContentData.blocks?.some(
+                block => block.data && block.data['interlink'] === targetId
+              );
+
+              if (blockExistsInRawData) {
+                await this.showWholeChapterData();
+                await new Promise(resolve => setTimeout(resolve, 200)); // Wait for render
+                await this.buildBlockIdMap();
+                blockId = this.blockIdMap.get(targetId);
+                
+                if (blockId) {
+                  targetBlock = this.querySelector(`.ce-block[data-id="${blockId}"]`);
+                }
+              } else {
+                console.warn(`Image block with interlink="${targetId}" not found in current or raw data`);
+              }
+            }
+
             if (targetBlock) {
               targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
               // Optional: Add highlight effect
@@ -254,8 +386,6 @@ export class EditorJs extends LitElement {
               setTimeout(() => {
                 targetBlock.classList.remove('editor-search-highlight');
               }, 2000);
-            } else {
-              console.warn(`Image block with data-id="${targetId}" not found`);
             }
           }
         });
@@ -296,7 +426,7 @@ export class EditorJs extends LitElement {
         models = JSON.parse(modelsJson);
       }
       TextureColorLinkTool.setGlobalModelsTexturesAndColors(models, textures, colors);
-      removeLinksByModelIds(models)
+      removeLinksByModelIds(models, this)
     } catch (error) {
       console.error('Error initializing texture selects:', error);
       throw error;

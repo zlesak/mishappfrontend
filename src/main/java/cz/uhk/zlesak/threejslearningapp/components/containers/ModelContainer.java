@@ -10,6 +10,7 @@ import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsLoadingProgress;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -159,6 +160,26 @@ public class ModelContainer extends Div {
                 attachEvent.getUI(),
                 ThreeJsFinishedActions.class,
                 event -> hideOverlayProgressBar()
+        ));
+
+        registrations.add(ComponentUtil.addListener(
+                attachEvent.getUI(),
+                ThreeJsLoadingProgress.class,
+                event -> {
+                    int percent = event.getPercent();
+                    String desc = event.getDescription();
+                    if (percent < 0) {
+                        overlayProgressBar.setIndeterminate(true);
+                    } else {
+                        overlayProgressBar.setIndeterminate(false);
+                        overlayProgressBar.setValue(percent / 100.0);
+                        overlayProgressBar.setVisible(true);
+                    }
+                    if (desc != null && !desc.isBlank()) {
+                        actionDescription.setText(desc);
+                        actionDescription.setVisible(true);
+                    }
+                }
         ));
     }
 

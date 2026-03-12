@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons';
-import { Model } from '../models/Model';
-import type { IAuthHeaders, IModelSwitchResult } from '../types/interfaces';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {OBJLoader} from 'three/addons';
+import {Model} from '../models/Model';
+import type {IAuthHeaders, IModelSwitchResult} from '../types/interfaces';
 
 /**
  * Manages 3D model lifecycle and rendering
- * 
+ *
  * This manager handles all operations related to 3D models:
  * - Registration and storage of model metadata
  * - Loading GLTF/GLB and OBJ files with authentication
@@ -25,6 +25,7 @@ export class ModelManager {
     private models: Model[] = [];
     private scene: THREE.Scene | null;
     private currentModel: Model | null = null;
+    private readonly modelSourceCache = new Map<string, { src: string; objectUrl: string; isGltf: boolean }>();
 
     constructor(scene: THREE.Scene | null) {
         this.scene = scene;
@@ -32,10 +33,10 @@ export class ModelManager {
 
     /**
      * Set or update the Three.js scene reference
-     * 
+     *
      * Called after scene creation to enable rendering
      * Models registered before this call will be available but not displayed until showModelById() is called
-     * 
+     *
      * @param scene - The Three.js scene to render models into
      */
     setScene(scene: THREE.Scene): void {
@@ -43,38 +44,31 @@ export class ModelManager {
     }
 
     /**
-     * Load 3D model with metadata
-     * 
-     * Behavior logic:
-     * - New model: Creates Model object and stores it
-     * - Existing + questionId: Associates additional question with model
-     * - Existing + no questionId: Updates model URL and format
-     * 
-     * 3D data loading happens in showModelById(), not here
-     * 
+     * Load 3D model with metadata.
+     *
+     * The correct loader (GLTF vs OBJ) is determined automatically by reading magic bytes from the file.
+     *
      * @param modelUrl - Base64 encoded model data or remote URL
      * @param modelId - Unique identifier for model lookup
      * @param isMainModel - Whether this is the primary/default model
      * @param questionId - Optional quiz question ID
-     * @param isAdvanced - true for GLTF/GLB, false for OBJ
      */
     async loadModel(
         modelUrl: string,
         modelId: string,
         isMainModel: boolean,
-        questionId: string | null,
-        isAdvanced: boolean
+        questionId: string | null
     ): Promise<void> {
         const existingModel = this.findModel(modelId);
-        
+
         if (!existingModel) {
-            const model = new Model(modelId, modelUrl, isAdvanced, isMainModel, questionId);
+            const model = new Model(modelId, modelUrl, isMainModel, questionId);
             this.models.push(model);
         } else if (questionId) {
             existingModel.addQuestion(questionId);
         } else {
             existingModel.model = modelUrl;
-            existingModel.advanced = isAdvanced;
+            this.clearModelSourceCache(modelId);
         }
     }
 
@@ -82,7 +76,7 @@ export class ModelManager {
      * Remove question from a model
      *
      * Does not affect the model itself, only the question linkage.
-     * 
+     *
      * @param modelId - Model to update
      * @param questionId - Question ID to remove from model's question list
      */
@@ -95,12 +89,12 @@ export class ModelManager {
 
     /**
      * Remove model from scene and completely dispose resources
-     * 
+     *
      * Performs full cleanup:
      * 1. Calls disposal function to free geometries, materials, textures
      * 2. Removes from Three.js scene graph
      * 3. Does NOT remove from model registry! (clearModel to do that)
-     * 
+     *
      * @param modelId - Model to remove
      * @param disposeObjectFn - Disposal function from DisposalManager
      */
@@ -128,19 +122,21 @@ export class ModelManager {
      * @param modelId - Unique identifier of the model to display
      * @param centerCameraFn - Callback function to center camera on the loaded model
      * @param auth - Authentication headers for secure model loading
+     * @param onProgress - Optional callback for progress updates during model loading (percent, description)
      * @returns Promise with result containing the displayed model and last texture ID
      */
     async showModelById(
         modelId: string,
         centerCameraFn: (model: Model) => void,
-        auth: IAuthHeaders
+        auth: IAuthHeaders,
+        onProgress?: (percent: number, description?: string) => void
     ): Promise<IModelSwitchResult> {
         let targetModel = this.findModel(modelId);
 
         if (!targetModel) {
             targetModel = this.models.find(m => m.main) || null;
             if (!targetModel) {
-                return { model: this.currentModel!, lastSelectedTextureId: null };
+                return {model: this.currentModel!, lastSelectedTextureId: null};
             }
         }
 
@@ -152,10 +148,11 @@ export class ModelManager {
             }
         }
 
-        if (targetModel.advanced) {
-            await this.loadAdvancedModel(targetModel, auth);
+        const modelSource = await this.getOrCreateModelSource(targetModel, auth, onProgress);
+        if (modelSource.isGltf) {
+            await this.loadGltfModel(targetModel, auth, modelSource.objectUrl, onProgress);
         } else {
-            await this.loadBasicModel(targetModel, auth);
+            await this.loadObjModel(targetModel, auth, modelSource.objectUrl, onProgress);
         }
 
         if (targetModel.modelLoader && this.scene) {
@@ -166,40 +163,50 @@ export class ModelManager {
         this.currentModel = targetModel;
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        return { model: targetModel, lastSelectedTextureId: null };
+        return {model: targetModel, lastSelectedTextureId: null};
     }
 
     /**
-     * Load advanced model (OBJ format)
-     *
-     * Loads OBJ format models with authentication.
+     * Load OBJ model with authentication.
      * Applies main texture to all mesh materials if available.
-     *
-     * @param model - Model instance containing URL and metadata
-     * @param auth - Authentication headers for secure loading
-     * @returns Promise that resolves when model is fully loaded
      */
-    private async loadAdvancedModel(model: Model, auth: IAuthHeaders): Promise<void> {
-        return new Promise((resolve, reject) => {
+    private async loadObjModel(
+        model: Model,
+        auth: IAuthHeaders,
+        modelSource: string,
+        onProgress?: (percent: number, description?: string) => void
+    ): Promise<void> {
+        return new Promise(async (resolve, reject) => {
             const objLoader = this.createObjLoader(auth);
+            onProgress?.(50, 'Parsing model');
+
             objLoader.load(
-                model.model,
+                modelSource,
                 (obj: any) => {
-                    obj.traverse((child: any) => {
-                        if ((child as THREE.Mesh).isMesh && model.loadedMainTexture) {
-                            const mesh = child as THREE.Mesh;
-                            mesh.material = new THREE.MeshStandardMaterial({ 
-                                map: model.loadedMainTexture 
-                            });
-                            (mesh.material as THREE.Material).needsUpdate = true;
-                        }
-                    });
+                    if (model.loadedMainTexture) {
+                        obj.traverse((child: any) => {
+                            if ((child as THREE.Mesh).isMesh) {
+                                const mesh = child as THREE.Mesh;
+                                mesh.material = new THREE.MeshStandardMaterial({map: model.loadedMainTexture});
+                                (mesh.material as THREE.Material).needsUpdate = true;
+                            }
+                        });
+                    }
                     model.modelLoader = obj;
+                    onProgress?.(100, 'Model loaded');
                     resolve();
                 },
-                undefined,
+                (xhr: ProgressEvent) => {
+                    if (xhr && (xhr as any).lengthComputable) {
+                        const p = Math.round(((xhr as any).loaded / (xhr as any).total) * 100);
+                        onProgress?.(50 + Math.round(p / 2), 'Parsing model');
+                    } else {
+                        onProgress?.(-1, 'Parsing model');
+                    }
+                },
                 (error: any) => {
-                    console.error('Error loading advanced model:', error);
+                    console.error('Error loading OBJ model:', error);
+                    onProgress?.(0, 'Error');
                     reject(error);
                 }
             );
@@ -207,38 +214,171 @@ export class ModelManager {
     }
 
     /**
-     * Load basic model (GLTF format)
-     *
-     * Loads GLTF/GLB format models with authentication.
-     * Centers the geometry of the first child if available.
-     *
-     * @param model - Model instance containing URL and metadata
-     * @param auth - Authentication headers for secure loading
-     * @returns Promise that resolves when model is fully loaded
+     * Load GLTF/GLB model with authentication.
+     * Applies main texture to all mesh materials if available; otherwise keeps embedded materials.
+     * Centers the geometry of the first child if accessible.
      */
-    private async loadBasicModel(model: Model, auth: IAuthHeaders): Promise<void> {
-        return new Promise((resolve, reject) => {
+    private async loadGltfModel(
+        model: Model,
+        auth: IAuthHeaders,
+        modelSource: string,
+        onProgress?: (percent: number, description?: string) => void
+    ): Promise<void> {
+        return new Promise(async (resolve, reject) => {
             const gltfLoader = this.createGltfLoader(auth);
+            onProgress?.(50, 'Parsing model');
             gltfLoader.load(
-                model.model,
+                modelSource,
                 (gltf: any) => {
                     model.modelLoader = gltf.scene;
                     if (model.modelLoader && (model.modelLoader.children[0] as any)?.geometry) {
                         try {
                             ((model.modelLoader.children[0] as any).geometry as THREE.BufferGeometry).center();
                         } catch (e) {
-                            console.error('Error loading basic model:', e);
+                            console.error('Error centering GLTF geometry:', e);
                         }
                     }
+                    if (model.loadedMainTexture) {
+                        model.modelLoader?.traverse((child: any) => {
+                            if ((child as THREE.Mesh).isMesh) {
+                                const mesh = child as THREE.Mesh;
+                                mesh.material = new THREE.MeshStandardMaterial({map: model.loadedMainTexture});
+                                (mesh.material as THREE.Material).needsUpdate = true;
+                            }
+                        });
+                    }
+                    onProgress?.(100, 'Model loaded');
                     resolve();
                 },
-                undefined,
+                (xhr: ProgressEvent) => {
+                    if (xhr && (xhr as any).lengthComputable) {
+                        const p = Math.round(((xhr as any).loaded / (xhr as any).total) * 100);
+                        onProgress?.(50 + Math.round(p / 2), 'Parsing model');
+                    } else {
+                        onProgress?.(-1, 'Parsing model');
+                    }
+                },
                 (error: any) => {
-                    console.error('Error loading basic model:', error);
+                    console.error('Error loading GLTF model:', error);
+                    onProgress?.(0, 'Error');
                     reject(error);
                 }
             );
         });
+    }
+
+    /**
+     * Fetch model data with authentication and progress updates
+     *
+     * Downloads the model file as an ArrayBuffer while providing progress feedback.
+     * Handles both known content length (with progress) and unknown length (indeterminate).
+     * @param modelSrc - URL of the model to download
+     * @param auth - Authentication headers for secure access
+     * @param onProgress - Optional callback for progress updates (percent, description)
+     * @private
+     */
+    private async fetchModelData(
+        modelSrc: string,
+        auth: IAuthHeaders,
+        onProgress?: (percent: number, description?: string) => void
+    ): Promise<ArrayBuffer> {
+        onProgress?.(0, 'Preparing download');
+        const response = await fetch(modelSrc, {headers: auth});
+        if (!response.ok) {
+            throw new Error(`Failed to download model: ${response.status} ${response.statusText}`);
+        }
+
+        const contentLengthHeader = response.headers.get('content-length');
+        const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : NaN;
+        if (!response.body || !Number.isFinite(totalBytes) || totalBytes <= 0) {
+            onProgress?.(-1, 'Downloading model');
+            const data = await response.arrayBuffer();
+            onProgress?.(50, 'Download complete');
+            return data;
+        }
+
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let loadedBytes = 0;
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) {
+                break;
+            }
+
+            if (value) {
+                chunks.push(value);
+                loadedBytes += value.length;
+                const percent = Math.max(1, Math.min(50, Math.round((loadedBytes / totalBytes) * 50)));
+                onProgress?.(percent, 'Downloading model');
+            }
+        }
+
+        const data = new Uint8Array(loadedBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+            data.set(chunk, offset);
+            offset += chunk.length;
+        }
+        onProgress?.(50, 'Download complete');
+        return data.buffer;
+    }
+
+    private async getOrCreateModelSource(
+        model: Model,
+        auth: IAuthHeaders,
+        onProgress?: (percent: number, description?: string) => void
+    ): Promise<{ src: string; objectUrl: string; isGltf: boolean }> {
+        const cached = this.modelSourceCache.get(model.id);
+        if (cached && cached.src === model.model) {
+            onProgress?.(50, 'Using cached model data');
+            return cached;
+        }
+
+        if (cached) {
+            URL.revokeObjectURL(cached.objectUrl);
+        }
+
+        const modelData = await this.fetchModelData(model.model, auth, onProgress);
+        const prepared = {
+            src: model.model,
+            objectUrl: URL.createObjectURL(new Blob([modelData])),
+            isGltf: this.isGltfFormat(modelData)
+        };
+        this.modelSourceCache.set(model.id, prepared);
+        return prepared;
+    }
+
+    private clearModelSourceCache(modelId: string): void {
+        const cached = this.modelSourceCache.get(modelId);
+        if (cached) {
+            URL.revokeObjectURL(cached.objectUrl);
+            this.modelSourceCache.delete(modelId);
+        }
+    }
+
+    /**
+     * Detects GLB/GLTF format from already downloaded model data.
+     * Falls back to false (OBJ) if the content is unknown.
+     */
+    private isGltfFormat(modelData: ArrayBuffer): boolean {
+        try {
+            const bytes = new Uint8Array(modelData);
+            if (bytes.length >= 4
+                && bytes[0] === 0x67
+                && bytes[1] === 0x6C
+                && bytes[2] === 0x54
+                && bytes[3] === 0x46) {
+                return true;
+            }
+
+            const sampleLength = Math.min(bytes.length, 2048);
+            const sample = new TextDecoder().decode(bytes.subarray(0, sampleLength)).trim();
+            return sample.startsWith('{') && sample.includes('"asset"') && sample.includes('"version"');
+        } catch {
+            return false;
+        }
     }
 
     /**
@@ -318,6 +458,7 @@ export class ModelManager {
         if (index !== -1) {
             this.models.splice(index, 1);
         }
+        this.clearModelSourceCache(modelId);
     }
 
     /**
@@ -330,5 +471,7 @@ export class ModelManager {
         this.models.forEach(model => model.dispose());
         this.models = [];
         this.currentModel = null;
+        this.modelSourceCache.forEach(cache => URL.revokeObjectURL(cache.objectUrl));
+        this.modelSourceCache.clear();
     }
 }

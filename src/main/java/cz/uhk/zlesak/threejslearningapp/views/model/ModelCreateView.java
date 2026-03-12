@@ -5,21 +5,18 @@ import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.*;
-import com.vaadin.flow.server.VaadinSession;
+import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelCreateEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 
 /**
- * View for creating a new 3D model.
+ * View for creating or updating a 3D model.
  * Extends AbstractModelView and provides functionality to upload and create models.
  */
 @Slf4j
@@ -29,7 +26,7 @@ import org.springframework.context.annotation.Scope;
 @RolesAllowed(value = "TEACHER")
 public class ModelCreateView extends AbstractModelView {
     private String modelId;
-    private QuickModelEntity quickModelEntity;
+    private ModelEntity modelEntity;
 
     /**
      * Constructor for ModelCreateView.
@@ -42,124 +39,114 @@ public class ModelCreateView extends AbstractModelView {
     }
 
     /**
-     * Overridden beforeEnter function to check if the modelId parameter is present in the URL.
-     * If present, it attempts to load the model for editing.
-     * @param event before navigation event with event details
+     * Checks for the optional {@code modelId} route parameter.
+     * When present the view enters edit mode: the full {@link ModelEntity} is loaded from the
+     * backend via {@link ModelService#read}, giving access to all textures and their CSV content.
      */
     @Override
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
         modelId = parameters.get("modelId").orElse(null);
-        if(modelId != null) {
-            //TODO remove after BE implementation of geting model by modelEntityId
-            if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
-                this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
-                if (!modelId.equals(quickModelEntity.getModel().getId())) {
-                    log.error("Error loading model for editing, modelId mismatch: {}", modelId);
+        if (modelId != null) {
+            try {
+                this.modelEntity = service.read(modelId);
+                if (this.modelEntity == null) {
+                    log.error("Model not found for editing: {}", modelId);
                     skipBeforeLeaveDialog = true;
-                    throw new NotFoundException("Model identification and session data mismatch");
+                    throw new NotFoundException("Model not found: " + modelId);
                 }
-            } else {
-                log.error("Error loading model for editing, not in session: {}", modelId);
+            } catch (NotFoundException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Error loading model for editing: {}", modelId, e);
                 skipBeforeLeaveDialog = true;
-                throw new NotFoundException("Model not in session");
+                throw new NotFoundException("Could not load model: " + modelId);
             }
         }
     }
 
     /**
      * Overridden afterNavigation function to load the model data if modelId is present.
+     * In edit mode pre-fills the form name, downloads existing files, and loads the model preview.
      * @param event after navigation event with event details
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (modelId != null && quickModelEntity != null) {
-            loadSingleModelWithTextures(quickModelEntity, null, null, true);
+        if (modelId != null && modelEntity != null) {
+            modelUploadForm.getModelName().setValue(modelEntity.getName() != null ? modelEntity.getName() : "");
+            prefillFormFiles();
+            loadSingleModelWithTextures(modelEntity, null, null, true);
         }
     }
 
     /**
-     * Uploads the model based on the form data.
-     * Determines if it's an advanced upload (with textures) or basic upload.
+     * Downloads the existing model file, main texture, and other textures from the BE and pre-fills the upload form.
+     * Download errors are logged but non-fatal – the user can re-upload any file.
+     */
+    private void prefillFormFiles() {
+        try {
+            ModelService.ModelPrefillData prefillData = service.buildPrefillData(modelEntity);
+            modelUploadForm.prefillExistingFiles(prefillData.modelFile(), prefillData.mainTexture(), prefillData.otherTextures(), prefillData.csvFiles());
+        } catch (Exception e) {
+            log.error("Could not download model file for prefill: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Uploads (create) or replaces (update) the model.
+     * Textures are optional for both GLB and OBJ models.
      */
     private void uploadModel() {
-        QuickModelEntity quickModelEntity;
         try {
-            if (modelUploadForm.getModelName().getValue() == null || modelUploadForm.getModelName().getValue().trim().isEmpty()) {
-                throw new ApplicationContextException(text("model.upload.error.emptyName"));
+            UI ui = UI.getCurrent();
+            if (ui == null) {
+                throw new IllegalStateException("UI is not available");
             }
-            if (modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()) {
-                throw new ApplicationContextException(text("model.upload.error.emptyModelFile"));
-            }
-            if (modelUploadForm.getIsAdvanced().getValue()) {
-                if (modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()) {
-                    throw new ApplicationContextException(text("model.upload.error.emptyModelMainTexture"));
+            String modelName = modelUploadForm.getModelName().getValue();
+            InputStreamMultipartFile modelFile = modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()
+                    ? null
+                    : modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst();
+            InputStreamMultipartFile mainTexture = modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()
+                    ? null
+                    : modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst();
+
+            modelDiv.renderer.getThumbnailDataUrl("modelId", 256, 256, dataUrl -> {
+                try {
+                    String savedEntityId = service.saveFromUpload(
+                            modelEntity != null ? modelEntity.getMetadataId() : null,
+                            modelName,
+                            modelFile,
+                            mainTexture,
+                            modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
+                            modelUploadForm.getCsvFileUpload().getUploadedFiles(),
+                            dataUrl
+                    );
+                    ui.access(() -> {
+                        showSuccessNotification();
+                        navigateToModelDetailView(savedEntityId);
+                    });
+                } catch (Exception e) {
+                    log.error("Unexpected error while saving model", e);
+                    ui.access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
                 }
-                quickModelEntity = service.create(
-                        ModelEntity.builder()
-                                .name(modelUploadForm.getModelName().getValue().trim())
-                                .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
-                                .fullMainTexture(
-                                        TextureEntity.builder()
-                                                .textureFile(
-                                                        modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst()
-                                                ).build()
-                                )
-                                .fullOtherTextures(
-                                        modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles()
-                                                .stream()
-                                                .map(file -> TextureEntity.builder().textureFile(file).build())
-                                                .collect(java.util.stream.Collectors.toList())
-                                )
-                                .csvFiles(modelUploadForm.getCsvFileUpload().getUploadedFiles())
-                                .isAdvanced(true)
-                                .build()
-                );
-            } else {
-                quickModelEntity = service.create(
-                        ModelEntity.builder()
-                                .name(modelUploadForm.getModelName().getValue().trim())
-                                .inputStreamMultipartFile(modelUploadForm.getObjFileUpload().getUploadedFiles().getFirst())
-                                .isAdvanced(false)
-                                .build()
-                );
-            }
-            showSuccessNotification();
-            navigateToModelDetailView(quickModelEntity);
-        } catch (ApplicationContextException e) {
-            showErrorNotification(text("notification.uploadError"), e.getMessage());
+            });
         } catch (Exception e) {
-            log.error("Unexpected error while uploading model", e);
             showErrorNotification(text("notification.uploadError"), e.getMessage());
         }
     }
 
-    /**
-     * Navigates to the model detail view for the given model.
-     * Uses VaadinSession to temporarily store the model data.
-     * TODO: Replace session storage with proper route parameters once backend supports it
-     *
-     * @param quickModelEntity the model to display
-     */
-    private void navigateToModelDetailView(QuickModelEntity quickModelEntity) {
+    private void navigateToModelDetailView(String id) {
         skipBeforeLeaveDialog = true;
-        VaadinSession.getCurrent().setAttribute("quickModelEntity", quickModelEntity);
-        UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", quickModelEntity.getModel().getId())));
+        UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", id)));
     }
 
-    /**
-     * Registers the model create event listener when the view is attached.
-     *
-     * @param attachEvent the attach event
-     */
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelCreateEvent.class,
-                event ->  uploadModel()
+                event -> uploadModel()
         ));
     }
 }

@@ -41,7 +41,7 @@ public abstract class TextureListingDataParser {
                         }
                         return textures.stream()
                                 .map(texture -> new TextureListingForSelect(
-                                        texture.getTextureFileId(),
+                                        texture.getId(),
                                         modelId,
                                         texture.getName()));
                     })

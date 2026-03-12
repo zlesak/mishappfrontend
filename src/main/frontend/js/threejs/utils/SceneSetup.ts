@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons';
-import {Model} from '../models/Model';
 
 /**
  * Static factory methods for Three.js scene initialization
@@ -72,13 +71,13 @@ export class SceneSetup {
      * 
      * Ambient light provides base illumination from all directions ensuring models are visible without shadows
      * 
-     * Default: White light (0xffffff) at full intensity (1.0)
+     * Default: White light (0xffffff) at intensity value of 5
      * 
      * @param color - Light color as hex (default: white)
      * @param intensity - Light strength 0-1+ (default: 1)
      * @returns AmbientLight instance
      */
-    static createAmbientLight(color: number = 0xffffff, intensity: number = 1): THREE.AmbientLight {
+    static createAmbientLight(color: number = 0xffffff, intensity: number = 5): THREE.AmbientLight {
         return new THREE.AmbientLight(color, intensity);
     }
 
@@ -115,43 +114,44 @@ export class SceneSetup {
     }
 
     /**
-     * Automatically center camera on model with optimal viewing distance
-     * 
-     * Calculates model bounding box and positions camera to show entire model.
-     * Camera distance is based on model size.
+     * Calculate optimal camera position to fit a bounding box into the view.
      *
-     * 1. Compute axis-aligned bounding box
-     * 2. Find center point
-     * 3. Get size
-     * 4. Position camera at size.length() distance
-     * 5. Offset Y by 0.5 * size for slight top-down view
-     * 6. Point camera at center
-     * 7. Update controls target to center
-     * 
-     * This ensures models of any size are properly framed.
-     * 
-     * @param camera - Camera to reposition
-     * @param controls - Controls to update target
-     * @param model - Model to center on
+     * This helper computes a target camera position and center point so that
+     * the provided bounding box fits entirely into the camera frustum taking
+     * into account FOV and aspect ratio. It does not perform animation itself
+     * (animation should be done by the caller if needed).
+     *
+     * @param camera - Perspective camera
+     * @param controls - OrbitControls instance (used to obtain current direction)
+     * @param box - Bounding box to fit
+     * @param margin - Optional margin multiplier (default 1.2)
+     * @returns Object with center (Vector3) and targetPos (Vector3)
      */
-    static centerCameraOnModel(
+    static fitCameraToBox(
         camera: THREE.PerspectiveCamera,
         controls: OrbitControls,
-        model: Model
-    ): void {
-        if (!model.modelLoader) return;
-
-        const box = new THREE.Box3().setFromObject(model.modelLoader);
+        box: THREE.Box3,
+        margin: number = 1.2
+    ): { center: THREE.Vector3; targetPos: THREE.Vector3 } {
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        camera.position.copy(center);
-        camera.position.x += size.length();
-        camera.position.y += size.length() * 0.5;
-        camera.position.z += size.length();
-        camera.lookAt(center);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = THREE.MathUtils.degToRad(camera.fov);
 
-        controls.target.copy(center);
-        controls.update();
+        const distanceV = (maxDim) / (2 * Math.tan(fov / 2));
+        const distanceH = (maxDim * camera.aspect) / (2 * Math.tan(fov / 2));
+
+        let distance = Math.max(distanceV, distanceH);
+        distance = distance * margin;
+
+        const direction = camera.position.clone().sub(controls.target || new THREE.Vector3()).normalize();
+        if (direction.lengthSq() === 0) {
+            direction.set(1, 0.5, 1).normalize();
+        }
+
+        const targetPos = center.clone().add(direction.multiplyScalar(distance));
+
+        return { center, targetPos };
     }
 }

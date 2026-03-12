@@ -5,14 +5,11 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
-import com.vaadin.flow.server.VaadinSession;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
-
-import java.util.Objects;
 
 /**
  * ModelDetailView for displaying a 3D model entity detail
@@ -25,7 +22,6 @@ import java.util.Objects;
 @Scope("prototype")
 @PermitAll
 public class ModelDetailView extends AbstractModelView {
-    private QuickModelEntity quickModelEntity;
 
     /**
      * Constructor for ModelDetailView.
@@ -38,7 +34,6 @@ public class ModelDetailView extends AbstractModelView {
      * Handles actions before entering the view.
      * It checks for the presence of a modelId parameter and attempts to load the corresponding model.
      * If the modelId is missing or invalid, it forwards the user to the ModelListView.
-     * When coming from a creation view, the model is expected to be in the session.
      *
      * @param event before navigation event with event details
      */
@@ -47,20 +42,10 @@ public class ModelDetailView extends AbstractModelView {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty()) {
             event.forwardTo(ModelListingView.class);
+            return;
         }
 
         if (parameters.get("modelId").orElse(null) == null) {
-            event.forwardTo(ModelListingView.class);
-        }
-
-        //TODO remove after BE implementation of geting model by modelEntityId
-        if (VaadinSession.getCurrent().getAttribute("quickModelEntity") != null) {
-            this.quickModelEntity = (QuickModelEntity) VaadinSession.getCurrent().getAttribute("quickModelEntity");
-            if (!Objects.equals(this.quickModelEntity.getModel().getId(), parameters.get("modelId").get())) {
-                VaadinSession.getCurrent().setAttribute("quickModelEntity", null);
-                event.forwardTo(ModelListingView.class);
-            }
-        } else {
             event.forwardTo(ModelListingView.class);
         }
     }
@@ -73,6 +58,7 @@ public class ModelDetailView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        loadSingleModelWithTextures(quickModelEntity, null, null, true);
+        ModelEntity model = service.read(event.getRouteParameters().get("modelId").orElse(null));
+        loadSingleModelWithTextures(model, null, null, true);
     }
 }

@@ -12,7 +12,9 @@
   "page.title.quizView" : "MISH - Kvíz",
   "page.title.quizListView" : "MISH - Kvízy",
   "page.title.administrationView" : "MISH - Administrační centrum",
+  "page.title.documentation" : "MISH - Dokumentace",
 
   "page.info.noItemsFound" : "Nebyly nalezeny žádné položky.",
+  "page.info.quizResultsInfo" : "Výsledky předchozích pokusů.",
   "page.info.errorLoadingItems" : "Chyba při načítání položek."
 }

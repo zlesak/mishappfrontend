@@ -2,12 +2,8 @@ package cz.uhk.zlesak.threejslearningapp.components.forms;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.textfield.TextField;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateModelButton;
 import cz.uhk.zlesak.threejslearningapp.components.containers.UploadLabelContainer;
@@ -17,6 +13,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
 import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
+import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -27,10 +24,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * ModelUploadFormScroller is a custom Vaadin component that provides a form for uploading 3D models and their associated textures.
- * It extends the Scroller component to allow vertical scrolling of the form content.
- * The form includes fields for the model name, a checkbox for advanced upload options, and upload components for the model file and textures.
- * It also includes event handling for successful uploads and file removals, allowing integration with other parts of the application.
+ * ModelUploadForm is a custom Vaadin component for uploading 3D models and their associated textures.
+ * Both GLB and OBJ formats are accepted. Textures (main, other, CSV) are always optional and
+ * visible regardless of file type – the loader is selected on the Three.js side from the file extension.
  */
 @Slf4j
 public class ModelUploadForm extends Scroller implements I18nAware {
@@ -38,8 +34,6 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     protected final VerticalLayout vl = new VerticalLayout();
     @Getter
     protected final TextField modelName;
-    @Getter
-    protected final Checkbox isAdvanced;
     protected final UploadLabelContainer uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv;
     @Getter
     protected final FileUpload objFileUpload, mainTextureFileUpload, otherTexturesFileUpload, csvFileUpload;
@@ -51,77 +45,50 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     private String modelFileName = null;
     protected List<String> otherTexturesUrls = new ArrayList<>();
     protected List<String> csvBase64 = new ArrayList<>();
-    protected final Button createButton;
+    protected final CreateModelButton createButton;
 
     /**
-     * Constructor for ModelUploadFormScroller.
-     * Initializes the form components, sets up event listeners for upload success and file removal,
-     * and configures the layout and visibility of the form elements.
+     * Constructor for ModelUploadForm.
      */
     public ModelUploadForm() {
         super(Scroller.ScrollDirection.VERTICAL);
         setContent(vl);
-        objFileUpload = new FileUpload(List.of(".glb"), true, false);
+        objFileUpload = new FileUpload(List.of(".glb", ".obj"), true, false);
         mainTextureFileUpload = new FileUpload(List.of(".jpg"), true, true);
         otherTexturesFileUpload = new FileUpload(List.of(".jpg"), false, true);
         csvFileUpload = new FileUpload(List.of(".csv"), false, false);
 
         modelName = new NameTextField("modelUploadForm.modelName.placeholder");
 
-        isAdvanced = new Checkbox(text("modelUploadForm.isAdvanced.label"), false);
-        isAdvanced.setTooltipText(text("modelUploadForm.isAdvanced.tooltip"));
-        isAdvanced.addValueChangeListener(e -> {
-            if (e.getValue()) {
-                showAdvancedModelUpload();
-            } else {
-                hideAdvancedModelUpload();
-            }
-        });
-
         uploadModelDiv = new UploadLabelContainer(objFileUpload, text("modelUploadForm.uploadModel.label"));
         uploadMainTextureDiv = new UploadLabelContainer(mainTextureFileUpload, text("modelUploadForm.mainTexture.label"));
         uploadOtherTexturesDiv = new UploadLabelContainer(otherTexturesFileUpload, text("modelUploadForm.otherTextures.label"));
         csvOtherTexturesDiv = new UploadLabelContainer(csvFileUpload, text("modelUploadForm.csvTextures.label"));
+        uploadOtherTexturesDiv.setEnabled(false);
+        csvOtherTexturesDiv.setEnabled(false);
 
         createButton = new CreateModelButton(this);
 
         objFileUpload.setUploadListener(
                 (fileName, inputStreamMultipartFile) -> {
-                    isAdvanced.setReadOnly(true);
-                    String contentType;
-                    if (fileName.toLowerCase().endsWith(".obj") || isAdvanced.getValue()) {
-                        contentType = "text/plain";
-                    } else {
-                        contentType = "model/gltf-binary";
-                    }
+                    String contentType = fileName.toLowerCase().endsWith(".obj") ? "text/plain" : "model/gltf-binary";
                     modelUrl = createDataUrl(fileName, contentType, inputStreamMultipartFile.getInputStream());
-
                     modelFileName = fileName;
-
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MODEL, "main", modelUrl, modelFileName, true, null, isAdvanced.getValue(), true));
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MODEL, "main", modelUrl, modelFileName, true, null, true));
                 }
         );
 
         objFileUpload.addFileRemovedListener(event -> {
             ComponentUtil.fireEvent(UI.getCurrent(), new RemoveFileEvent(UI.getCurrent(), "modelId", FileType.MODEL, "modelId", true));
-            isAdvanced.setReadOnly(false);
-            mainTextureFileUpload.clear();
-            otherTexturesFileUpload.clear();
-            modelUrl = null;
-            textureUrl = null;
-            otherTexturesUrls.clear();
         });
 
         mainTextureFileUpload.setUploadListener(
                 (fileName, inputStreamMultipartFile) -> {
-                    isAdvanced.setReadOnly(true);
                     uploadOtherTexturesDiv.setEnabled(true);
                     csvOtherTexturesDiv.setEnabled(true);
                     textureUrl = createDataUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
                     textureName = fileName;
-
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MAIN, "main", textureUrl, textureName, true, null, isAdvanced.getValue(), true));
-
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.MAIN, "main", textureUrl, textureName, true, null, true));
                     this.quickTextureEntityMap.put("main",
                             QuickTextureEntity.builder()
                                     .name(fileName)
@@ -137,18 +104,13 @@ public class ModelUploadForm extends Scroller implements I18nAware {
             this.quickTextureEntityMap.remove("main");
             uploadOtherTexturesDiv.setEnabled(false);
             csvOtherTexturesDiv.setEnabled(false);
-            textureUrl = null;
         });
 
         otherTexturesFileUpload.setUploadListener(
                 (fileName, inputStreamMultipartFile) -> {
                     textureUrl = createDataUrl(fileName, "image/jpeg", inputStreamMultipartFile.getInputStream());
                     otherTexturesUrls.add(textureUrl);
-                    Map<String, String> otherTextures = new HashMap<>();
-                    otherTextures.put(fileName, textureUrl);
-
-                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.OTHER, fileName, textureUrl, fileName, true, null, isAdvanced.getValue()));
-
+                    ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.OTHER, fileName, textureUrl, fileName, true, null));
                     this.quickTextureEntityMap.put(fileName,
                             QuickTextureEntity.builder()
                                     .name(fileName)
@@ -163,17 +125,14 @@ public class ModelUploadForm extends Scroller implements I18nAware {
             this.quickTextureEntityMap.remove(event.getFileName());
         });
 
-
         csvFileUpload.setUploadListener(
                 (fileName, uploadedMultipartFile) -> {
-                    String base64;
                     try (InputStream inputStream = uploadedMultipartFile.getInputStream()) {
-                        base64 = Base64.getEncoder().encodeToString(inputStream.readAllBytes());
+                        String base64 = Base64.getEncoder().encodeToString(inputStream.readAllBytes());
                         csvBase64.add(base64);
                         String csvContent = new String(Base64.getDecoder().decode(base64), StandardCharsets.UTF_8);
                         csvUploaded(fileName, csvContent);
-                        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.CSV, toJpgName(fileName), csvContent, fileName, true,null,  isAdvanced.getValue()));
-
+                        ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), "modelId", FileType.CSV, toJpgName(fileName), csvContent, fileName, true, null));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -181,37 +140,18 @@ public class ModelUploadForm extends Scroller implements I18nAware {
         );
 
         csvFileUpload.addFileRemovedListener(event -> {
-            String fileName = event.getFileName();
-            csvDeleted(fileName);
+            csvDeleted(event.getFileName());
             ComponentUtil.fireEvent(UI.getCurrent(), new RemoveFileEvent(UI.getCurrent(), "modelId", FileType.CSV, toJpgName(event.getFileName()), true));
-
         });
-
-        hideAdvancedModelUpload();
 
         modelName.setWidthFull();
         modelName.getStyle().set("min-width", "0");
-        isAdvanced.getStyle().set("white-space", "nowrap");
-        HorizontalLayout topHorizontalLayout = new HorizontalLayout(modelName, isAdvanced);
-        topHorizontalLayout.setWidthFull();
-        topHorizontalLayout.setVerticalComponentAlignment(FlexComponent.Alignment.CENTER, isAdvanced);
-        topHorizontalLayout.setFlexGrow(1, modelName);
-        topHorizontalLayout.setFlexGrow(0, isAdvanced);
-        topHorizontalLayout.getStyle().set("min-width", "0");
 
         vl.setWidthFull();
         vl.setPadding(false);
-        vl.add(topHorizontalLayout, uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv, createButton);
+        vl.add(modelName, uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv, createButton);
     }
 
-    /**
-     * Converts file data to a data URL (base64 encoded).
-     *
-     * @param fileName    name of the file
-     * @param contentType content type of the file
-     * @param inputStream file in input stream format
-     * @return data URL with base64 encoded content
-     */
     private String createDataUrl(String fileName, String contentType, InputStream inputStream) {
         try {
             byte[] fileBytes = inputStream.readAllBytes();
@@ -223,13 +163,6 @@ public class ModelUploadForm extends Scroller implements I18nAware {
         }
     }
 
-    /**
-     * Converts a given filename to a .jpg filename by replacing its extension.
-     * If the filename has no extension, it appends .jpg to the end.
-     *
-     * @param filename the original filename
-     * @return the filename with a .jpg extension
-     */
     private static String toJpgName(String filename) {
         int dot = filename.lastIndexOf('.');
         String base = dot > 0 ? filename.substring(0, dot) : filename;
@@ -237,55 +170,35 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     }
 
     /**
-     * Shows the advanced model upload options, allowing the user to upload an OBJ model with multiple textures.
-     * Adjusts the accepted file types and visibility of texture upload components accordingly.
-     */
-    private void showAdvancedModelUpload() {
-        objFileUpload.setAcceptedFileTypes(List.of(".obj"));
-        uploadMainTextureDiv.setVisible(true);
-        uploadOtherTexturesDiv.setVisible(true);
-        csvOtherTexturesDiv.setVisible(true);
-        uploadOtherTexturesDiv.setEnabled(false);
-        csvOtherTexturesDiv.setEnabled(false);
-    }
-
-    /**
-     * Hides the advanced model upload options, restricting the user to upload only a GLB model.
-     * Adjusts the accepted file types and visibility of texture upload components accordingly.
-     */
-    private void hideAdvancedModelUpload() {
-        objFileUpload.setAcceptedFileTypes(List.of(".glb"));
-        uploadMainTextureDiv.setVisible(false);
-        uploadOtherTexturesDiv.setVisible(false);
-        csvOtherTexturesDiv.setVisible(false);
-    }
-
-    /**
-     * Sets the form to listing mode, making all input fields read-only and disabling upload components.
-     * This mode is intended for viewing existing models without the ability to modify them.
-     */
-    public void listingMode() {
-        modelName.setReadOnly(true);
-        isAdvanced.setReadOnly(true);
-        objFileUpload.setEnabled(false);
-        uploadModelDiv.setVisible(false);
-        mainTextureFileUpload.setEnabled(false);
-        uploadMainTextureDiv.setVisible(false);
-        otherTexturesFileUpload.setEnabled(false);
-        uploadOtherTexturesDiv.setVisible(false);
-        csvFileUpload.setEnabled(false);
-        csvOtherTexturesDiv.setVisible(false);
-        createButton.setEnabled(false);
-        createButton.setVisible(false);
-    }
-
-
-    /**
-     * Handles the event when a CSV file is uploaded.
+     * Pre-fills the form with files already stored in the backend (edit mode).
+     * Each file is injected into its respective upload component.
      *
-     * @param name       the name of the uploaded CSV file
-     * @param csvContent the content of the uploaded CSV file
+     * @param modelFile     the existing model file
+     * @param mainTexture   the existing main texture
+     * @param otherTextures existing additional textures
+     * @param csvFiles      existing CSV files
      */
+    public void prefillExistingFiles(InputStreamMultipartFile modelFile,
+                                     InputStreamMultipartFile mainTexture,
+                                     List<InputStreamMultipartFile> otherTextures,
+                                     List<InputStreamMultipartFile> csvFiles) {
+        createButton.setUpdateMode();
+        if (modelFile != null) {
+            objFileUpload.addPrefilledFile(modelFile);
+        }
+        if (mainTexture != null) {
+            mainTextureFileUpload.addPrefilledFile(mainTexture);
+            uploadOtherTexturesDiv.setEnabled(true);
+        }
+        if (otherTextures != null) {
+            otherTextures.forEach(otherTexturesFileUpload::addPrefilledFile);
+            csvOtherTexturesDiv.setEnabled(true);
+        }
+        if (csvFiles != null) {
+            csvFiles.forEach(csvFileUpload::addPrefilledFile);
+        }
+    }
+
     private void csvUploaded(String name, String csvContent) {
         String key = toJpgName(name);
         this.csvMap.put(key, csvContent);
@@ -294,11 +207,6 @@ public class ModelUploadForm extends Scroller implements I18nAware {
         }
     }
 
-    /**
-     * Handles the event when a CSV file is deleted.
-     *
-     * @param name the name of the deleted CSV file
-     */
     private void csvDeleted(String name) {
         String key = toJpgName(name);
         this.csvMap.remove(key);

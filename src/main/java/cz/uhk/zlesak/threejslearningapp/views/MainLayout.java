@@ -3,27 +3,30 @@ package cz.uhk.zlesak.threejslearningapp.views;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
+import com.vaadin.flow.component.contextmenu.MenuItem;
 import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.menubar.MenuBar;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.router.Layout;
-import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.spring.security.AuthenticationContext;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import com.vaadin.flow.theme.lumo.LumoUtility.*;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LoginButton;
-import cz.uhk.zlesak.threejslearningapp.components.buttons.LogoutButton;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.ThemeModeToggleButton;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.AvatarListItem;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.MenuListItem;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.CookiesNotification;
 import cz.uhk.zlesak.threejslearningapp.views.administration.AdministrationView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
+import cz.uhk.zlesak.threejslearningapp.views.documentation.DocumentationView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizListingView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
@@ -51,7 +54,6 @@ public class MainLayout extends AppLayout {
      * @return the header component
      */
     private Component createHeaderContent() {
-        AuthenticationContext authenticationContext = VaadinService.getCurrent().getInstantiator().getOrCreate(AuthenticationContext.class);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         /// Header item component wrapper
         Header header = new Header();
@@ -66,11 +68,11 @@ public class MainLayout extends AppLayout {
         nav.addClassNames(Display.FLEX, Overflow.AUTO, Padding.Horizontal.MEDIUM, Padding.Vertical.XSMALL, Margin.End.AUTO, AlignItems.START);
         /// UL for items of the navigation
         UnorderedList list = new UnorderedList();
-        list.addClassNames(Display.FLEX, Gap.SMALL, ListStyleType.NONE, Margin.NONE, Padding.NONE);
+        list.addClassNames(Display.FLEX, Gap.XSMALL, ListStyleType.NONE, Margin.NONE, Padding.NONE);
         nav.add(list);
         layout.add(nav);
         /// For loop for inserting the menu items into the UL wrapper
-        for (MenuListItem menuItem : createMenuItems(authentication)) {
+        for (MenuListItem menuItem : commonMenuItemsForLoggedUsers()) {
             list.add(menuItem);
         }
 
@@ -88,31 +90,14 @@ public class MainLayout extends AppLayout {
         });
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
-            String username = authentication.getPrincipal() instanceof OidcUser oidcUser ?( oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
-            layout.add(new AvatarListItem(username, getUserRoleName(authentication), new LogoutButton()));
+            String username = authentication.getPrincipal() instanceof OidcUser oidcUser ? (oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
+            layout.add(createUserMenu(authentication, username));
         } else {
             LoginButton loginButton = new LoginButton();
             layout.add(loginButton);
         }
         header.add(layout);
         return header;
-    }
-
-    /**
-     * Creates the menu items based on the user's authentication and roles.
-     *
-     * @param authentication the authentication object of the current user
-     * @return the list of menu items
-     */
-    private List<MenuListItem> createMenuItems(Authentication authentication) {
-        List<MenuListItem> menuItems = commonMenuItemsForLoggedUsers();
-        if (authentication != null && authentication.getAuthorities() != null) {
-            if (authentication.getAuthorities().stream().anyMatch(auth ->
-                    "ROLE_ADMIN".equals(auth.getAuthority()) || "ROLE_TEACHER".equals(auth.getAuthority()))) {
-                menuItems.add(new MenuListItem("Administrační centrum", VaadinIcon.COG.create(), AdministrationView.class));
-            }
-        }
-        return menuItems;
     }
 
     /**
@@ -133,38 +118,48 @@ public class MainLayout extends AppLayout {
     }
 
     /**
-     * Gets the user role name based on the authentication object.
-     *
-     * @param authentication the authentication object of the current user
-     * @return the user role name
-     */
-    private String getUserRoleName(Authentication authentication) {
-        if (authentication != null && authentication.getAuthorities() != null) {
-            for (GrantedAuthority authority : authentication.getAuthorities()) {
-                switch (authority.getAuthority()) {
-                    case "ROLE_ADMIN":
-                        return "Administrátor";
-                    case "ROLE_TEACHER":
-                        return "Učitel";
-                    case "ROLE_STUDENT":
-                        return "Student";
-                }
-            }
-            log.warn("User {} has no recognized roles. Authorities: {}",
-                    authentication.getName(),
-                    authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
-            return "Uživatel";
-        }
-        log.warn("Authentication is null or has no authorities");
-        return "Uživatel";
-    }
-
-    /**
      * Shows the cookie notification to the user.
      *
      */
     private void showCookieNotification() {
         CookiesNotification notification = new CookiesNotification();
         notification.open();
+    }
+
+    private Component createUserMenu(Authentication authentication, String username) {
+
+        MenuBar menuBar = new MenuBar();
+
+
+        HorizontalLayout avatarLayout = new HorizontalLayout();
+        avatarLayout.getStyle().set("cursor", "pointer");
+
+        AvatarListItem avatar = new AvatarListItem(username);
+
+        Icon dropdownIcon = VaadinIcon.ELLIPSIS_DOTS_V.create();
+        dropdownIcon.addClassNames(LumoUtility.TextColor.SECONDARY);
+        dropdownIcon.setSize("1rem");
+
+        avatarLayout.add(avatar, dropdownIcon);
+        avatarLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+        MenuItem userItem = menuBar.addItem(avatarLayout);
+
+        var subMenu = userItem.getSubMenu();
+
+        subMenu.addItem(new HorizontalLayout(VaadinIcon.QUESTION.create(), new Span("Dokumentace")),
+                e -> UI.getCurrent().navigate(DocumentationView.class));
+
+        if (authentication.getAuthorities().stream().anyMatch(auth ->
+                "ROLE_ADMIN".equals(auth.getAuthority()) || "ROLE_TEACHER".equals(auth.getAuthority()))) {
+
+            subMenu.addItem(new HorizontalLayout(VaadinIcon.COG.create(), new Span("Administrační centrum")),
+                    e -> UI.getCurrent().navigate(AdministrationView.class));
+        }
+
+        subMenu.addItem(new HorizontalLayout(VaadinIcon.SIGN_OUT.create(), new Span("Odhlásit se")),
+                e -> UI.getCurrent().getPage().setLocation("/custom-logout"));
+
+        return menuBar;
     }
 }

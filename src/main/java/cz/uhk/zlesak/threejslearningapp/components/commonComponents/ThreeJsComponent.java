@@ -13,12 +13,17 @@ import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsFinishedActions;
+import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsLoadingProgress;
 import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * This component integrates Three.js into a Vaadin application.
@@ -33,8 +38,17 @@ import java.util.List;
 @org.springframework.stereotype.Component
 public class ThreeJsComponent extends Component {
 
+    private static final long PROGRESS_EVENT_MIN_INTERVAL_MS = 150;
+    private static final long ACTION_EVENT_MIN_INTERVAL_MS = 200;
+
     private Runnable onDisposedCallback;
     protected final List<Registration> registrations = new ArrayList<>();
+    private ExecutorService jsDispatchExecutor;
+    private long lastProgressEventAtMs = 0L;
+    private int lastProgressPercent = Integer.MIN_VALUE;
+    private String lastProgressDescription = null;
+    private long lastDoingActionAtMs = 0L;
+    private String lastDoingActionDescription = null;
 
     /**
      * Default constructor for ThreeJsComponent.
@@ -43,13 +57,42 @@ public class ThreeJsComponent extends Component {
         addAttachListener(e -> init());
     }
 
+    private synchronized ExecutorService ensureJsDispatchExecutor() {
+        if (jsDispatchExecutor == null || jsDispatchExecutor.isShutdown()) {
+            ThreadFactory tf = runnable -> {
+                Thread t = new Thread(runnable, "threejs-js-dispatch");
+                t.setDaemon(true);
+                return t;
+            };
+            jsDispatchExecutor = Executors.newSingleThreadExecutor(tf);
+        }
+        return jsDispatchExecutor;
+    }
+
+    private synchronized void shutdownJsDispatchExecutor() {
+        if (jsDispatchExecutor != null) {
+            jsDispatchExecutor.shutdownNow();
+            jsDispatchExecutor = null;
+        }
+    }
+
+    private void dispatchJsAsync(String script, Serializable... args) {
+        final UI ui = getUI().orElse(null);
+        if (ui == null || !isAttached()) return;
+
+        ensureJsDispatchExecutor().submit(() -> ui.access(() -> {
+            if (!isAttached()) return;
+            getElement().executeJs(script, args);
+        }));
+    }
+
     /**
      * Initializes the Three.js component by executing the JavaScript initialization function.
      * This method is called automatically when the component is created.
      * Further initialization is done in the JavaScript side, where the Three.js scene, camera, and renderer are set up.
      */
     private void init() {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.initThree === 'function') {
                         window.initThree($0);
@@ -70,7 +113,7 @@ public class ThreeJsComponent extends Component {
      */
     public void dispose(SerializableRunnable onDisposed) {
         this.onDisposedCallback = onDisposed;
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 window.disposeThree($0).then(() => {
                     $1.$server.notifyDisposed();
                 })
@@ -90,31 +133,27 @@ public class ThreeJsComponent extends Component {
     }
 
     /**
-     * Loads an advanced 3D model into the Three.js scene.
-     * This method expects two base64 encoded strings: one for the object data and one for the texture data.
-     * It calls the JavaScript function loadAdvancedModel to handle the loading process.
-     * This method is used for models that require both an object file and a texture file.
-     * This allows for models to be loaded into the scene with multiple textures.
-     * This loading methods needs only the main texture, as other may not be provided.
-     * Other textures can be added later using the addOtherTexture method.
+     * Loads a 3D model into the Three.js scene.
+     * The correct loader (GLTF vs OBJ) is determined on the JS side by reading magic bytes.
      *
-     * @param modelUrl the base64 encoded string of the model data.
-     * @param modelId  id of the loaded model.
+     * @param modelUrl  the base64 encoded string or URL of the model data.
+     * @param modelId   id of the loaded model.
+     * @param mainModel whether this is the primary model.
      */
-    private void loadModel(String modelUrl, String modelId, boolean mainModel, boolean advanced, String... questionId) {
-        getElement().executeJs("""
+    private void loadModel(String modelUrl, String modelId, boolean mainModel, String... questionId) {
+        dispatchJsAsync("""
                 try {
                     if (typeof window.loadModel === 'function') {
-                        window.loadModel($0, $1, $2, $3, $4, $5).then(_ => {});
+                        window.loadModel($0, $1, $2, $3, $4).then(_ => {});
                     }
                 } catch (e) {
-                    console.error('[JS] Error in loadAdvancedModel:', e);
+                    console.error('[JS] Error in loadModel:', e);
                 }
-                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null, advanced);
+                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null);
     }
 
     private void removeModel(String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.removeModel === 'function') {
                         window.removeModel($0, $1);
@@ -135,7 +174,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId     id of the loaded model.
      */
     private void addMainTexture(String mainTexture, String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.addMainTexture === 'function') {
                         window.addMainTexture($0, $1, $2).then(_ => {});
@@ -154,7 +193,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId id of the loaded model.
      */
     private void removeMainTexture(String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.removeMainTexture === 'function') {
                         window.removeMainTexture($0, $1).then(_ => {});
@@ -176,7 +215,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId         identification of the model the texture belongs to
      */
     private void addOtherTexture(String otherTextureUrl, String textureId, String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.addOtherTexture === 'function') {
                         window.addOtherTexture($0, $1, $2, $3).then(_ =>{});
@@ -198,7 +237,7 @@ public class ThreeJsComponent extends Component {
      */
     private void removeOtherTexture(String modelId, String textureId) {
         if (textureId.isEmpty() || modelId.isEmpty()) return;
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.removeOtherTexture === 'function') {
                         window.removeOtherTexture($0, $1, $2).then(_ => {});
@@ -219,7 +258,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId   identification of the model the texture belongs to
      */
     private void switchOtherTexture(String modelId, String textureId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.switchOtherTexture === 'function') {
                         window.switchOtherTexture($0, $1, $2).then(_ => {});
@@ -238,7 +277,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId identification of the model to be displayed
      */
     private void showModel(String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.showModel === 'function') {
                         window.showModel($0, $1).then(_ => {});
@@ -251,7 +290,7 @@ public class ThreeJsComponent extends Component {
     }
 
     private void switchToMainTexture(String modelId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.switchToMainTexture === 'function') {
                         window.switchToMainTexture($0, $1).then(_ => {});
@@ -275,10 +314,10 @@ public class ThreeJsComponent extends Component {
      *
      */
     private void applyMaskToMainTexture(String modelId, String textureId, String maskColor) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.applyMaskToMainTexture === 'function') {
-                        window.applyMaskToMainTexture($0, $1, $2, $3, $4).then(_ => {});
+                        window.applyMaskToMainTexture($0, $1, $2, $3).then(_ => {});
                     }
                 } catch (e) {
                     console.error('[JS] Error in applyMaskToMainTexture:', e);
@@ -292,7 +331,7 @@ public class ThreeJsComponent extends Component {
      * @param modelId identification of the model to be cleared
      */
     private void clearModel(String modelId, String questionId) {
-        getElement().executeJs("""
+        dispatchJsAsync("""
                 try {
                     if (typeof window.clearModel === 'function') {
                         window.clearModel($0, $1, $2, $3).then(_ => {});
@@ -301,6 +340,43 @@ public class ThreeJsComponent extends Component {
                     console.error('[JS] Error in clearModel:', e);
                 }
                 """, getElement(), modelId, questionId, false);
+    }
+
+    /**
+     * Retrieves a thumbnail image of the specified model in the Three.js scene.
+     * This method calls the JavaScript function getThumbnail to handle the thumbnail generation process.
+     * The generated thumbnail is returned as a data URL, which can be used to display the thumbnail image in the UI.
+     * @param modelId identification of the model for which the thumbnail is to be generated.
+     * @param width the desired width of the generated thumbnail image.
+     * @param height the desired height of the generated thumbnail image.
+     * @param callback a callback function that will be called with the generated thumbnail data URL once it is ready.
+     */
+    public void getThumbnailDataUrl(String modelId, int width, int height, java.util.function.Consumer<String> callback) {
+        this.thumbnailCallback = callback;
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.getThumbnail === 'function') {
+                        window.getThumbnail($0, $1, $2, $3).then(dataUrl => {
+                            $4.$server.onThumbnailReady(dataUrl);
+                        });
+                    } else {
+                        $4.$server.onThumbnailReady(null);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in getThumbnailDataUrl:', e);
+                    $4.$server.onThumbnailReady(null);
+                }
+                """, getElement(), modelId, width, height, this);
+    }
+
+    private java.util.function.Consumer<String> thumbnailCallback;
+
+    @ClientCallable
+    private void onThumbnailReady(String dataUrl) {
+        if (thumbnailCallback != null) {
+            thumbnailCallback.accept(dataUrl);
+            thumbnailCallback = null;
+        }
     }
 
     /**
@@ -323,9 +399,20 @@ public class ThreeJsComponent extends Component {
 
     /**
      * This method is called from the JavaScript side when the renderer starts performing actions.
+     *
+     * @param actionDescription a description of the actions being performed, which can be displayed in the UI to inform the user about the ongoing process.
      */
     @ClientCallable
     public void doingActions(String actionDescription) {
+        long now = System.currentTimeMillis();
+        if (actionDescription != null
+                && actionDescription.equals(lastDoingActionDescription)
+                && (now - lastDoingActionAtMs) < ACTION_EVENT_MIN_INTERVAL_MS) {
+            return;
+        }
+
+        lastDoingActionAtMs = now;
+        lastDoingActionDescription = actionDescription;
         ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(this, actionDescription));
     }
 
@@ -335,6 +422,32 @@ public class ThreeJsComponent extends Component {
     @ClientCallable
     public void finishedActions() {
         ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsFinishedActions(this));
+    }
+
+    /**
+     * This method is called from the JavaScript side to report loading progress (0..100).
+     * If percent < 0, indicates indeterminate progress.
+     *
+     * @param percent     the loading progress percentage (0..100), or negative for indeterminate progress.
+     * @param description a description of the current loading step, which can be displayed in the
+     */
+    @ClientCallable
+    public void loadingProgress(int percent, String description) {
+        long now = System.currentTimeMillis();
+        boolean intervalElapsed = (now - lastProgressEventAtMs) >= PROGRESS_EVENT_MIN_INTERVAL_MS;
+        boolean changedValue = percent != lastProgressPercent
+                || (description != null && !description.equals(lastProgressDescription))
+                || (description == null && lastProgressDescription != null);
+        boolean terminal = percent >= 100 || percent < 0;
+
+        if (!terminal && !intervalElapsed && !changedValue) {
+            return;
+        }
+
+        lastProgressEventAtMs = now;
+        lastProgressPercent = percent;
+        lastProgressDescription = description;
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsLoadingProgress(this, percent, description));
     }
 
     /**
@@ -351,6 +464,7 @@ public class ThreeJsComponent extends Component {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+        ensureJsDispatchExecutor();
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
@@ -358,7 +472,7 @@ public class ThreeJsComponent extends Component {
                 event -> {
                     switch (event.getFileType()) {
                         case MODEL -> {
-                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.isAdvanced(), event.getQuestionId());
+                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.getQuestionId());
                             if (event.isFromClient()){
                                 showModel(event.getModelId());
                             }
@@ -417,5 +531,6 @@ public class ThreeJsComponent extends Component {
         super.onDetach(detachEvent);
         registrations.forEach(Registration::remove);
         registrations.clear();
+        shutdownJsDispatchExecutor();
     }
 }

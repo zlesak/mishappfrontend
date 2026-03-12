@@ -5,7 +5,7 @@ import * as THREE from 'three';
  */
 export interface IModelData {
     id: string;
-    advanced: boolean;
+    modelName: string;
     model: string;
     mainTexture: string | null;
     otherTextures: ITextureData[];
@@ -66,6 +66,7 @@ export interface IVaadinServer {
     finishedActions?: () => void;
     getToken?: () => Promise<string>;
     onColorPicked?: (modelId: string, textureId: string | null, color: string, questionId: string | null) => void;
+    loadingProgress?: (percent: number, description?: string) => void;
 }
 
 /**

@@ -7,6 +7,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.shared.Registration;
+import cz.uhk.zlesak.threejslearningapp.domain.model.FileSenseType;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestionData;
@@ -38,9 +39,18 @@ public class TextureClickQuestionRendererComponent extends AbstractQuestionRende
         selectColorButton.addClickListener(e -> {
 
                     var quickModelEntity = QuickModelEntity.builder()
-                            .model(ModelFileEntity.builder().id(question.getModelId()).build())
+                            .metadataId(question.getModelId())
+                            .model(ModelFileEntity.builder()
+                                    .id(question.getModelId())
+                                    .related(List.of(
+                                            ModelFileEntity.builder()
+                                                    .id(question.getTextureId())
+                                                    .senseType(FileSenseType.OTHER_TEXTURE)
+                                                    .build()
+                                    ))
+                                    .build())
                             .otherTextures(List.of(
-                                    QuickTextureEntity.builder().textureFileId(question.getTextureId()).build()
+                                    QuickTextureEntity.builder().id(question.getTextureId()).build()
                             ))
                             .isAdvanced(true)
                             .build();

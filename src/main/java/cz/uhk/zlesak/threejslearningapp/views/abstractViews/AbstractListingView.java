@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -94,17 +95,21 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
 
         itemListLayout.addClassNames(
                 LumoUtility.Display.GRID,
+                LumoUtility.Grid.Column.COLUMNS_1,
+                LumoUtility.Grid.Breakpoint.Small.COLUMNS_2,
+                LumoUtility.Grid.Breakpoint.Medium.COLUMNS_3,
+                LumoUtility.Grid.Breakpoint.Large.COLUMNS_4,
+                LumoUtility.Grid.Breakpoint.XLarge.COLUMNS_5,
                 LumoUtility.Gap.MEDIUM,
                 LumoUtility.Padding.MEDIUM
         );
-        itemListLayout.getStyle().set("grid-template-columns", "repeat(auto-fill, minmax(350px, 1fr))");
 
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
         listScroller.setSizeFull();
 
         paginationLayout.addClassNames(
                 LumoUtility.AlignItems.CENTER,
-                LumoUtility.Padding.MEDIUM
+                LumoUtility.Padding.SMALL
         );
 
         listingLayout.setFlexGrow(1, listScroller);
@@ -137,13 +142,26 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     /**
      * Lists entities based on the current filter parameters and updates the UI components.
      */
-    public void listEntities() {
+    public void listEntities(String... additionalInfo) {
         itemListLayout.removeAll();
         paginationLayout.removeAll();
 
         try {
             PageResult<Q> pageResult = service.readEntities(filterParameters);
             List<Q> entities = pageResult.elements().stream().toList();
+
+            if (additionalInfo.length > 0) {
+                itemListLayout.add(new NoItemInfoComponent(additionalInfo[0]));
+            }
+
+            if (additionalInfo.length > 1) {
+                itemListLayout.removeClassNames(
+                        LumoUtility.Grid.Breakpoint.Small.COLUMNS_2,
+                        LumoUtility.Grid.Breakpoint.Medium.COLUMNS_3,
+                        LumoUtility.Grid.Breakpoint.Large.COLUMNS_4,
+                        LumoUtility.Grid.Breakpoint.XLarge.COLUMNS_5
+                );
+            }
 
             if (entities.isEmpty()) {
                 itemListLayout.add(new NoItemInfoComponent("page.info.noItemsFound"));
@@ -167,12 +185,18 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
             ));
         } catch (Exception e) {
             log.error("Error while listing entities: ", e);
-            itemListLayout.add(new ErrorDialog(
+            itemListLayout.add(asFullGridWidth(new ErrorDialog(
                     VaadinIcon.WARNING,
                     "Interní chyba",
                     "Neočekávaná interní chyba aplikace.",
-                    "Pro více informací kontaktujte správce aplikace."));
+                    "Pro více informací kontaktujte správce aplikace.")));
         }
+    }
+
+    private <T extends Component> T asFullGridWidth(T component) {
+        component.getStyle().set("grid-column", "1 / -1");
+        component.getStyle().set("width", "100%");
+        return component;
     }
 
     /**

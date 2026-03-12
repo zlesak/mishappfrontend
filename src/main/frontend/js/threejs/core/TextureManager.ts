@@ -23,42 +23,61 @@ import type { IAuthHeaders, IMaskResult, IModelSwitchResult, IRGB } from '../typ
 export class TextureManager {
     /**
      * Load texture from URL with Bearer token authentication
-     * 
+     *
      * Uses FileLoader to support authenticated requests (unlike TextureLoader).
      * Converts blob response to HTMLImageElement for THREE.Texture compatibility.
-     * 
+     *
      * Process:
      * 1. FileLoader fetches with auth headers
      * 2. Response as Blob
      * 3. Creates object URL from Blob
      * 4. Loads into HTMLImageElement
      * 5. Wraps in THREE.Texture
-     * 
+     *
      * @param url - Texture URL (can be base64 or remote)
      * @param auth - Authentication headers object (e.g., { Authorization: "Bearer ..." })
+     * @param onProgress - Optional callback for progress updates (percent, description)
      * @returns THREE.Texture ready for material application
      * @throws Error if texture loading fails
      */
-    async loadTextureWithAuth(url: string, auth: IAuthHeaders): Promise<THREE.Texture> {
+    async loadTextureWithAuth(url: string, auth: IAuthHeaders, onProgress?: (percent: number, description?: string) => void): Promise<THREE.Texture> {
         return new Promise((resolve, reject) => {
             const fileLoader = new THREE.FileLoader();
             fileLoader.setResponseType('blob');
             (fileLoader as any).setRequestHeader(auth);
+            onProgress?.(0, 'Preparing download');
 
             fileLoader.load(
                 url,
                 (data: string | ArrayBuffer) => {
                     const blob = data as unknown as Blob;
                     const img = document.createElement('img');
-                    img.src = URL.createObjectURL(blob);
-                    
-                    const texture = new THREE.Texture();
-                    texture.image = img;
-                    texture.needsUpdate = true;
-                    
-                    resolve(texture);
+                    const objectUrl = URL.createObjectURL(blob);
+                    img.onload = () => {
+                        try {
+                            const texture = new THREE.Texture();
+                            texture.image = img;
+                            texture.needsUpdate = true;
+                            onProgress?.(100, 'Texture loaded');
+                            resolve(texture);
+                        } finally {
+                            URL.revokeObjectURL(objectUrl);
+                        }
+                    };
+                    img.onerror = (err) => {
+                        URL.revokeObjectURL(objectUrl);
+                        reject(err);
+                    };
+                    img.src = objectUrl;
                 },
-                undefined,
+                (xhr: ProgressEvent) => {
+                    if (xhr && (xhr as any).lengthComputable) {
+                        const p = Math.round(((xhr as any).loaded / (xhr as any).total) * 100);
+                        onProgress?.(p, 'Downloading texture');
+                    } else {
+                        onProgress?.(-1, 'Downloading texture');
+                    }
+                },
                 (error: any) => {
                     console.error('Error loading texture:', error);
                     reject(error);
@@ -69,16 +88,17 @@ export class TextureManager {
 
     /**
      * Add or update the main texture for a model
-     * 
+     *
      * The main texture is the base texture that is displayed by default when model loads
      * Can have masks applied to highlight areas
-     * 
+     *
      * @param textureUrl - Texture data (base64 or URL)
      * @param model - Target model to receive texture
      * @param auth - Authentication headers for secure loading
+     * @param onProgress - Optional callback for progress updates (percent, description)
      */
-    async addMainTexture(textureUrl: string, model: Model, auth: IAuthHeaders): Promise<void> {
-        const texture = await this.loadTextureWithAuth(textureUrl, auth);
+    async addMainTexture(textureUrl: string, model: Model, auth: IAuthHeaders, onProgress?: (percent: number, description?: string) => void): Promise<void> {
+        const texture = await this.loadTextureWithAuth(textureUrl, auth, onProgress);
         model.setMainTexture(textureUrl, texture);
     }
 
@@ -102,19 +122,21 @@ export class TextureManager {
      * @param textureId - Unique identifier for this texture
      * @param model - Target model to receive texture
      * @param auth - Authentication headers for secure loading
+     * @param onProgress - Optional callback for progress updates (percent, description)
      */
     async addOtherTexture(
         textureUrl: string,
         textureId: string,
         model: Model,
-        auth: IAuthHeaders
+        auth: IAuthHeaders,
+        onProgress?: (percent: number, description?: string) => void
     ): Promise<void> {
         if (model.hasOtherTexture(textureId)) {
             console.error('addOtherTexture: textureId already present', textureId);
             return;
         }
         
-        const texture = await this.loadTextureWithAuth(textureUrl, auth);
+        const texture = await this.loadTextureWithAuth(textureUrl, auth, onProgress);
         model.addOtherTexture(textureId, texture);
     }
 
@@ -165,7 +187,7 @@ export class TextureManager {
      * @returns Promise with model and last selected texture ID (null for main texture)
      */
     async switchToMainTexture(model: Model): Promise<IModelSwitchResult> {
-        if (!model.advanced) {
+        if (!model.loadedMainTexture) {
             return { model, lastSelectedTextureId: null };
         }
         
@@ -208,13 +230,15 @@ export class TextureManager {
      * @param textureId - ID of the mask texture in model's other textures
      * @param maskColor - Hex color string (e.g., "#ff0000") for highlighted areas
      * @param renderFn - Callback function to trigger scene re-render after mask is applied
+     * @param opacity - Opacity of the mask application (default: 0.5)
      * @returns Promise with result containing model, texture ID, and optional 3D mask center position, or null if main texture not found
      */
     async applyMaskToMainTexture(
         model: Model,
         textureId: string,
         maskColor: string,
-        renderFn: () => void
+        renderFn: () => void,
+        opacity: number = 0.5
     ): Promise<IMaskResult | null> {
         if (!model.loadedMainTexture) {
             return null;
@@ -263,10 +287,17 @@ export class TextureManager {
 
         await new Promise<void>((resolve, reject) => {
             worker.onmessage = async (e: MessageEvent) => {
-                const { mainData: resultData } = e.data;
-                for (let i = 0; i < resultData.length; i++) {
-                    mainImageData.data[i] = resultData[i];
+                if (e.data && e.data.error) {
+                    console.error('Worker error message:', e.data.error);
+                    worker.terminate();
+                    reject(new Error(e.data.error));
+                    return;
                 }
+
+                const resultBuffer: ArrayBuffer = e.data.mainData;
+                const resultArray = new Uint8ClampedArray(resultBuffer);
+
+                mainImageData.data.set(resultArray);
                 ctx.putImageData(mainImageData, 0, 0);
 
                 const resultTexture = new THREE.CanvasTexture(resultCanvas);
@@ -282,7 +313,7 @@ export class TextureManager {
                 reject(e);
             };
 
-            worker.postMessage({ mainData, maskData, maskColorRgb, width, height });
+            worker.postMessage({ mainData: mainData.buffer, maskData: maskData.buffer, maskColorRgb, width, height, opacity }, [mainData.buffer, maskData.buffer]);
         });
 
         const maskCenter = this.findMaskCenterOn3DSurface(

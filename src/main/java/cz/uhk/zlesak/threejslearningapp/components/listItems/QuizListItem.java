@@ -34,7 +34,7 @@ public class QuizListItem extends AbstractListItem {
 
         titleSpan.setText(quiz.getName());
 
-        if (quiz.getTimeLimit() != null && quiz.getTimeLimit() > 0) {
+        if (quiz.getTimeLimit() != null) {
             HorizontalLayout timeLimitRow = new HorizontalLayout();
             timeLimitRow.addClassNames(LumoUtility.Gap.XSMALL, LumoUtility.AlignItems.CENTER);
 
@@ -43,8 +43,10 @@ public class QuizListItem extends AbstractListItem {
 
             Span label = new Span("Časový limit:");
             label.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
-
-            String timeText = quiz.getTimeLimit() + " " + (quiz.getTimeLimit() == 1 ? "minuta" : quiz.getTimeLimit() < 5 ? "minuty" : "minut");
+            String timeText = "Bez limitu";
+            if (quiz.getTimeLimit() > 0){
+                timeText = quiz.getTimeLimit() + " " + (quiz.getTimeLimit() == 1 ? "minuta" : quiz.getTimeLimit() < 5 ? "minuty" : "minut");
+            }
             Span value = new Span(timeText);
             value.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.SEMIBOLD);
 

@@ -64,6 +64,7 @@ public class QuizResultView extends AbstractQuizView {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty() || parameters.get("quizId").isEmpty() || parameters.get("back").isEmpty()) {
             event.forwardTo(QuizListingView.class);
+            return;
         }
         quizId = parameters.get("quizId").get();
         redirect = parameters.get("back").get();

@@ -11,10 +11,12 @@ import cz.uhk.zlesak.threejslearningapp.components.scrollers.ChapterContentScrol
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ModelsSelectScroller;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
+import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * AbstractChapterView is an abstract base class for views related to chapter management, including creating, editing, and viewing chapters.
@@ -31,6 +33,7 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
     protected final EditorJs editorjs;
     protected final NameTextField nameTextField = new NameTextField("chapter.title");
     protected ChapterTabSheetContainer secondaryNavigation = null;
+    private ModelService modelService;
     private final boolean createMode;
 
     /**
@@ -39,8 +42,8 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      * @param pageTitleKey the title key for the page
      * @param service      the chapter service for handling chapter operations
      */
-    public AbstractChapterView(String pageTitleKey, ChapterService service) {
-        this(pageTitleKey, false, true, service);
+    public AbstractChapterView(String pageTitleKey, ChapterService service, ModelService modelService) {
+        this(pageTitleKey, false, true, service, modelService);
     }
 
     /**
@@ -52,8 +55,9 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      * @param skipBeforeLeaveDialog indicates if the before-leave dialog should be skipped
      * @param service               the chapter service for handling chapter operations
      */
-    public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service) {
+    public AbstractChapterView(String pageTitleKey, boolean createChapterMode, boolean skipBeforeLeaveDialog, ChapterService service, ModelService modelService) {
         super(pageTitleKey, skipBeforeLeaveDialog, service);
+        this.modelService = modelService;
         editorjs = new EditorJs(createChapterMode);
         ChapterContentScroller chapterContentScroller = new ChapterContentScroller(editorjs);
         ModelsSelectScroller modelsScroller = new ModelsSelectScroller();
@@ -81,8 +85,19 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     protected void setupData(Map<String, QuickModelEntity> quickModelEntityMap) {
         loadModelsWithTextures(quickModelEntityMap);
-        if (createMode) {
-            editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
+        editorjs.initializeTextureSelects(quickModelEntityMap);
+    }
+
+    /**
+     * Loads multiple models along with their associated textures by firing UploadFileEvent events.
+     *
+     * @param quickModelEntityMap a map of model IDs to QuickModelEntity objects
+     */
+    protected void loadModelsWithTextures(Map<String, QuickModelEntity> quickModelEntityMap) {
+        for (Map.Entry<String, QuickModelEntity> entry : quickModelEntityMap.entrySet()) {
+            QuickModelEntity fullEntity = modelService.read(entry.getValue().getMetadataId());
+            entry.setValue(fullEntity);
+            loadSingleModelWithTextures(fullEntity, null, entry.getKey(), Objects.equals(entry.getKey(), "main"));
         }
     }
 

@@ -30,15 +30,16 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
     /**
      * Constructor for AbstractListItem.
      * Initializes the layout and components for list items.
+     *
      * @param listView indicates whether the item is displayed in list view mode or select mode
-     * @param icon the icon to display in the header
+     * @param icon     the icon to display in the header
      */
     public AbstractListItem(boolean listView, boolean administrationView, VaadinIcon icon) {
         addClassNames(
-            LumoUtility.Background.CONTRAST_5,
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Border.ALL,
-            LumoUtility.BorderColor.CONTRAST_10
+                LumoUtility.Background.CONTRAST_5,
+                LumoUtility.BorderRadius.MEDIUM,
+                LumoUtility.Border.ALL,
+                LumoUtility.BorderColor.CONTRAST_10
         );
         setWidthFull();
         setPadding(false);
@@ -48,50 +49,59 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         headerIcon.addClassNames(LumoUtility.IconSize.MEDIUM);
 
         titleSpan.addClassNames(
-            LumoUtility.FontSize.LARGE,
-            LumoUtility.FontWeight.SEMIBOLD
+                LumoUtility.FontSize.LARGE,
+                LumoUtility.FontWeight.SEMIBOLD
         );
+
+        titleSpan.setWidthFull();
+        applyEllipsis(titleSpan);
 
         headerLayout.addClassNames(
-            LumoUtility.Padding.MEDIUM,
-            LumoUtility.Gap.SMALL,
-            LumoUtility.AlignItems.CENTER,
-            LumoUtility.Background.BASE
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.Gap.SMALL,
+                LumoUtility.AlignItems.CENTER,
+                LumoUtility.Background.BASE
         );
+
         headerLayout.setWidthFull();
         headerLayout.add(headerIcon, titleSpan);
+        headerLayout.expand(titleSpan);
 
         details.addClassNames(
-            LumoUtility.Padding.MEDIUM,
-            LumoUtility.Gap.SMALL
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.Gap.SMALL
         );
         details.setPadding(true);
         details.setSpacing(true);
 
         openButton = getOpenButton(listView);
-        selectButton = getSeletButton(listView);
+        selectButton = getSelectButton(listView);
         editButton = getEditButton(administrationView);
         deleteButton = getDeleteButton(administrationView);
 
         actionsLayout.addClassNames(
-            LumoUtility.Padding.MEDIUM,
-            LumoUtility.Gap.SMALL,
-            LumoUtility.JustifyContent.END,
-            LumoUtility.Background.CONTRAST_5,
-            LumoUtility.BorderColor.CONTRAST_10
+                LumoUtility.Padding.MEDIUM,
+                LumoUtility.Gap.SMALL,
+                LumoUtility.JustifyContent.END,
+                LumoUtility.Background.CONTRAST_5,
+                LumoUtility.BorderColor.CONTRAST_10
         );
+
         actionsLayout.setWidthFull();
         actionsLayout.add(deleteButton, editButton, selectButton, openButton);
 
         add(headerLayout, details, actionsLayout);
     }
 
-    /**
-     * Creates and returns the select button.
-     * @param listView indicates whether the item is displayed in list view mode or select mode
-     * @return the select button
-     */
-    private Button getSeletButton(boolean listView) {
+    protected void applyEllipsis(Span span) {
+        span.getStyle()
+                .set("white-space", "nowrap")
+                .set("overflow", "hidden")
+                .set("text-overflow", "ellipsis")
+                .set("min-width", "0");
+    }
+
+    private Button getSelectButton(boolean listView) {
         Button selectButton = new Button(text("button.select"));
         selectButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         selectButton.setVisible(!listView);
@@ -100,19 +110,28 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
 
     /**
      * Creates and returns the open button.
+     *
      * @param listView indicates whether the item is displayed in list view mode or select mode
      * @return the open button
      */
     private Button getOpenButton(boolean listView) {
         Button button = new Button(text("button.open"));
-        if (listView) {
-            button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        } else {
-            button.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
+
+        if(!listView) {
+            button = new Button(text("button.open"), VaadinIcon.EXTERNAL_BROWSER.create());
         }
+        button.addThemeVariants(listView
+                ? ButtonVariant.LUMO_PRIMARY
+                : ButtonVariant.LUMO_CONTRAST);
         return button;
     }
 
+    /**
+     * Creates and returns the edit button.
+     *
+     * @param administrationView indicates whether the item is displayed in administration view mode, which determines the visibility of the edit button
+     * @return the edit button
+     */
     private Button getEditButton(boolean administrationView) {
         Button editButton = new Button(text("button.edit"));
         editButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
@@ -120,6 +139,12 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         return editButton;
     }
 
+    /**
+     * Creates and returns the delete button.
+     *
+     * @param administrationView indicates whether the item is displayed in administration view mode, which determines the visibility of the delete button
+     * @return the delete button
+     */
     private Button getDeleteButton(boolean administrationView) {
         Button deleteButton = new Button(text("button.delete"));
         deleteButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
@@ -129,6 +154,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
 
     /**
      * Sets the click listener for the select button.
+     *
      * @param listener the click event listener
      */
     public void setSelectButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
@@ -137,18 +163,25 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
 
     /**
      * Sets the click listener for the open button.
+     *
      * @param listener the click event listener
      */
     public void setOpenButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
         openButton.addClickListener(listener);
     }
 
+    /**
+     * Sets the click listener for the edit button.
+     *
+     * @param listener the click event listener
+     */
     public void setEditButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
         editButton.addClickListener(listener);
     }
 
     /**
      * Sets the click listener for the delete button.
+     *
      * @param listener the click event listener
      */
     public void setDeleteButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {

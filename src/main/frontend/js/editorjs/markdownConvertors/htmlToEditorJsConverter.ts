@@ -175,9 +175,8 @@ function convertParagraph(element: HTMLElement): OutputBlockData | null {
         const href = link.getAttribute('href');
         const linkText = link.textContent?.trim() || '';
 
-        if (href && (isImageFile(href))) {
-            // Extract target filename without extension for data-target-id
-            const targetId = href.replace(/^.*\//, '').replace(/\.[^.]+$/, '');
+        if (href && isImageFile(href) && !isAbsoluteUrl(href)) {
+            const targetId = normalizeTargetId(href);
 
             return {
                 type: 'paragraph',
@@ -202,26 +201,46 @@ function convertParagraph(element: HTMLElement): OutputBlockData | null {
 }
 
 function convertImage(img: HTMLImageElement): OutputBlockData {
-    const src = img.getAttribute('src') || '';
+    const src = (img.getAttribute('src') || '').trim();
     const alt = img.getAttribute('alt') || '';
-    const dataFilename = img.getAttribute('data-filename');
+    const title = img.getAttribute('title') || '';
+    let dataFilename = img.getAttribute('data-filename');
 
-    // Extract filename for data-id
-    const filename = dataFilename || src.split('/').pop() || '';
-    const dataId = filename.replace(/\.[^.]+$/, '');
+    if (!dataFilename) {
+        if (/^data:/i.test(src)) {
+            if (isImageFile(alt)) {
+                dataFilename = alt;
+            } else if (isImageFile(title)) {
+                dataFilename = title;
+            }
+        } else {
+            dataFilename = src.split('/').pop() || '';
+        }
+    }
+
+    if (!dataFilename && isImageFile(alt)) {
+        dataFilename = alt;
+    }
+
+    const dataId = normalizeTargetId(dataFilename || '');
+
+    const blockData: any = {
+        file: {
+            url: src
+        },
+        caption: alt || '',
+        withBorder: false,
+        withBackground: false,
+        stretched: false
+    };
+
+    if (dataId) {
+        blockData.interlink = dataId;
+    }
 
     return {
         type: 'image',
-        data: {
-            file: {
-                url: src
-            },
-            caption: alt || '',
-            withBorder: false,
-            withBackground: false,
-            stretched: false,
-            'data-id': dataId
-        }
+        data: blockData
     };
 }
 
@@ -269,7 +288,27 @@ function convertTable(table: HTMLTableElement): OutputBlockData {
 }
 
 function getInnerHTML(element: HTMLElement): string {
-    let html = element.innerHTML;
+    const clone = element.cloneNode(true) as HTMLElement;
+
+    const links = clone.querySelectorAll('a');
+    links.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href) {
+            if (isImageFile(href) && !isAbsoluteUrl(href)) {
+                const targetId = normalizeTargetId(href);
+                if (targetId) {
+                    link.setAttribute('data-target-id', targetId);
+                    link.setAttribute('href', '#');
+                    link.removeAttribute('target');
+                }
+            } else if (isAbsoluteUrl(href)) {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noreferrer');
+            }
+        }
+    });
+
+    let html = clone.innerHTML;
 
     // Preserve formatting
     html = html.replace(/<strong>/gi, '<b>');
@@ -286,6 +325,21 @@ function getInnerHTML(element: HTMLElement): string {
     html = html.replace(/\s+/g, ' ').trim();
 
     return html;
+}
+
+function normalizeTargetId(path: string): string {
+    const filename = path.split('/').pop() || '';
+    let id = filename.replace(/\.[^.]+$/, '');
+    // This fixes the mismatch from moodle-mod_book export: 'text' -> 'test' suffix
+    // Could be irrelevant in some chapter and this mechanism won't work at others that the text one received from LFHK
+    if (id.endsWith('text')) {
+        id = id.substring(0, id.length - 4) + 'test';
+    }
+    return id;
+}
+
+function isAbsoluteUrl(url: string): boolean {
+    return /^(?:[a-z]+:)?\/\//i.test(url);
 }
 
 function isImageFile(filename: string): boolean {

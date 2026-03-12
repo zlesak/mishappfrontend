@@ -11,19 +11,10 @@ import lombok.Getter;
 @Getter
 public class ModelCreateEvent extends ComponentEvent<UI> {
     private final String modelName;
-    private final boolean isAdvanced;
 
-    /**
-     * Constructor for ModelCreateEvent.
-     *
-     * @param source      the UI that fired the event
-     * @param modelName   the name of the model to create
-     * @param isAdvanced  whether this is an advanced upload (with textures)
-     */
-    public ModelCreateEvent(UI source, String modelName, boolean isAdvanced) {
+    public ModelCreateEvent(UI source, String modelName) {
         super(source, false);
         this.modelName = modelName;
-        this.isAdvanced = isAdvanced;
     }
 }
 

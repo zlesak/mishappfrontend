@@ -13,14 +13,35 @@ export async function searchInEditor(editor: any, searchText: string, editorRead
 function highlightTextRecursive(node: Node, searchText: string) {
   if (node.nodeType === Node.TEXT_NODE) {
     const textContent = node.textContent || '';
-    const regex = new RegExp(`(${searchText})`, 'gi');
-    if (regex.test(textContent)) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = textContent.replace(regex, `<span class="editor-search-highlight" match="true">$1</span>`);
-      while (tempDiv.firstChild) {
-        node.parentNode?.insertBefore(tempDiv.firstChild, node);
+    const escapedSearchText = escapeRegExp(searchText);
+    if (!escapedSearchText) return;
+
+    const regex = new RegExp(escapedSearchText, 'gi');
+    if (regex.test(textContent) && node.parentNode) {
+      const fragment = document.createDocumentFragment();
+      let lastIndex = 0;
+      regex.lastIndex = 0;
+
+      for (const match of textContent.matchAll(regex)) {
+        const index = match.index ?? 0;
+        if (index > lastIndex) {
+          fragment.appendChild(document.createTextNode(textContent.slice(lastIndex, index)));
+        }
+
+        const span = document.createElement('span');
+        span.className = 'editor-search-highlight';
+        span.setAttribute('match', 'true');
+        span.textContent = match[0];
+        fragment.appendChild(span);
+
+        lastIndex = index + match[0].length;
       }
-      node.parentNode?.removeChild(node);
+
+      if (lastIndex < textContent.length) {
+        fragment.appendChild(document.createTextNode(textContent.slice(lastIndex)));
+      }
+
+      node.parentNode.replaceChild(fragment, node);
     }
   } else if (node.nodeType === Node.ELEMENT_NODE) {
     const children = Array.from(node.childNodes);
@@ -44,4 +65,8 @@ function clearSearchHighlights(editor: any) {
       }
     });
   }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

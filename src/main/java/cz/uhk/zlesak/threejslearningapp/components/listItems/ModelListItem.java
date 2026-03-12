@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.router.RouteParam;
 import com.vaadin.flow.router.RouteParameters;
@@ -16,7 +17,6 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelCreateView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Tag("div")
 public class ModelListItem extends AbstractListItem {
@@ -24,21 +24,36 @@ public class ModelListItem extends AbstractListItem {
     public ModelListItem(QuickModelEntity model, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.CUBES);
 
+        try {
+            String desc = model.getDescription();
+
+            if (desc != null && !desc.isBlank()) {
+                Image thumb = new Image(desc, model.getModel().getName());
+                thumb.setWidthFull();
+                addComponentAsFirst(thumb);
+            }
+
+        } catch (Exception ex) {
+            log.warn("Failed to extract thumbnail from model description: {}", ex.getMessage());
+        }
+
         titleSpan.setText(model.getModel().getName());
+        details.removeAll();
+        remove(details);
 
         setOpenButtonClickListener(e -> {
             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
             if (listView) {
-                UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
+                UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getMetadataId())));
             } else {
-                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getId());
+                UI.getCurrent().getPage().executeJs("window.open($0, '_blank')", "model/" + model.getMetadataId());
             }
         });
 
         setEditButtonClickListener(e -> {
             if (administrationView) {
                 VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
-                UI.getCurrent().navigate(ModelCreateView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
+                UI.getCurrent().navigate(ModelCreateView.class, new RouteParameters(new RouteParam("modelId", model.getMetadataId())));
             }
         });
 
@@ -47,7 +62,7 @@ public class ModelListItem extends AbstractListItem {
                 ConfirmDialog dialog = ConfirmDialog.createDeleteConfirmation(
                     "model",
                     model.getModel().getName(),
-                    () -> deleteModel(model.getModel().getId())
+                    () -> deleteModel(model.getMetadataId())
                 );
                 dialog.open();
             }

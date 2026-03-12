@@ -8,13 +8,109 @@ import Underline from '@editorjs/underline';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
 import Code from '@editorjs/code';
-import Hyperlink from '@coolbytes/editorjs-link';
+import './hyperlink-inline-tool.css';
+import Hyperlink from 'editorjs-hyperlink-es';
 import Strikethrough from '@sotaproject/strikethrough';
 import uploader from '@ajite/editorjs-image-base64';
 import ImageTool from '@editorjs/image';
 import LinkTool from '@editorjs/link';
-import TextureColorLinkTool from 'Frontend/js/editorjs/textureColorLinkTool/textureColorLinkTool';
+import TextureColorLinkTool from './textureColorLinkTool/textureColorLinkTool';
 import { MDImporter } from 'editorjs-md-parser';
+
+const linkSanitizerConfig = {
+  href: true,
+  target: true,
+  rel: true,
+  class: true,
+  title: true,
+  'data-target-id': true,
+  'data-texture-id': true,
+  'data-model-id': true,
+  'data-hex-color': true,
+  'data-color-id': true,
+  'data-entryid': true
+};
+
+const standardBlockSanitizer = {
+  br: true,
+  b: true,
+  i: true,
+  u: true,
+  s: true,
+  strong: true,
+  em: true,
+  mark: true,
+  code: true,
+  span: {
+    class: true,
+    'data-texture-id': true
+  },
+  a: linkSanitizerConfig
+};
+
+class CustomParagraph extends Paragraph {
+  static get sanitize() {
+    return {
+      text: standardBlockSanitizer
+    } as any;
+  }
+}
+
+class CustomHeader extends Header {
+  static get sanitize() {
+    return {
+      text: standardBlockSanitizer,
+      level: true
+    } as any;
+  }
+}
+
+class CustomList extends List {
+  static get sanitize() {
+    return {
+      items: standardBlockSanitizer,
+      style: true
+    } as any;
+  }
+}
+
+class CustomQuote extends Quote {
+  static get sanitize() {
+    return {
+      text: standardBlockSanitizer,
+      caption: standardBlockSanitizer,
+      alignment: true
+    } as any;
+  }
+}
+
+class CustomTable extends Table {
+  static get sanitize() {
+    return {
+      content: standardBlockSanitizer,
+      withHeadings: true
+    } as any;
+  }
+}
+
+class CustomImageTool extends ImageTool {
+  private _interlink: string | undefined;
+
+  constructor(options: any) {
+    super(options);
+    if (options.data && options.data['interlink']) {
+      this._interlink = options.data['interlink'];
+    }
+  }
+
+  save() {
+    const data: any = super.save();
+    if (this._interlink) {
+      data['interlink'] = this._interlink;
+    }
+    return data;
+  }
+}
 
 function initializeEditorJs({
   holder,
@@ -36,11 +132,14 @@ function initializeEditorJs({
     linkTool: LinkTool,
     underline: Underline,
     paragraph: {
-      class: Paragraph,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool']
+      class: CustomParagraph,
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool'],
+      config: {
+        preserveBlank: true
+      }
     },
     header: {
-      class: Header,
+      class: CustomHeader,
       inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool'],
       config: {
         placeholder: 'Vložte nadpis',
@@ -49,16 +148,16 @@ function initializeEditorJs({
       }
     },
     table: {
-      class: Table,
+      class: CustomTable,
       inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink']
     },
     list: {
-      class: List,
+      class: CustomList,
       inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool']
     },
     code: Code,
     quote: {
-      class: Quote,
+      class: CustomQuote,
       inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink'],
       config: {
         quotePlaceholder: 'Citujte...',
@@ -69,8 +168,11 @@ function initializeEditorJs({
       class: Hyperlink,
       config: {
         shortcut: 'CMD+L',
-        placeholder: 'Vložte URL',
-        validate: false
+        target: '_blank',
+        rel: 'noreferrer',
+        availableTargets: [],
+        availableRels: [],
+        validate: false,
       }
     },
     textureColorLinkTool: {
@@ -82,12 +184,13 @@ function initializeEditorJs({
       }
     },
     image: {
-      class: ImageTool,
+      class: CustomImageTool,
       config: {
         uploader
       }
     }
   };
+  
   // Only add the markdown importer if the editor is not read-only as this tool has no read-only support
   if (!readOnly) {
     baseTools.markdownImporter = MDImporter;
@@ -98,6 +201,22 @@ function initializeEditorJs({
     placeholder,
     readOnly,
     tools: baseTools,
+    // Sanitizer configuration to allow attributes on links
+    sanitizer: {
+      a: function(el) {
+        return {
+          href: true,
+          target: true,
+          rel: true,
+          class: true,
+          'data-target-id': true,
+          'data-texture-id': true,
+          'data-model-id': true,
+          'data-hex-color': true,
+          'data-color-id': true
+        };
+      }
+    },
     i18n: {
       messages: {
         ui: {
@@ -265,15 +384,16 @@ function initializeEditorJs({
 }
 
 async function initializeContainer(parentElement: HTMLElement): Promise<HTMLElement> {
-  let container = document.createElement('div');
-  container.id = 'editorjs';
+  const container = document.createElement('div');
+  container.id = `editorjs-${Math.random().toString(36).slice(2, 10)}`;
+  container.className = 'editorjs-container';
   container.style.width = '100%';
   container.style.minHeight = '300px';
   parentElement.appendChild(container);
   const style = document.createElement('style');
   style.innerHTML = `
-    #editorjs .ce-toolbar__actions.ce-toolbar__actions--opened { position: absolute; right: 0px; z-index: 10; }
-    #editorjs { position: relative; }
+    .editorjs-container .ce-toolbar__actions.ce-toolbar__actions--opened { position: absolute; right: 0px; z-index: 10; }
+    .editorjs-container { position: relative; }
   `;
   container.appendChild(style);
   return container;

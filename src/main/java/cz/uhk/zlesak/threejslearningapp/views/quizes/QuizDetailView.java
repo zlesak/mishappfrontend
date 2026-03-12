@@ -91,6 +91,7 @@ public class QuizDetailView extends AbstractQuizView {
         RouteParameters parameters = event.getRouteParameters();
         if (parameters.getParameterNames().isEmpty() || parameters.get("quizId").isEmpty()) {
             event.forwardTo(QuizListingView.class);
+            return;
         }
         quizId = parameters.get("quizId").get();
     }

@@ -45,12 +45,28 @@ public class ChapterListItem extends AbstractListItem {
             Span value = new Span(chapter.getCreatorId());
             value.addClassNames(LumoUtility.FontSize.SMALL);
 
+            creatorRow.setWidthFull();
+
+            label.addClassNames(
+                    LumoUtility.TextColor.SECONDARY,
+                    LumoUtility.FontSize.SMALL,
+                    LumoUtility.Display.HIDDEN,
+                    LumoUtility.Display.Breakpoint.XLarge.INLINE
+            );
+
+            value.addClassNames(LumoUtility.FontSize.SMALL);
+
+            applyEllipsis(value);
+            value.getElement().setProperty("title", value.getText());
+
             creatorRow.add(userIcon, label, value);
+            creatorRow.expand(value);
             details.add(creatorRow);
         }
 
         if (chapter.getCreated() != null) {
             HorizontalLayout dateRow = new HorizontalLayout();
+
             dateRow.addClassNames(LumoUtility.Gap.XSMALL, LumoUtility.AlignItems.CENTER);
 
             Icon calendarIcon = VaadinIcon.CALENDAR.create();
@@ -62,7 +78,22 @@ public class ChapterListItem extends AbstractListItem {
             Span value = new Span(DateFormater.formatDate(chapter.getCreated()));
             value.addClassNames(LumoUtility.FontSize.SMALL);
 
+            dateRow.setWidthFull();
+
+            label.addClassNames(
+                    LumoUtility.TextColor.SECONDARY,
+                    LumoUtility.FontSize.SMALL,
+                    LumoUtility.Display.HIDDEN,
+                    LumoUtility.Display.Breakpoint.XLarge.INLINE
+            );
+
+            value.addClassNames(LumoUtility.FontSize.SMALL);
+
+            applyEllipsis(value);
+            value.getElement().setProperty("title", value.getText());
+
             dateRow.add(calendarIcon, label, value);
+            dateRow.expand(value);
             details.add(dateRow);
         }
 
@@ -78,8 +109,22 @@ public class ChapterListItem extends AbstractListItem {
 
             Span value = new Span(DateFormater.formatDate(chapter.getUpdated()));
             value.addClassNames(LumoUtility.FontSize.SMALL);
+            updateRow.setWidthFull();
+
+            label.addClassNames(
+                    LumoUtility.TextColor.SECONDARY,
+                    LumoUtility.FontSize.SMALL,
+                    LumoUtility.Display.HIDDEN,
+                    LumoUtility.Display.Breakpoint.XLarge.INLINE
+            );
+
+            value.addClassNames(LumoUtility.FontSize.SMALL);
+
+            applyEllipsis(value);
+            value.getElement().setProperty("title", value.getText());
 
             updateRow.add(editIcon, label, value);
+            updateRow.expand(value);
             details.add(updateRow);
         }
 
@@ -95,7 +140,12 @@ public class ChapterListItem extends AbstractListItem {
             cubeIcon.addClassNames(LumoUtility.IconSize.SMALL, LumoUtility.TextColor.SECONDARY);
 
             Span modelsLabel = new Span(text("chapter.models") + ":");
-            modelsLabel.addClassNames(LumoUtility.TextColor.SECONDARY, LumoUtility.FontSize.SMALL);
+            modelsLabel.addClassNames(
+                    LumoUtility.TextColor.SECONDARY,
+                    LumoUtility.FontSize.SMALL,
+                    LumoUtility.Display.HIDDEN,
+                    LumoUtility.Display.Breakpoint.XLarge.INLINE
+            );
 
             modelsRow.add(cubeIcon, modelsLabel);
 
@@ -119,6 +169,14 @@ public class ChapterListItem extends AbstractListItem {
                             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
                             UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
                         });
+
+                        modelBadge.getStyle()
+                                .set("max-width", "150px")
+                                .set("white-space", "nowrap")
+                                .set("overflow", "hidden")
+                                .set("text-overflow", "ellipsis");
+
+                        modelBadge.getElement().setProperty("title", modelName);
 
                         modelsRow.add(modelBadge);
                     }

@@ -25,7 +25,8 @@ export class GUIManager {
      * - Pan: Directional camera movement (up/down/left/right)
      * - Zoom: Incremental zoom in/out
      * - Reset: Return to initial view centered on model
-     * 
+     * - Background: Choose color, sky-block or image
+     *
      * The GUI is positioned in bottom right corner.
      * Includes collapse/expand functionality to save screen space.
      * 
@@ -75,14 +76,75 @@ export class GUIManager {
                 toggleButton.title = 'Zobrazit ovládání';
             }
         });
-
         gui.appendChild(toggleButton);
 
         const controlsContainer = this.createControlsContainer(controls, camera, renderFn, centerCameraFn);
-        gui.appendChild(controlsContainer);
+        const bgContainer = this.createBackgroundContainer();
 
-        const zoomContainer = this.createZoomContainer(controls, camera, renderFn);
-        gui.appendChild(zoomContainer);
+        const opacityContainer = document.createElement('div');
+        opacityContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(255,255,255,0.03);
+            padding: 6px;
+            border-radius: 4px;
+            width: 100%;
+            align-items: center;
+        `;
+
+        const opacityLabel = document.createElement('label');
+        opacityLabel.textContent = 'Průhlednost masky';
+        opacityLabel.style.cssText = `
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+            display: block;
+        `;
+
+        const opacityRow = document.createElement('div');
+        opacityRow.style.cssText = 'display:flex; width:100%; gap:8px; align-items:center;';
+
+        const opacityInput = document.createElement('input');
+        opacityInput.type = 'range';
+        opacityInput.min = '0';
+        opacityInput.max = '100';
+        opacityInput.step = '1';
+        opacityInput.value = '50';
+        opacityInput.id = 'threejs-mask-opacity';
+        opacityInput.style.cssText = 'flex:1;';
+
+        const opacityValue = document.createElement('span');
+        opacityValue.textContent = '50%';
+        opacityValue.style.cssText = 'width:40px; text-align:right; color: white; font-weight:600;';
+
+        opacityInput.addEventListener('input', () => {
+            const val = Number(opacityInput.value);
+            opacityValue.textContent = val + '%';
+            (window as any).THREEJS_MASK_OPACITY = 1 - (val / 100);
+            window.dispatchEvent(new CustomEvent('threejs-mask-opacity-changed', { detail: { opacity: val / 100 } }));
+        });
+
+        (window as any).THREEJS_MASK_OPACITY = 0.5;
+
+        opacityRow.appendChild(opacityInput);
+        opacityRow.appendChild(opacityValue);
+        opacityContainer.appendChild(opacityLabel);
+        opacityContainer.appendChild(opacityRow);
+
+        const controlStack = document.createElement('div');
+        controlStack.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        `;
+
+        controlStack.appendChild(controlsContainer);
+        controlStack.appendChild(opacityContainer);
+        controlStack.appendChild(bgContainer);
+
+        gui.appendChild(controlStack);
 
         this.gui = gui;
         return gui;
@@ -105,7 +167,7 @@ export class GUIManager {
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 16px;
             font-weight: bold;
             width: 20px;
             height: 20px;
@@ -151,9 +213,11 @@ export class GUIManager {
         const container = document.createElement('div');
         container.style.cssText = `
             display: grid;
-            grid-template-columns: repeat(3, 35px);
-            grid-template-rows: repeat(3, 35px);
+            grid-template-columns: repeat(3, 33%);
+            grid-template-rows: repeat(3, 33%);
             gap: 4px;
+            width: 100%;
+            aspect-ratio: 1 / 1;
         `;
 
         const rotateSpeed = 0.1;
@@ -207,61 +271,121 @@ export class GUIManager {
         }, renderFn, true);
         resetButton.title = 'Vycentrovat kameru na model';
 
-        container.appendChild(upButton);
-        container.appendChild(downButton);
-        container.appendChild(leftButton);
-        container.appendChild(rightButton);
-        container.appendChild(resetButton);
-
-        return container;
-    }
-
-    /**
-     * Create zoom controls container
-     *
-     * Creates vertical buttons for zoom in/out functionality.
-     *
-     * @param controls - OrbitControls for camera manipulation
-     * @param camera - PerspectiveCamera to control
-     * @param renderFn - Function to call after camera updates
-     * @returns HTML element containing zoom control buttons
-     */
-    private createZoomContainer(
-        controls: OrbitControls,
-        camera: THREE.PerspectiveCamera,
-        renderFn: () => void
-    ): HTMLElement {
-        const container = document.createElement('div');
-        container.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        `;
-
         const moveSpeed = 0.5;
 
-        const zoomInButton = this.createControlButton('+', 'auto', () => {
+        const zoomInButton = this.createControlButton('+', '3 / 3 / 4 / 4', () => {
             const direction = new THREE.Vector3();
             direction.subVectors(controls.target, camera.position).normalize();
             camera.position.add(direction.multiplyScalar(moveSpeed));
             controls.update();
         }, renderFn);
-        zoomInButton.style.width = '35px';
-        zoomInButton.style.height = '53px';
-        zoomInButton.style.fontSize = '16px';
 
-        const zoomOutButton = this.createControlButton('−', 'auto', () => {
+        const zoomOutButton = this.createControlButton('−', '3 / 1 / 4 / 2', () => {
             const direction = new THREE.Vector3();
             direction.subVectors(controls.target, camera.position).normalize();
             camera.position.sub(direction.multiplyScalar(moveSpeed));
             controls.update();
         }, renderFn);
-        zoomOutButton.style.width = '35px';
-        zoomOutButton.style.height = '53px';
-        zoomOutButton.style.fontSize = '16px';
 
+        container.appendChild(upButton);
+        container.appendChild(downButton);
+        container.appendChild(leftButton);
+        container.appendChild(rightButton);
+        container.appendChild(resetButton);
         container.appendChild(zoomInButton);
         container.appendChild(zoomOutButton);
+
+        return container;
+    }
+
+    /**
+     * Create background controls container
+     *
+     * Creates controls for selecting background type (color/image/sky-block)
+     * and adjusting zoom level and model fit.
+     *
+     * @returns HTML element containing background control inputs
+     */
+    private createBackgroundContainer(): HTMLElement {
+        const container = document.createElement('div');
+        container.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(255,255,255,0.03);
+            padding: 6px;
+            border-radius: 4px;
+            width: 100%;
+        `;
+
+        // Label for the background controls
+        const title = document.createElement('label');
+        title.textContent = 'Pozadí';
+        title.style.cssText = `
+            font-size: 12px;
+            color: white;
+            font-weight: 600;
+            text-align: left;
+            display: block;
+        `;
+
+        const bgSelect = document.createElement('select');
+        bgSelect.id = 'threejs-bg-select';
+        const options = [
+            { v: 'cube', t: 'Obloha' },
+            { v: 'color', t: 'Barva' },
+            { v: 'image', t: 'Obrázek' }
+        ];
+        options.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.v;
+            opt.textContent = o.t;
+            bgSelect.appendChild(opt);
+        });
+        bgSelect.style.fontSize = '16px';
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = '#000000';
+        colorInput.style.width = '100%';
+        colorInput.addEventListener('input', () => {
+            const color = colorInput.value;
+            const event = new CustomEvent('threejs-set-background', { detail: { type: 'color', value: color } });
+            window.dispatchEvent(event);
+        });
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.addEventListener('change', async (ev) => {
+            const f = (ev.target as HTMLInputElement).files?.[0];
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const dataUrl = reader.result as string;
+                const event = new CustomEvent('threejs-set-background', { detail: { type: 'image', value: dataUrl } });
+                window.dispatchEvent(event);
+            };
+            reader.readAsDataURL(f);
+        });
+
+        container.appendChild(title);
+        container.appendChild(bgSelect);
+        container.appendChild(colorInput);
+        container.appendChild(fileInput);
+
+        colorInput.style.display = bgSelect.value === 'color' ? 'block' : 'none';
+        fileInput.style.display = bgSelect.value === 'image' ? 'block' : 'none';
+
+         bgSelect.addEventListener('change', () => {
+             const v = bgSelect.value;
+             colorInput.style.display = v === 'color' ? 'block' : 'none';
+             fileInput.style.display = v === 'image' ? 'block' : 'none';
+             if (v === 'cube') {
+                 const event = new CustomEvent('threejs-set-background', { detail: { type: 'cube', value: { files: ['px.bmp','nx.bmp','py.bmp','ny.bmp','pz.bmp','nz.bmp'], path: 'skybox/' } } });
+                 window.dispatchEvent(event);
+             }
+         });
 
         return container;
     }
@@ -301,6 +425,8 @@ export class GUIManager {
             display: flex;
             align-items: center;
             justify-content: center;
+            height: 100%;
+            width: 100%;
         `;
 
         button.addEventListener('mouseenter', () => {

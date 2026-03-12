@@ -14,7 +14,7 @@ interface IService<E, Q, F> {
      * @param createEntity Entity to create.
      * @return Created entity.
      */
-    Q create(E createEntity) throws RuntimeException;
+    String create(E createEntity) throws RuntimeException;
 
     /**
      * Reads an entity by its ID.
@@ -46,7 +46,7 @@ interface IService<E, Q, F> {
      * @param entity Entity to update.
      * @return Updated entity.
      */
-    E update(String id, E entity) throws RuntimeException;
+    String update(String id, E entity) throws RuntimeException;
 
     /**
      * Deletes an entity by its ID.

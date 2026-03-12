@@ -1,5 +1,5 @@
 {
-  "notification.uploadSuccess" : "Nahrávání bylo úspěšné: ",
+  "notification.uploadSuccess" : "Nahrávání bylo úspěšné",
   "notification.uploadError": "Nastala chyba při nahrávání: ",
   "notification.cookieConsent": "Tato stránka používá cookies pro uložení zvoleného režimu zobrazení.",
   "error.chapterSaveFailed": "Uložení kapitoly selhalo: "
