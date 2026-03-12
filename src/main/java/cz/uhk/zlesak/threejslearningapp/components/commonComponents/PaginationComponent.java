@@ -85,11 +85,11 @@ public class PaginationComponent extends Div {
 
     private void goToPage(int page) {
         if (page < 1 || page > totalPages) return;
-        this.currentPage = page-1;
+        this.currentPage = page;
         updateButtons();
         updatePageNumbers();
         if (onPageChange != null) {
-            onPageChange.accept(currentPage);
+            onPageChange.accept(currentPage - 1);
         }
     }
 
