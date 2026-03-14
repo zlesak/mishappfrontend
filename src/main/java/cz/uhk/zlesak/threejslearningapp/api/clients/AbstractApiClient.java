@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
 import cz.uhk.zlesak.threejslearningapp.api.contracts.IApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
@@ -19,6 +20,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * AbstractApiClient provides common functionality for API clients.
@@ -158,12 +160,12 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
         final HttpHeaders finalHeaders = headers;
 
         try {
-            R response = restClient.post()
+            R response = executeWithUnauthorizedRetry(() -> restClient.post()
                     .uri(url)
                     .headers(h -> h.addAll(finalHeaders))
                     .body(body)
                     .retrieve()
-                    .body(responseType);
+                    .body(responseType));
             return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, body.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
@@ -183,15 +185,18 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     protected <R> R sendGetRequest(String url, Class<R> responseType, String errorMessage, String entityId, String... params) throws Exception {
-        HttpHeaders headers = createJsonHeaders();
         url = parameterUrlBuilder(url, params);
 
         try {
-            R response = restClient.get()
-                    .uri(url)
-                    .headers(h -> h.addAll(headers))
-                    .retrieve()
-                    .body(responseType);
+            final String finalUrl = url;
+            R response = executeWithUnauthorizedRetry(() -> {
+                HttpHeaders headers = createJsonHeaders();
+                return restClient.get()
+                        .uri(finalUrl)
+                        .headers(h -> h.addAll(headers))
+                        .retrieve()
+                        .body(responseType);
+            });
             return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
@@ -211,12 +216,13 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     protected <R> ResponseEntity<R> sendGetRequestRaw(String url, Class<R> responseType, String errorMessage, String entityId, boolean includeHeaders) throws Exception {
-        HttpHeaders headers = includeHeaders ? createAcceptJsonHeaders() : setJwtToken(getHttpHeaders());
-
         try {
-            RestClient.RequestHeadersSpec<?> spec = restClient.get().uri(url);
-            spec = spec.headers(h -> h.addAll(headers));
-            return spec.retrieve().toEntity(responseType);
+            return executeWithUnauthorizedRetry(() -> {
+                HttpHeaders headers = includeHeaders ? createAcceptJsonHeaders() : setJwtToken(getHttpHeaders());
+                RestClient.RequestHeadersSpec<?> spec = restClient.get().uri(url);
+                spec = spec.headers(h -> h.addAll(headers));
+                return spec.retrieve().toEntity(responseType);
+            });
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
@@ -236,15 +242,16 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     private <R> R sendPutRequest(String url, Object body, Class<R> responseType, String errorMessage, String entityId) throws Exception {
-        HttpHeaders headers = createJsonHeaders();
-
         try {
-            R response = restClient.put()
-                    .uri(url)
-                    .headers(h -> h.addAll(headers))
-                    .body(body)
-                    .retrieve()
-                    .body(responseType);
+            R response = executeWithUnauthorizedRetry(() -> {
+                HttpHeaders headers = createJsonHeaders();
+                return restClient.put()
+                        .uri(url)
+                        .headers(h -> h.addAll(headers))
+                        .body(body)
+                        .retrieve()
+                        .body(responseType);
+            });
             return objectMapper.readValue(objectMapper.writeValueAsString(response), responseType);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, body.toString(), ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
@@ -262,14 +269,15 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @throws Exception if request fails
      */
     private void sendDeleteRequest(String url, String errorMessage, String entityId) throws Exception {
-        HttpHeaders headers = createJsonHeaders();
-
         try {
-            restClient.delete()
-                    .uri(url)
-                    .headers(h -> h.addAll(headers))
-                    .retrieve()
-                    .toBodilessEntity();
+            executeWithUnauthorizedRetry(() -> {
+                HttpHeaders headers = createJsonHeaders();
+                return restClient.delete()
+                        .uri(url)
+                        .headers(h -> h.addAll(headers))
+                        .retrieve()
+                        .toBodilessEntity();
+            });
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
@@ -350,6 +358,18 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
             headers.setBearerAuth(token);
         }
         return headers;
+    }
+
+    private <R> R executeWithUnauthorizedRetry(Callable<R> call) throws Exception {
+        try {
+            return call.call();
+        } catch (HttpStatusCodeException ex) {
+            if (ex.getStatusCode().value() == 401 && ApiTokenContext.get() != null) {
+                ApiTokenContext.clear();
+                return call.call();
+            }
+            throw ex;
+        }
     }
 
     /**
