@@ -8,9 +8,9 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +30,8 @@ import java.util.ArrayList;
 @PermitAll
 public class QuizPlayerView extends AbstractQuizView {
     private QuizPlayerComponent playerComponent;
+    private QuizEntity loadedQuiz;
+    private int loadedQuizPossibleScore;
 
     /**
      * Constructor for QuizPlayerView.
@@ -48,7 +50,7 @@ public class QuizPlayerView extends AbstractQuizView {
                 this::displayQuiz,
                 error -> {
                     log.error("Error loading quiz: {}", error.getMessage(), error);
-                    new ErrorNotification(text("quiz.error.loading") + ": " + error.getMessage());
+                    showErrorNotification(text("quiz.error.loading"), error);
                 }
         );
     }
@@ -61,6 +63,8 @@ public class QuizPlayerView extends AbstractQuizView {
      * @param quiz the quiz entity to be displayed
      */
     private void displayQuiz(QuizEntity quiz) {
+        loadedQuiz = quiz;
+        loadedQuizPossibleScore = quiz.getQuestions().stream().mapToInt(AbstractQuestionData::getPoints).sum();
         modelDiv.modelTextureAreaSelectContainer.setEnabled(false);
         playerComponent = new QuizPlayerComponent(quiz.getQuestions(), quiz.getTimeLimit());
         playerComponent.setSubmitListener(this::submitQuiz);
@@ -103,6 +107,10 @@ public class QuizPlayerView extends AbstractQuizView {
      * Submits the quiz answers for validation and displays the results.
      */
     private void submitQuiz() {
+        if (loadedQuiz == null) {
+            showErrorNotification(text("quiz.error.submit"), "Kvíz není načtený.");
+            return;
+        }
         playerComponent.disable();
         runAsync(
                 () -> {
@@ -112,10 +120,10 @@ public class QuizPlayerView extends AbstractQuizView {
                         throw new RuntimeException(e);
                     }
                 },
-                this::displayQuizResultDetails,
+                result -> displayQuizResultDetails(result, loadedQuiz, loadedQuizPossibleScore),
                 error -> {
                     log.error("Error při odeslání odpovědí kvízu", error);
-                    new ErrorNotification(text("quiz.error.submit") + ": " + error.getMessage());
+                    showErrorNotification(text("quiz.error.submit"), error);
                     playerComponent.enable();
                 }
         );

@@ -5,6 +5,9 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
@@ -23,6 +26,9 @@ import org.springframework.context.annotation.Scope;
 @PermitAll
 public class QuizResultView extends AbstractQuizView {
     private final QuizResultService quizResultService;
+
+    private record QuizResultViewData(QuizValidationResult result, QuizEntity quiz, int possibleScore) {
+    }
 
     /**
      * Constructor for QuizResultView.
@@ -43,8 +49,14 @@ public class QuizResultView extends AbstractQuizView {
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         runAsync(
-                () -> quizResultService.read(quizId),
-                this::displayQuizResultDetails,
+                () -> {
+                    QuizValidationResult result = quizResultService.read(quizId);
+                    String targetQuizId = redirect == null ? quizId : redirect;
+                    QuizEntity quiz = service.getQuizForStudent(targetQuizId);
+                    int possibleScore = quiz.getQuestions().stream().mapToInt(AbstractQuestionData::getPoints).sum();
+                    return new QuizResultViewData(result, quiz, possibleScore);
+                },
+                data -> displayQuizResultDetails(data.result(), data.quiz(), data.possibleScore()),
                 error -> {
                     log.error("Error loading quiz result: {}", error.getMessage(), error);
                     showErrorNotification(text("quiz.error.loading"), error);
