@@ -32,7 +32,15 @@ public interface IApiClient <E, Q, F> {
      * @return JWT token string, or null if not authenticated via OIDC
      */
     default String getJwtToken() {
-        return SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
+        String asyncToken = ApiTokenContext.get();
+        if (asyncToken != null && !asyncToken.isBlank()) {
+            return asyncToken;
+        }
+        try {
+            return SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     /**

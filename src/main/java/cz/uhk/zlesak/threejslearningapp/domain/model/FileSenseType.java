@@ -8,5 +8,6 @@ public enum FileSenseType {
     MODEL,
     MAIN_TEXTURE,
     OTHER_TEXTURE,
-    CSV_FILE
+    CSV_FILE,
+    BACKGROUND_IMAGE
 }

@@ -16,6 +16,7 @@ import type { OrbitControls } from 'three/addons';
 export class GUIManager {
     private gui: HTMLElement | null = null;
     private intervalId: number | null = null;
+    private backgroundSyncHandler: ((ev: Event) => void) | null = null;
 
     /**
      * Create interactive GUI controls for camera manipulation
@@ -132,6 +133,42 @@ export class GUIManager {
         opacityContainer.appendChild(opacityLabel);
         opacityContainer.appendChild(opacityRow);
 
+        opacityContainer.style.display = 'none';
+        bgContainer.style.display = 'none';
+
+        const appearanceToggleButton = document.createElement('button');
+        appearanceToggleButton.textContent = 'Zobrazit vzhled';
+        appearanceToggleButton.style.cssText = `
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 8px;
+            width: 100%;
+        `;
+
+        let appearanceVisible = false;
+        appearanceToggleButton.addEventListener('click', () => {
+            appearanceVisible = !appearanceVisible;
+            opacityContainer.style.display = appearanceVisible ? 'flex' : 'none';
+            bgContainer.style.display = appearanceVisible ? 'flex' : 'none';
+            appearanceToggleButton.textContent = appearanceVisible ? 'Skrýt vzhled' : 'Zobrazit vzhled';
+        });
+
+        const controlsSection = document.createElement('div');
+        controlsSection.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        `;
+
+        controlsSection.appendChild(controlsContainer);
+
         const controlStack = document.createElement('div');
         controlStack.style.cssText = `
             display: flex;
@@ -140,7 +177,8 @@ export class GUIManager {
             gap: 8px;
         `;
 
-        controlStack.appendChild(controlsContainer);
+        controlStack.appendChild(controlsSection);
+        controlStack.appendChild(appearanceToggleButton);
         controlStack.appendChild(opacityContainer);
         controlStack.appendChild(bgContainer);
 
@@ -215,9 +253,9 @@ export class GUIManager {
             display: grid;
             grid-template-columns: repeat(3, 33%);
             grid-template-rows: repeat(3, 33%);
-            gap: 4px;
-            width: 100%;
-            aspect-ratio: 1 / 1;
+            gap: 3px;
+            width: 122px;
+            height: 122px;
         `;
 
         const rotateSpeed = 0.1;
@@ -377,6 +415,29 @@ export class GUIManager {
         colorInput.style.display = bgSelect.value === 'color' ? 'block' : 'none';
         fileInput.style.display = bgSelect.value === 'image' ? 'block' : 'none';
 
+         if (this.backgroundSyncHandler) {
+             window.removeEventListener('threejs-background-updated', this.backgroundSyncHandler);
+         }
+         this.backgroundSyncHandler = (ev: Event) => {
+             const customEv = ev as CustomEvent;
+             const bg = customEv.detail;
+             if (!bg || typeof bg !== 'object') {
+                 return;
+             }
+
+             if (bg.type === 'cube' || bg.type === 'color' || bg.type === 'image') {
+                 bgSelect.value = bg.type;
+             }
+             if (bg.type === 'color' && typeof bg.value === 'string' && bg.value.trim().length > 0) {
+                 colorInput.value = bg.value;
+             }
+
+             const v = bgSelect.value;
+             colorInput.style.display = v === 'color' ? 'block' : 'none';
+             fileInput.style.display = v === 'image' ? 'block' : 'none';
+         };
+         window.addEventListener('threejs-background-updated', this.backgroundSyncHandler);
+
          bgSelect.addEventListener('change', () => {
              const v = bgSelect.value;
              colorInput.style.display = v === 'color' ? 'block' : 'none';
@@ -419,14 +480,14 @@ export class GUIManager {
             color: white;
             border-radius: 3px;
             cursor: pointer;
-            font-size: ${isResetButton ? '16px' : '14px'};
+            font-size: ${isResetButton ? '13px' : '11px'};
             font-weight: bold;
             transition: background 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
-            width: 100%;
+            height: calc(100% - 2px);
+            width: calc(100% - 2px);
         `;
 
         button.addEventListener('mouseenter', () => {
@@ -501,6 +562,11 @@ export class GUIManager {
         if (this.gui && this.gui.parentElement) {
             this.gui.parentElement.removeChild(this.gui);
             this.gui = null;
+        }
+
+        if (this.backgroundSyncHandler) {
+            window.removeEventListener('threejs-background-updated', this.backgroundSyncHandler);
+            this.backgroundSyncHandler = null;
         }
     }
 }

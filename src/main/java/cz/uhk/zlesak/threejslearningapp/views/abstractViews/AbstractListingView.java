@@ -27,6 +27,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
@@ -50,6 +51,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     private Consumer<Q> entitySelectedListener;
     protected FilterParameters<F> filterParameters;
     protected final S service;
+    private final AtomicLong listRequestSequence = new AtomicLong(0);
 
     /**
      * Constructor for AbstractListingView.
@@ -143,54 +145,77 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
      * Lists entities based on the current filter parameters and updates the UI components.
      */
     public void listEntities(String... additionalInfo) {
+        final long requestId = listRequestSequence.incrementAndGet();
+        final String[] info = additionalInfo == null ? new String[0] : additionalInfo.clone();
         itemListLayout.removeAll();
         paginationLayout.removeAll();
 
-        try {
-            PageResult<Q> pageResult = service.readEntities(filterParameters);
-            List<Q> entities = pageResult.elements().stream().toList();
-
-            if (additionalInfo.length > 0) {
-                itemListLayout.add(new NoItemInfoComponent(additionalInfo[0]));
-            }
-
-            if (additionalInfo.length > 1) {
-                itemListLayout.removeClassNames(
-                        LumoUtility.Grid.Breakpoint.Small.COLUMNS_2,
-                        LumoUtility.Grid.Breakpoint.Medium.COLUMNS_3,
-                        LumoUtility.Grid.Breakpoint.Large.COLUMNS_4,
-                        LumoUtility.Grid.Breakpoint.XLarge.COLUMNS_5
-                );
-            }
-
-            if (entities.isEmpty()) {
-                itemListLayout.add(new NoItemInfoComponent("page.info.noItemsFound"));
-                return;
-            }
-
-            for (Q entity : entities) {
-                AbstractListItem itemComponent = createListItem(entity);
-                itemComponent.setSelectButtonClickListener(e -> {
-                    if (entitySelectedListener != null) {
-                        entitySelectedListener.accept(entity);
+        runAsync(
+                () -> service.readEntities(filterParameters),
+                pageResult -> {
+                    if (requestId != listRequestSequence.get()) {
+                        return;
                     }
-                });
-                itemListLayout.add(itemComponent);
-            }
-            paginationLayout.add(new PaginationComponent(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), pageResult.total(),
-                    p -> {
-                        filterParameters.setPageNumber(p);
-                        listEntities();
+                    renderPageResult(pageResult, info);
+                },
+                error -> {
+                    if (requestId != listRequestSequence.get()) {
+                        return;
                     }
-            ));
-        } catch (Exception e) {
-            log.error("Error while listing entities: ", e);
-            itemListLayout.add(asFullGridWidth(new ErrorDialog(
-                    VaadinIcon.WARNING,
-                    "Interní chyba",
-                    "Neočekávaná interní chyba aplikace.",
-                    "Pro více informací kontaktujte správce aplikace.")));
+                    log.error("Error while listing entities: ", error);
+                    showListError();
+                }
+        );
+    }
+
+    private void renderPageResult(PageResult<Q> pageResult, String[] additionalInfo) {
+        List<Q> entities = pageResult == null || pageResult.elements() == null
+                ? List.of()
+                : pageResult.elements().stream().toList();
+
+        if (additionalInfo.length > 0) {
+            itemListLayout.add(new NoItemInfoComponent(additionalInfo[0]));
         }
+
+        if (additionalInfo.length > 1) {
+            itemListLayout.removeClassNames(
+                    LumoUtility.Grid.Breakpoint.Small.COLUMNS_2,
+                    LumoUtility.Grid.Breakpoint.Medium.COLUMNS_3,
+                    LumoUtility.Grid.Breakpoint.Large.COLUMNS_4,
+                    LumoUtility.Grid.Breakpoint.XLarge.COLUMNS_5
+            );
+        }
+
+        if (entities.isEmpty()) {
+            itemListLayout.add(new NoItemInfoComponent("page.info.noItemsFound"));
+            return;
+        }
+
+        for (Q entity : entities) {
+            AbstractListItem itemComponent = createListItem(entity);
+            itemComponent.setSelectButtonClickListener(e -> {
+                if (entitySelectedListener != null) {
+                    entitySelectedListener.accept(entity);
+                }
+            });
+            itemListLayout.add(itemComponent);
+        }
+
+        long total = pageResult.total();
+        paginationLayout.add(new PaginationComponent(filterParameters.getPageRequest().getPageNumber(), filterParameters.getPageRequest().getPageSize(), total,
+                p -> {
+                    filterParameters.setPageNumber(p);
+                    listEntities();
+                }
+        ));
+    }
+
+    private void showListError() {
+        itemListLayout.add(asFullGridWidth(new ErrorDialog(
+                VaadinIcon.WARNING,
+                "Interní chyba",
+                "Neočekávaná interní chyba aplikace.",
+                "Pro více informací kontaktujte správce aplikace.")));
     }
 
     private <T extends Component> T asFullGridWidth(T component) {

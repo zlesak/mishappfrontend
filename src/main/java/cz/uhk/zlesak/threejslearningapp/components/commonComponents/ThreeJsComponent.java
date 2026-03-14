@@ -370,12 +370,54 @@ public class ThreeJsComponent extends Component {
     }
 
     private java.util.function.Consumer<String> thumbnailCallback;
+    private java.util.function.Consumer<String> backgroundSpecCallback;
 
     @ClientCallable
     private void onThumbnailReady(String dataUrl) {
         if (thumbnailCallback != null) {
             thumbnailCallback.accept(dataUrl);
             thumbnailCallback = null;
+        }
+    }
+
+    public void getBackgroundSpecData(java.util.function.Consumer<String> callback) {
+        this.backgroundSpecCallback = callback;
+        log.info("ThreeJsComponent.getBackgroundSpecData: requesting background spec from JS");
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.getBackgroundSpec === 'function') {
+                        window.getBackgroundSpec($0).then(backgroundSpec => {
+                            $1.$server.onBackgroundSpecReady(backgroundSpec ? JSON.stringify(backgroundSpec) : null);
+                        });
+                    } else {
+                        $1.$server.onBackgroundSpecReady(null);
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in getBackgroundSpecData:', e);
+                    $1.$server.onBackgroundSpecReady(null);
+                }
+                """, getElement(), this);
+    }
+
+    public void setBackgroundSpec(String backgroundSpecJson) {
+        log.info("ThreeJsComponent.setBackgroundSpec: dispatching to JS, payload={}", backgroundSpecJson);
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.setBackgroundSpec === 'function') {
+                        window.setBackgroundSpec($0, $1).then(_ => {});
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in setBackgroundSpec:', e);
+                }
+                """, getElement(), backgroundSpecJson);
+    }
+
+    @ClientCallable
+    private void onBackgroundSpecReady(String backgroundSpecJson) {
+        log.info("ThreeJsComponent.onBackgroundSpecReady: received payload={}", backgroundSpecJson);
+        if (backgroundSpecCallback != null) {
+            backgroundSpecCallback.accept(backgroundSpecJson);
+            backgroundSpecCallback = null;
         }
     }
 

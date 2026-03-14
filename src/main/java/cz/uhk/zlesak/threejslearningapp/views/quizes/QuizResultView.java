@@ -6,7 +6,6 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
@@ -44,13 +43,14 @@ public class QuizResultView extends AbstractQuizView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        try {
-            QuizValidationResult quizResult = quizResultService.read(quizId);
-            displayQuizResultDetails(quizResult);
-        } catch (Exception e) {
-            log.error("Error loading quiz result: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
-        }
+        runAsync(
+                () -> quizResultService.read(quizId),
+                this::displayQuizResultDetails,
+                error -> {
+                    log.error("Error loading quiz result: {}", error.getMessage(), error);
+                    new ErrorNotification(text("quiz.error.loading") + ": " + error.getMessage());
+                }
+        );
     }
 
     /**

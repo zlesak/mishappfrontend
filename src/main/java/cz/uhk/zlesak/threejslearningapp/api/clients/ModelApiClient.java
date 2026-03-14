@@ -129,6 +129,9 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
                 addFilePart(body, csv);
             }
         }
+        if (entity.getBackgroundImageFile() != null) {
+            addFilePart(body, entity.getBackgroundImageFile());
+        }
         return body;
     }
 
@@ -182,6 +185,18 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
             }
         }
 
+        if (entity.getBackgroundImageFile() != null) {
+            InputStreamMultipartFile bg = entity.getBackgroundImageFile();
+            relatedFiles.add(new InputFileDesc(
+                    bg.getOriginalFilename(),
+                    bg.getDisplayName(),
+                    "",
+                    FileSenseType.BACKGROUND_IMAGE,
+                    List.of(),
+                    null
+            ));
+        }
+
         InputStreamMultipartFile modelFile = entity.getInputStreamMultipartFile();
         return new InputFileDesc(
                 modelFile.getOriginalFilename(),
@@ -213,7 +228,7 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
      * @return the file as {@link InputStreamMultipartFile}
      */
     public InputStreamMultipartFile downloadFile(String fileId) throws Exception {
-        String url = getStreamBeEndpointUrl(fileId);
+        String url = baseUrl + "download/" + fileId;
         var resp = sendGetRequestRaw(url, byte[].class, "Chyba při stahování souboru", fileId, false);
         return parseFileResponse(resp, "Chyba při zpracování souboru", fileId);
     }

@@ -27,6 +27,8 @@ import org.springframework.context.annotation.Scope;
 public class ModelCreateView extends AbstractModelView {
     private String modelId;
     private ModelEntity modelEntity;
+    private volatile boolean editDataLoaded = false;
+    private volatile boolean editDataLoadingStarted = false;
 
     /**
      * Constructor for ModelCreateView.
@@ -47,22 +49,6 @@ public class ModelCreateView extends AbstractModelView {
     public void beforeEnter(BeforeEnterEvent event) {
         RouteParameters parameters = event.getRouteParameters();
         modelId = parameters.get("modelId").orElse(null);
-        if (modelId != null) {
-            try {
-                this.modelEntity = service.read(modelId);
-                if (this.modelEntity == null) {
-                    log.error("Model not found for editing: {}", modelId);
-                    skipBeforeLeaveDialog = true;
-                    throw new NotFoundException("Model not found: " + modelId);
-                }
-            } catch (NotFoundException e) {
-                throw e;
-            } catch (Exception e) {
-                log.error("Error loading model for editing: {}", modelId, e);
-                skipBeforeLeaveDialog = true;
-                throw new NotFoundException("Could not load model: " + modelId);
-            }
-        }
     }
 
     /**
@@ -72,24 +58,57 @@ public class ModelCreateView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (modelId != null && modelEntity != null) {
-            modelUploadForm.getModelName().setValue(modelEntity.getName() != null ? modelEntity.getName() : "");
-            prefillFormFiles();
-            loadSingleModelWithTextures(modelEntity, null, null, true);
+        if (modelId != null && !editDataLoadingStarted) {
+            editDataLoadingStarted = true;
+            loadEditDataAsync(modelId);
         }
     }
 
-    /**
-     * Downloads the existing model file, main texture, and other textures from the BE and pre-fills the upload form.
-     * Download errors are logged but non-fatal – the user can re-upload any file.
-     */
-    private void prefillFormFiles() {
-        try {
-            ModelService.ModelPrefillData prefillData = service.buildPrefillData(modelEntity);
-            modelUploadForm.prefillExistingFiles(prefillData.modelFile(), prefillData.mainTexture(), prefillData.otherTextures(), prefillData.csvFiles());
-        } catch (Exception e) {
-            log.error("Could not download model file for prefill: {}", e.getMessage(), e);
+    private void loadEditDataAsync(String editModelId) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            log.error("Cannot load edit data: UI is not available");
+            return;
         }
+
+        runAsync(() -> {
+                    ModelEntity entity = service.read(editModelId);
+                    if (entity == null) {
+                        throw new NotFoundException("Model not found: " + editModelId);
+                    }
+                    ModelService.ModelPrefillData prefillData = null;
+                    try {
+                        prefillData = service.buildPrefillData(entity);
+                    } catch (Exception e) {
+                        log.error("Could not download model file for prefill: {}", e.getMessage(), e);
+                    }
+                    return new EditLoadResult(entity, prefillData);
+                }, result -> {
+                    modelEntity = result.modelEntity();
+                    editDataLoaded = true;
+                    modelUploadForm.getModelName().setValue(modelEntity.getName() != null ? modelEntity.getName() : "");
+                    if (result.prefillData() != null) {
+                        modelUploadForm.prefillExistingFiles(
+                                result.prefillData().modelFile(),
+                                result.prefillData().mainTexture(),
+                                result.prefillData().otherTextures(),
+                                result.prefillData().csvFiles()
+                        );
+                    }
+                    loadSingleModelWithTextures(modelEntity, null, null, true);
+                    String backgroundSpecJson = service.resolveBackgroundSpecJson(modelEntity);
+                    log.info("ModelCreateView(edit): extracted backgroundSpecJson={}", backgroundSpecJson);
+                    if (backgroundSpecJson != null && !backgroundSpecJson.isBlank()) {
+                        log.info("ModelCreateView(edit): applying background spec to renderer");
+                        modelDiv.renderer.setBackgroundSpec(backgroundSpecJson);
+                    } else {
+                        log.info("ModelCreateView(edit): no background spec found in model description");
+                    }
+                }, error -> {
+                    log.error("Error loading model for editing: {}", editModelId, error);
+                    skipBeforeLeaveDialog = true;
+                    showErrorNotification(text("notification.loadError"), error);
+                });
     }
 
     /**
@@ -98,6 +117,10 @@ public class ModelCreateView extends AbstractModelView {
      */
     private void uploadModel() {
         try {
+            if (modelId != null && !editDataLoaded) {
+                showErrorNotification(text("notification.uploadError"), "Data modelu se stále načítají. Zkus to prosím za chvíli.");
+                return;
+            }
             UI ui = UI.getCurrent();
             if (ui == null) {
                 throw new IllegalStateException("UI is not available");
@@ -109,29 +132,38 @@ public class ModelCreateView extends AbstractModelView {
             InputStreamMultipartFile mainTexture = modelUploadForm.getMainTextureFileUpload().getUploadedFiles().isEmpty()
                     ? null
                     : modelUploadForm.getMainTextureFileUpload().getUploadedFiles().getFirst();
+            String thumbnailModelId = modelEntity != null
+                    && modelEntity.getModel() != null
+                    && modelEntity.getModel().getId() != null
+                    ? modelEntity.getModel().getId()
+                    : "modelId";
 
-            modelDiv.renderer.getThumbnailDataUrl("modelId", 256, 256, dataUrl -> {
-                try {
-                    String savedEntityId = service.saveFromUpload(
-                            modelEntity != null ? modelEntity.getMetadataId() : null,
-                            modelName,
-                            modelFile,
-                            mainTexture,
-                            modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
-                            modelUploadForm.getCsvFileUpload().getUploadedFiles(),
-                            dataUrl
-                    );
-                    ui.access(() -> {
-                        showSuccessNotification();
-                        navigateToModelDetailView(savedEntityId);
+            modelDiv.renderer.getBackgroundSpecData(backgroundSpecJson -> {
+                    log.info("ModelCreateView(upload): renderer returned backgroundSpecJson={}", backgroundSpecJson);
+                    modelDiv.renderer.getThumbnailDataUrl(thumbnailModelId, 320, 320, dataUrl -> {
+                        try {
+                            String savedEntityId = service.saveFromUpload(
+                                    modelEntity != null ? modelEntity.getMetadataId() : null,
+                                    modelName,
+                                    modelFile,
+                                    mainTexture,
+                                    modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
+                                    modelUploadForm.getCsvFileUpload().getUploadedFiles(),
+                                    dataUrl,
+                                    backgroundSpecJson
+                            );
+                            ui.access(() -> {
+                                showSuccessNotification();
+                                navigateToModelDetailView(savedEntityId);
+                            });
+                        } catch (Exception e) {
+                            log.error("Unexpected error while saving model", e);
+                            ui.access(() -> showErrorNotification(text("notification.uploadError"), e));
+                        }
                     });
-                } catch (Exception e) {
-                    log.error("Unexpected error while saving model", e);
-                    ui.access(() -> showErrorNotification(text("notification.uploadError"), e.getMessage()));
-                }
             });
         } catch (Exception e) {
-            showErrorNotification(text("notification.uploadError"), e.getMessage());
+            showErrorNotification(text("notification.uploadError"), e);
         }
     }
 
@@ -148,5 +180,8 @@ public class ModelCreateView extends AbstractModelView {
                 ModelCreateEvent.class,
                 event -> uploadModel()
         ));
+    }
+
+    private record EditLoadResult(ModelEntity modelEntity, ModelService.ModelPrefillData prefillData) {
     }
 }

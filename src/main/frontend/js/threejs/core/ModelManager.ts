@@ -183,16 +183,10 @@ export class ModelManager {
             objLoader.load(
                 modelSource,
                 (obj: any) => {
-                    if (model.loadedMainTexture) {
-                        obj.traverse((child: any) => {
-                            if ((child as THREE.Mesh).isMesh) {
-                                const mesh = child as THREE.Mesh;
-                                mesh.material = new THREE.MeshStandardMaterial({map: model.loadedMainTexture});
-                                (mesh.material as THREE.Material).needsUpdate = true;
-                            }
-                        });
-                    }
                     model.modelLoader = obj;
+                    if (model.loadedMainTexture) {
+                        model.applyTexture(model.loadedMainTexture);
+                    }
                     onProgress?.(100, 'Model loaded');
                     resolve();
                 },
@@ -239,13 +233,7 @@ export class ModelManager {
                         }
                     }
                     if (model.loadedMainTexture) {
-                        model.modelLoader?.traverse((child: any) => {
-                            if ((child as THREE.Mesh).isMesh) {
-                                const mesh = child as THREE.Mesh;
-                                mesh.material = new THREE.MeshStandardMaterial({map: model.loadedMainTexture});
-                                (mesh.material as THREE.Material).needsUpdate = true;
-                            }
-                        });
+                        model.applyTexture(model.loadedMainTexture);
                     }
                     onProgress?.(100, 'Model loaded');
                     resolve();

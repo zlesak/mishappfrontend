@@ -11,6 +11,8 @@ import Code from '@editorjs/code';
 import './hyperlink-inline-tool.css';
 import Hyperlink from 'editorjs-hyperlink-es';
 import Strikethrough from '@sotaproject/strikethrough';
+import TextStyleTool from '@skchawala/editorjs-text-style';
+import Undo from 'editorjs-undo';
 import uploader from '@ajite/editorjs-image-base64';
 import ImageTool from '@editorjs/image';
 import LinkTool from '@editorjs/link';
@@ -127,20 +129,29 @@ function initializeEditorJs({
   placeholder?: string,
   readOnly?: boolean
 }) {
+  let editor!: EditorJS;
+
   const baseTools: any = {
     strikethrough: Strikethrough,
+    textStyle: {
+      class: TextStyleTool,
+      config: {
+        fontSizeEnabled: true,
+        fontFamilyEnabled: true
+      }
+    },
     linkTool: LinkTool,
     underline: Underline,
     paragraph: {
       class: CustomParagraph,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool'],
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textStyle', 'hyperlink', 'textureColorLinkTool'],
       config: {
         preserveBlank: true
       }
     },
     header: {
       class: CustomHeader,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool'],
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textStyle', 'hyperlink', 'textureColorLinkTool'],
       config: {
         placeholder: 'Vložte nadpis',
         levels: [1, 2, 3, 4, 5, 6],
@@ -149,16 +160,16 @@ function initializeEditorJs({
     },
     table: {
       class: CustomTable,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink']
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textStyle', 'hyperlink']
     },
     list: {
       class: CustomList,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink', 'textureColorLinkTool']
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textStyle', 'hyperlink', 'textureColorLinkTool']
     },
     code: Code,
     quote: {
       class: CustomQuote,
-      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'hyperlink'],
+      inlineToolbar: ['bold', 'strikethrough', 'underline', 'italic', 'textStyle', 'hyperlink'],
       config: {
         quotePlaceholder: 'Citujte...',
         captionPlaceholder: 'Podepište autora citace'
@@ -196,10 +207,20 @@ function initializeEditorJs({
     baseTools.markdownImporter = MDImporter;
   }
 
-  return new EditorJS({
+  editor = new EditorJS({
     holder,
     placeholder,
     readOnly,
+    onReady: () => {
+      if (readOnly) {
+        return;
+      }
+      try {
+        new Undo({ editor });
+      } catch (error) {
+        console.warn('Undo plugin initialization failed', error);
+      }
+    },
     tools: baseTools,
     // Sanitizer configuration to allow attributes on links
     sanitizer: {
@@ -381,6 +402,8 @@ function initializeEditorJs({
       }
     }
   });
+
+  return editor;
 }
 
 async function initializeContainer(parentElement: HTMLElement): Promise<HTMLElement> {

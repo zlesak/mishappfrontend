@@ -41,13 +41,14 @@ public class QuizDetailView extends AbstractQuizView {
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        try {
-            QuickQuizEntity quiz = service.readQuick(quizId);
-            displayQuizDetails(quiz);
-        } catch (Exception e) {
-            log.error("Error loading quiz: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
-        }
+        runAsync(
+                () -> service.readQuick(quizId),
+                this::displayQuizDetails,
+                error -> {
+                    log.error("Error loading quiz: {}", error.getMessage(), error);
+                    new ErrorNotification(text("quiz.error.loading") + ": " + error.getMessage());
+                }
+        );
     }
 
     /**

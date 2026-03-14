@@ -107,6 +107,8 @@ export class Model implements IModelData {
      */
     setMainTexture(textureUrl: string, texture: THREE.Texture): void {
         this.mainTexture = textureUrl;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
         this.loadedMainTexture = texture;
     }
 
@@ -133,6 +135,8 @@ export class Model implements IModelData {
      */
     addOtherTexture(textureId: string, texture: THREE.Texture): void {
         if (!this.hasOtherTexture(textureId)) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.needsUpdate = true;
             this.otherTextures.push({ textureId, texture });
         }
     }
@@ -204,24 +208,68 @@ export class Model implements IModelData {
     applyTexture(texture: THREE.Texture): void {
         if (!this.modelLoader) return;
 
+        this.alignTextureToModelMaterial(texture);
+
         this.modelLoader.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 const mesh = child as THREE.Mesh;
                 const oldMaterial = mesh.material;
                 if (Array.isArray(oldMaterial)) {
-                    oldMaterial.forEach((material) => this.disposeOldMaterial(material));
+                    mesh.material = oldMaterial.map((material) => this.applyTextureToMaterial(material, texture));
                 } else if (oldMaterial) {
-                    this.disposeOldMaterial(oldMaterial);
+                    mesh.material = this.applyTextureToMaterial(oldMaterial, texture);
+                } else {
+                    mesh.material = new THREE.MeshStandardMaterial({ map: texture });
                 }
-                mesh.material = new THREE.MeshStandardMaterial({ map: texture });
                 (mesh.material as THREE.Material).needsUpdate = true;
             }
         });
     }
 
-    private disposeOldMaterial(material: THREE.Material): void {
-        if (!material) return;
-        material.dispose();
+    private alignTextureToModelMaterial(texture: THREE.Texture): void {
+        if (!this.modelLoader) {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.needsUpdate = true;
+            return;
+        }
+
+        const meshes: THREE.Mesh[] = [];
+        this.modelLoader.traverse((child) => {
+            if ((child as THREE.Mesh).isMesh) {
+                meshes.push(child as THREE.Mesh);
+            }
+        });
+
+        let referenceMap: THREE.Texture | null = null;
+        for (const mesh of meshes) {
+            const firstMaterial = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+            const candidate = firstMaterial as (THREE.Material & { map?: THREE.Texture | null }) | undefined;
+            const existingMap = candidate?.map ?? null;
+            if (existingMap) {
+                referenceMap = existingMap;
+                break;
+            }
+        }
+
+        if (referenceMap) {
+            texture.colorSpace = referenceMap.colorSpace !== THREE.NoColorSpace
+                ? referenceMap.colorSpace
+                : THREE.SRGBColorSpace;
+            texture.flipY = referenceMap.flipY;
+        } else {
+            texture.colorSpace = THREE.SRGBColorSpace;
+        }
+        texture.needsUpdate = true;
+    }
+
+    private applyTextureToMaterial(material: THREE.Material, texture: THREE.Texture): THREE.Material {
+        const mappedMaterial = material as THREE.Material & { map?: THREE.Texture | null };
+        if ('map' in mappedMaterial) {
+            mappedMaterial.map = texture;
+            mappedMaterial.needsUpdate = true;
+            return material;
+        }
+        return new THREE.MeshStandardMaterial({ map: texture });
     }
 
     /**

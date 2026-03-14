@@ -14,9 +14,12 @@ import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Triple;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.yaml.snakeyaml.util.Tuple;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -66,38 +69,35 @@ public class ChapterDetailView extends AbstractChapterView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        loadChapterData();
-        loadAndDisplay3DModels();
+        runAsync(() -> {
+                    try {
+                        String chapterName = chapterService.getChapterName(chapterId);
+                        String chapterContent = chapterService.getChapterContent(chapterId);
+                        Map<Triple<String, String, String>, List<Tuple<String, String>>> headers = chapterService.processHeaders(chapterId);
+                        Map<String, QuickModelEntity> modelsMap = resolveFullModels(chapterService.getChaptersModels(chapterId));
+                        return new ChapterDetailData(chapterName, chapterContent, headers, modelsMap);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                detailData -> {
+                    nameTextField.setValue(detailData.chapterName());
+                    editorjs.setChapterContentData(detailData.chapterContent());
+                    ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), detailData.headers(), false));
+                    setupData(detailData.modelsMap());
+                },
+                error -> {
+                    log.error("Error loading chapter data", error);
+                    new ErrorNotification(text("error.modelLoadFailed") + ": " + error.getMessage());
+                });
     }
 
 
-    /**
-     * Loads the main chapter data including name, content, and sub-chapters.
-     */
-    private void loadChapterData() {
-        nameTextField.setValue(chapterService.getChapterName(chapterId));
-        editorjs.setChapterContentData(chapterService.getChapterContent(chapterId));
-
-        try {
-            ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), chapterService.processHeaders(chapterId), false));
-        } catch (Exception e) {
-            log.error("Error loading chapter data", e);
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Loads and displays all 3D models associated with the chapter.
-     * For each model, loads the model file, textures, and sets up the renderer.
-     *
-     */
-    private void loadAndDisplay3DModels() {
-        try {
-            Map<String, QuickModelEntity> modelsMap = chapterService.getChaptersModels(chapterId);
-            setupData(modelsMap);
-        } catch (Exception e) {
-            log.error("Failed to load 3D models: {}", e.getMessage(), e);
-            new ErrorNotification(text("error.modelLoadFailed") + ": " + e.getMessage());
-        }
+    private record ChapterDetailData(
+            String chapterName,
+            String chapterContent,
+            Map<Triple<String, String, String>, List<Tuple<String, String>>> headers,
+            Map<String, QuickModelEntity> modelsMap
+    ) {
     }
 }
