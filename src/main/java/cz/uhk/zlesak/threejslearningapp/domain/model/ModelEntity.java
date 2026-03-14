@@ -26,4 +26,5 @@ public class ModelEntity extends QuickModelEntity {
     TextureEntity fullMainTexture;
     List<TextureEntity> fullOtherTextures;
     List<InputStreamMultipartFile> csvFiles;
+    InputStreamMultipartFile backgroundImageFile;
 }

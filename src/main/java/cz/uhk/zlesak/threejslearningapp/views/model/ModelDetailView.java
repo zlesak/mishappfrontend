@@ -60,5 +60,9 @@ public class ModelDetailView extends AbstractModelView {
     public void afterNavigation(AfterNavigationEvent event) {
         ModelEntity model = service.read(event.getRouteParameters().get("modelId").orElse(null));
         loadSingleModelWithTextures(model, null, null, true);
+        String backgroundSpecJson = service.resolveBackgroundSpecJson(model);
+        if (backgroundSpecJson != null && !backgroundSpecJson.isBlank()) {
+            modelDiv.renderer.setBackgroundSpec(backgroundSpecJson);
+        }
     }
 }

@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
+import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.NotFoundException;
 import com.vaadin.flow.router.Route;
@@ -36,6 +37,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +61,9 @@ public class QuizCreateView extends AbstractQuizView {
     private final ModelService modelService;
     private final Map<String, QuickModelEntity> chapterModelsByModelId = new HashMap<>();
     private final Map<String, String> modelMetadataByModelId = new HashMap<>();
+    private final Map<String, QuickModelEntity> resolvedModelsByModelId = new HashMap<>();
+    private volatile boolean quizEditLoadingStarted = false;
+    private volatile boolean quizEditLoaded = false;
 
     /**
      * Constructor for QuizCreateView.
@@ -151,7 +157,7 @@ public class QuizCreateView extends AbstractQuizView {
             case OPEN_TEXT -> new OpenTextQuestionEditor();
             case MATCHING -> new MatchingQuestionEditor();
             case ORDERING -> new OrderingQuestionEditor();
-            case TEXTURE_CLICK -> new TextureClickQuestionEditor(this::resolveModelForTextureQuestion);
+            case TEXTURE_CLICK -> new TextureClickQuestionEditor(this::resolveModelForTextureQuestionAsync);
         };
     }
 
@@ -161,27 +167,42 @@ public class QuizCreateView extends AbstractQuizView {
      * @param modelId the ID of the model to resolve
      * @return the QuickModelEntity associated with the provided model ID
      */
-    private QuickModelEntity resolveModelForTextureQuestion(String modelId) {
+    private CompletableFuture<QuickModelEntity> resolveModelForTextureQuestionAsync(String modelId) {
         if (modelId == null || modelId.isBlank()) {
-            throw new ApplicationContextException("Model ID pro otázku nesmí být prázdné.");
+            return CompletableFuture.failedFuture(new ApplicationContextException("Model ID pro otázku nesmí být prázdné."));
         }
 
-        QuickModelEntity chapterModel = chapterModelsByModelId.get(modelId);
-        if (chapterModel != null && chapterModel.getMetadataId() != null && !chapterModel.getMetadataId().isBlank()) {
-            return modelService.read(chapterModel.getMetadataId());
+        QuickModelEntity cached = resolvedModelsByModelId.get(modelId);
+        if (cached != null) {
+            return CompletableFuture.completedFuture(cached);
         }
 
-        String modelMetadataId = modelMetadataByModelId.get(modelId);
-        if (modelMetadataId == null || modelMetadataId.isBlank()) {
-            modelMetadataId = findModelMetadataIdByModelId(modelId);
-            if (modelMetadataId != null && !modelMetadataId.isBlank()) {
-                modelMetadataByModelId.put(modelId, modelMetadataId);
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                QuickModelEntity chapterModel = chapterModelsByModelId.get(modelId);
+                if (chapterModel != null && chapterModel.getMetadataId() != null && !chapterModel.getMetadataId().isBlank()) {
+                    QuickModelEntity resolved = modelService.read(chapterModel.getMetadataId());
+                    resolvedModelsByModelId.put(modelId, resolved);
+                    return resolved;
+                }
+
+                String modelMetadataId = modelMetadataByModelId.get(modelId);
+                if (modelMetadataId == null || modelMetadataId.isBlank()) {
+                    modelMetadataId = findModelMetadataIdByModelId(modelId);
+                    if (modelMetadataId != null && !modelMetadataId.isBlank()) {
+                        modelMetadataByModelId.put(modelId, modelMetadataId);
+                    }
+                }
+                if (modelMetadataId == null || modelMetadataId.isBlank()) {
+                    throw new ApplicationContextException("Model metadata nebyla nalezena pro modelId: " + modelId);
+                }
+                QuickModelEntity resolved = modelService.read(modelMetadataId);
+                resolvedModelsByModelId.put(modelId, resolved);
+                return resolved;
+            } catch (Exception e) {
+                throw new CompletionException(e);
             }
-        }
-        if (modelMetadataId == null || modelMetadataId.isBlank()) {
-            throw new ApplicationContextException("Model metadata nebyla nalezena pro modelId: " + modelId);
-        }
-        return modelService.read(modelMetadataId);
+        }, ioExecutor);
     }
 
     /**
@@ -238,6 +259,11 @@ public class QuizCreateView extends AbstractQuizView {
      */
     private void saveQuiz() {
         try {
+            if (isEditMode && !quizEditLoaded) {
+                new ErrorNotification(text("quiz.error.loading") + ": Data kvízu se stále načítají.");
+                return;
+            }
+
             String name = quizForm.getName();
             if (name == null || name.isEmpty()) {
                 throw new ApplicationContextException(text("quiz.validation.name.required"));
@@ -260,27 +286,33 @@ public class QuizCreateView extends AbstractQuizView {
                     .map(QuestionEditorBase::getAnswerData)
                     .collect(Collectors.toList());
 
-            String savedQuizId = service.saveQuiz(
-                    quizId,
-                    isEditMode,
-                    loadedQuiz,
-                    name,
-                    quizForm.getDescription(),
-                    quizForm.getTimeLimit(),
-                    quizForm.getSelectedChapter(),
-                    questionData,
-                    answerData
-            );
-
-            if (isEditMode) {
-                new SuccessNotification(text("quiz.update.success"));
-                log.info("Quiz updated with ID: {}", savedQuizId);
-            } else {
-                new SuccessNotification(text("quiz.create.success"));
-                log.info("Quiz created with ID: {}", savedQuizId);
-            }
-            skipBeforeLeaveDialog = true;
-            UI.getCurrent().navigate(QuizListingView.class);
+            runAsync(() -> service.saveQuiz(
+                            quizId,
+                            isEditMode,
+                            loadedQuiz,
+                            name,
+                            quizForm.getDescription(),
+                            quizForm.getTimeLimit(),
+                            quizForm.getSelectedChapter(),
+                            questionData,
+                            answerData
+                    ),
+                    savedQuizId -> {
+                        if (isEditMode) {
+                            new SuccessNotification(text("quiz.update.success"));
+                            log.info("Quiz updated with ID: {}", savedQuizId);
+                        } else {
+                            new SuccessNotification(text("quiz.create.success"));
+                            log.info("Quiz created with ID: {}", savedQuizId);
+                        }
+                        skipBeforeLeaveDialog = true;
+                        UI.getCurrent().navigate(QuizListingView.class);
+                    },
+                    error -> {
+                        log.error("Error saving quiz", error);
+                        service.clearQuestionsAndAnswers();
+                        new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + error.getMessage());
+                    });
 
         } catch (Exception e) {
             log.error("Error saving quiz", e);
@@ -302,10 +334,19 @@ public class QuizCreateView extends AbstractQuizView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelSelectedFromDialogEvent.class,
-                event -> {
-                    QuickModelEntity quickModelEntity = modelService.read(event.getSelectedModel().getMetadataId());
-                    loadSingleModelWithTextures(quickModelEntity, event.getBlockId(), event.getSelectedModel().getModel().getId(), true);
-                }
+                event -> runAsync(
+                        () -> modelService.read(event.getSelectedModel().getMetadataId()),
+                        quickModelEntity -> {
+                            if (quickModelEntity != null && quickModelEntity.getModel() != null && quickModelEntity.getModel().getId() != null) {
+                                resolvedModelsByModelId.put(quickModelEntity.getModel().getId(), quickModelEntity);
+                            }
+                            loadSingleModelWithTextures(quickModelEntity, event.getBlockId(), event.getSelectedModel().getModel().getId(), true);
+                        },
+                        error -> {
+                            log.error("Failed to load selected model for quiz: {}", error.getMessage(), error);
+                            new ErrorNotification(text("error.modelLoadFailed") + ": " + error.getMessage());
+                        }
+                )
         ));
 
         registrations.add(ComponentUtil.addListener(
@@ -333,30 +374,62 @@ public class QuizCreateView extends AbstractQuizView {
         if (quizId != null) {
             isEditMode = true;
             quizForm.getSaveQuizButton().setUpdateMode();
-            
-            try {
-                loadedQuiz = service.getQuizWithAnswers(quizId);
-                if (loadedQuiz == null) {
-                    log.error("Quiz not found for editing, quizId: {}", quizId);
-                    skipBeforeLeaveDialog = true;
-                    throw new NotFoundException("Quiz not found: " + quizId);
-                } else {
-                    ChapterEntity chapterEntity = null;
-                    if (loadedQuiz.getChapterId() != null) {
-                        chapterEntity = chapterService.read(loadedQuiz.getChapterId());
-                        Map<String, QuickModelEntity> chapterModels = chapterService.getChaptersModels(loadedQuiz.getChapterId());
-                        chapterModelsByModelId.clear();
-                        modelMetadataByModelId.clear();
-                        for (QuickModelEntity model : chapterModels.values()) {
-                            if (model != null && model.getModel() != null && model.getModel().getId() != null) {
-                                chapterModelsByModelId.put(model.getModel().getId(), model);
+        }
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        if (isEditMode && !quizEditLoadingStarted) {
+            quizEditLoadingStarted = true;
+            loadQuizForEditAsync();
+        }
+    }
+
+    private void loadQuizForEditAsync() {
+        runAsync(() -> {
+                    try {
+                        QuizEntity quiz = service.getQuizWithAnswers(quizId);
+                        if (quiz == null) {
+                            throw new NotFoundException("Quiz not found: " + quizId);
+                        }
+
+                        ChapterEntity chapterEntity = null;
+                        Map<String, QuickModelEntity> chapterModels = Map.of();
+                        Map<String, QuickModelEntity> fullModelsByModelId = new HashMap<>();
+                        if (quiz.getChapterId() != null) {
+                            chapterEntity = chapterService.read(quiz.getChapterId());
+                            chapterModels = chapterService.getChaptersModels(quiz.getChapterId());
+                            for (QuickModelEntity model : chapterModels.values()) {
+                                if (model == null || model.getModel() == null || model.getModel().getId() == null) {
+                                    continue;
+                                }
                                 if (model.getMetadataId() != null && !model.getMetadataId().isBlank()) {
-                                    modelMetadataByModelId.put(model.getModel().getId(), model.getMetadataId());
+                                    fullModelsByModelId.put(model.getModel().getId(), modelService.read(model.getMetadataId()));
                                 }
                             }
                         }
+
+                        return new QuizEditData(quiz, chapterEntity, chapterModels, fullModelsByModelId);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
-                    quizForm.setQuizData(loadedQuiz.getName(), loadedQuiz.getDescription(), loadedQuiz.getTimeLimit(), chapterEntity);
+                },
+                editData -> {
+                    loadedQuiz = editData.quiz();
+                    chapterModelsByModelId.clear();
+                    modelMetadataByModelId.clear();
+                    resolvedModelsByModelId.clear();
+                    for (QuickModelEntity model : editData.chapterModels().values()) {
+                        if (model != null && model.getModel() != null && model.getModel().getId() != null) {
+                            chapterModelsByModelId.put(model.getModel().getId(), model);
+                            if (model.getMetadataId() != null && !model.getMetadataId().isBlank()) {
+                                modelMetadataByModelId.put(model.getModel().getId(), model.getMetadataId());
+                            }
+                        }
+                    }
+                    resolvedModelsByModelId.putAll(editData.fullModelsByModelId());
+
+                    quizForm.setQuizData(loadedQuiz.getName(), loadedQuiz.getDescription(), loadedQuiz.getTimeLimit(), editData.chapterEntity());
 
                     var answersMap = loadedQuiz.getAnswers().stream()
                             .collect(Collectors.toMap(AbstractAnswerData::getQuestionId, answer -> answer));
@@ -365,12 +438,21 @@ public class QuizCreateView extends AbstractQuizView {
                         var answer = answersMap.get(question.getQuestionId());
                         addQuestion(question, answer);
                     }
-                }
-            } catch (Exception e) {
-                log.error("Error getting quiz for editing, quizId: {}", quizId, e);
-                skipBeforeLeaveDialog = true;
-                throw new NotFoundException("Error initializing quiz editing");
-            }
-        }
+                    quizEditLoaded = true;
+                },
+                error -> {
+                    log.error("Error getting quiz for editing, quizId: {}", quizId, error);
+                    skipBeforeLeaveDialog = true;
+                    new ErrorNotification(text("quiz.error.loading") + ": " + error.getMessage());
+                    UI.getCurrent().navigate(QuizListingView.class);
+                });
+    }
+
+    private record QuizEditData(
+            QuizEntity quiz,
+            ChapterEntity chapterEntity,
+            Map<String, QuickModelEntity> chapterModels,
+            Map<String, QuickModelEntity> fullModelsByModelId
+    ) {
     }
 }

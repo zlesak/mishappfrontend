@@ -3,6 +3,7 @@ import type { IVaadinElement } from './types/interfaces';
 
 // Multi-instance management
 const instances = new WeakMap<IVaadinElement, any>();
+const pendingBackgroundSpecs = new WeakMap<IVaadinElement, { type: string; value: any }>();
 
 /**
  * Get Three.js scene instance for element
@@ -25,6 +26,25 @@ function setInstance(element: IVaadinElement, inst: any): void {
 }
 
 /**
+ * Applies any pending background spec to the Three.js scene instance associated with the given element.
+ * @param element the Vaadin canvas element to apply the background spec to
+ */
+async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<void> {
+    const inst = getInstance(element);
+    const pendingSpec = pendingBackgroundSpecs.get(element);
+    if (!inst || !pendingSpec) {
+        return;
+    }
+
+    try {
+        await inst.setBackground(pendingSpec);
+        pendingBackgroundSpecs.delete(element);
+    } catch (e) {
+        console.error('Error applying pending background spec:', e);
+    }
+}
+
+/**
  * Initialize Three.js scene
  *
  * @param element - Vaadin canvas element to initialize the scene on
@@ -40,7 +60,11 @@ function setInstance(element: IVaadinElement, inst: any): void {
     }
     const inst = new ThreeJSScene();
     setInstance(element, inst);
-    inst.init(element);
+    void inst.init(element)
+        .then(() => applyPendingBackgroundIfAny(element))
+        .catch((e: unknown) => {
+            console.error('Error in initThree:', e);
+        });
 };
 
 /**
@@ -59,6 +83,7 @@ function setInstance(element: IVaadinElement, inst: any): void {
                 console.error('Error on three dispose:', e);
             }
             instances.delete(element);
+            pendingBackgroundSpecs.delete(element);
             setTimeout(() => resolve(), 100);
         } else {
             resolve();
@@ -287,7 +312,48 @@ function setInstance(element: IVaadinElement, inst: any): void {
     if (inst) {
         return await inst.getThumbnail(modelId, width, height);
     }
-}
+};
+
+/**
+ * Gets the background specification (img, color, skybox) of the Three.js scene as a JSON string.
+ * @param element the Vaadin DOM element
+ */
+(window as any).getBackgroundSpec = async function(
+    element: IVaadinElement
+): Promise<any> {
+    const inst = getInstance(element);
+    if (inst) {
+        return inst.getBackgroundSpec();
+    }
+    return null;
+};
+
+/**
+ * Sets the background specification of the canvas from a JSON string.
+ * The JSON should specify the type of background (e.g., "color", "image", "skybox") and the corresponding value.
+ * @param element the Vaadin DOM element
+ * @param backgroundSpecJson background specifications
+ */
+(window as any).setBackgroundSpec = async function(
+    element: IVaadinElement,
+    backgroundSpecJson: string
+): Promise<void> {
+    if (!backgroundSpecJson) {
+        return;
+    }
+
+    try {
+        const parsed = JSON.parse(backgroundSpecJson);
+        const inst = getInstance(element);
+        if (!inst) {
+            pendingBackgroundSpecs.set(element, parsed);
+            return;
+        }
+        await inst.setBackground(parsed);
+    } catch (e) {
+        console.error('Invalid background spec JSON', e);
+    }
+};
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {

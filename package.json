@@ -15,6 +15,7 @@
     "@editorjs/quote": "^2.7.6",
     "@editorjs/table": "^2.4.5",
     "@editorjs/underline": "^1.2.1",
+    "@skchawala/editorjs-text-style": "^1.0.4",
     "@sotaproject/strikethrough": "^1.0.1",
     "@uiw/react-md-editor": "4.0.4",
     "@vaadin/aura": "25.0.2",
@@ -29,6 +30,7 @@
     "editorjs-hyperlink-es": "^1.0.0",
     "editorjs-md-parser": "^0.0.3",
     "editorjs-text-color-plugin": "^2.0.4",
+    "editorjs-undo": "^2.0.28",
     "lit": "3.3.2",
     "mermaid": "^11.12.3",
     "progressbar.js": "^1.1.1",
@@ -167,7 +169,9 @@
     "@vaadin/aura": "$@vaadin/aura",
     "@editorjs/editorjs": "$@editorjs/editorjs",
     "three": "$three",
-    "editorjs-hyperlink-es": "$editorjs-hyperlink-es"
+    "editorjs-hyperlink-es": "$editorjs-hyperlink-es",
+    "@skchawala/editorjs-text-style": "$@skchawala/editorjs-text-style",
+    "editorjs-undo": "$editorjs-undo"
   },
   "scripts": {
     "test:md": "npx tsx scripts/test-md-converters.ts",
@@ -216,6 +220,6 @@
       "vite-plugin-checker": "0.12.0",
       "workbox-build": "7.4.0"
     },
-    "hash": "fbcd310747833180add2ef1b14b2b8de5381b55d4aa479d31bb8681582e2cd00"
+    "hash": "bd6a92d01138063238be0bd5f8ae330905933d3d2e7758be4dc39df4fff48414"
   }
 }

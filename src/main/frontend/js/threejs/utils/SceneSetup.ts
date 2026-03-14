@@ -19,8 +19,8 @@ export class SceneSetup {
     static createCamera(
         fov: number = 45,
         aspect: number = window.innerWidth / window.innerHeight,
-        near: number = 0.25,
-        far: number = 50
+        near: number = 0.001,
+        far: number = 20000
     ): THREE.PerspectiveCamera {
         const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
         camera.position.set(-1.8, 0.6, 2.7);
@@ -100,8 +100,8 @@ export class SceneSetup {
     ): OrbitControls {
         const controls = new OrbitControls(camera, domElement);
         controls.enabled = true;
-        controls.minDistance = 2;
-        controls.maxDistance = 10;
+        controls.minDistance = 0.01;
+        controls.maxDistance = Infinity;
         controls.autoRotate = true;
         controls.enableZoom = true;
         controls.zoomToCursor = true;
@@ -132,18 +132,17 @@ export class SceneSetup {
         controls: OrbitControls,
         box: THREE.Box3,
         margin: number = 1.2
-    ): { center: THREE.Vector3; targetPos: THREE.Vector3 } {
+    ): { center: THREE.Vector3; targetPos: THREE.Vector3; radius: number } {
         const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
 
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const fov = THREE.MathUtils.degToRad(camera.fov);
+        const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+        const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
+        const minHalfFov = Math.max(0.0001, Math.min(verticalFov, horizontalFov) / 2);
 
-        const distanceV = (maxDim) / (2 * Math.tan(fov / 2));
-        const distanceH = (maxDim * camera.aspect) / (2 * Math.tan(fov / 2));
-
-        let distance = Math.max(distanceV, distanceH);
-        distance = distance * margin;
+        // Sphere-based fitting avoids clipping for extremely long/tall models regardless of orientation.
+        const radius = Math.max(sphere.radius, 0.01);
+        const distance = (radius / Math.sin(minHalfFov)) * margin;
 
         const direction = camera.position.clone().sub(controls.target || new THREE.Vector3()).normalize();
         if (direction.lengthSq() === 0) {
@@ -152,6 +151,6 @@ export class SceneSetup {
 
         const targetPos = center.clone().add(direction.multiplyScalar(distance));
 
-        return { center, targetPos };
+        return { center, targetPos, radius };
     }
 }

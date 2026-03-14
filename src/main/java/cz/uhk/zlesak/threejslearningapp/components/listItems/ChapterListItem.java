@@ -152,8 +152,10 @@ public class ChapterListItem extends AbstractListItem {
             for (QuickModelEntity model : chapter.getModels()) {
                 if (model != null && model.getModel() != null) {
                     String modelName = model.getModel().getName();
-                    String id = model.getModel().getId();
-                    if (modelName != null && !modelName.isBlank() && id != null) {
+                    String routeModelId = model.getMetadataId() != null && !model.getMetadataId().isBlank()
+                            ? model.getMetadataId()
+                            : model.getModel().getId();
+                    if (modelName != null && !modelName.isBlank() && routeModelId != null) {
                         Span modelBadge = new Span(modelName);
                         modelBadge.addClassNames(
                             LumoUtility.Background.CONTRAST_10,
@@ -167,7 +169,7 @@ public class ChapterListItem extends AbstractListItem {
 
                         modelBadge.getElement().addEventListener("click", e -> {
                             VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
-                            UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", model.getModel().getId())));
+                            UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", routeModelId)));
                         });
 
                         modelBadge.getStyle()

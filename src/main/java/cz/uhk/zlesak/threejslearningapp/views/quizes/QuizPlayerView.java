@@ -11,7 +11,6 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -44,13 +43,14 @@ public class QuizPlayerView extends AbstractQuizView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        try {
-            QuizEntity quiz = service.getQuizForStudent(quizId);
-            displayQuiz(quiz);
-        } catch (Exception e) {
-            log.error("Error loading quiz: {}", e.getMessage(), e);
-            new ErrorNotification(text("quiz.error.loading") + ": " + e.getMessage());
-        }
+        runAsync(
+                () -> service.getQuizForStudent(quizId),
+                this::displayQuiz,
+                error -> {
+                    log.error("Error loading quiz: {}", error.getMessage(), error);
+                    new ErrorNotification(text("quiz.error.loading") + ": " + error.getMessage());
+                }
+        );
     }
 
     /**
@@ -103,15 +103,22 @@ public class QuizPlayerView extends AbstractQuizView {
      * Submits the quiz answers for validation and displays the results.
      */
     private void submitQuiz() {
-        try {
-            playerComponent.disable();
-            QuizValidationResult result = service.validateAnswers(quizId, new ArrayList<>(playerComponent.getAnswers().values()));
-            displayQuizResultDetails(result);
-        } catch (Exception e) {
-            log.error("Error při odeslání odpovědí kvízu", e);
-            new ErrorNotification(text("quiz.error.submit") + ": " + e.getMessage());
-            playerComponent.enable();
-        }
+        playerComponent.disable();
+        runAsync(
+                () -> {
+                    try {
+                        return service.validateAnswers(quizId, new ArrayList<>(playerComponent.getAnswers().values()));
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                this::displayQuizResultDetails,
+                error -> {
+                    log.error("Error při odeslání odpovědí kvízu", error);
+                    new ErrorNotification(text("quiz.error.submit") + ": " + error.getMessage());
+                    playerComponent.enable();
+                }
+        );
     }
 
     @Override

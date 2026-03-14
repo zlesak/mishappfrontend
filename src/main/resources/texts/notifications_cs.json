@@ -1,6 +1,20 @@
 {
   "notification.uploadSuccess" : "Nahrávání bylo úspěšné",
   "notification.uploadError": "Nastala chyba při nahrávání: ",
+  "notification.loadError": "Nastala chyba při načítání",
+  "notification.apiError.default": "Došlo k neočekávané chybě. Zkuste to prosím znovu.",
+  "notification.apiError.withStatus": "Požadavek selhal (HTTP {0}).",
+  "notification.apiError.modelTooLarge": "Nahrávaný model je příliš velký. Zmenšete soubor nebo počet/přesnost textur a zkuste to znovu.",
+  "notification.apiError.400": "Požadavek není validní. Zkontrolujte prosím vyplněná data.",
+  "notification.apiError.401": "Nejste přihlášen(á) nebo relace vypršela. Přihlaste se prosím znovu.",
+  "notification.apiError.403": "Na tuto operaci nemáte oprávnění.",
+  "notification.apiError.404": "Požadovaný zdroj nebyl nalezen.",
+  "notification.apiError.409": "Operace je v konfliktu s aktuálním stavem dat.",
+  "notification.apiError.413": "Odesílaná data jsou příliš velká.",
+  "notification.apiError.415": "Nahraný typ souboru není podporován.",
+  "notification.apiError.422": "Data nelze zpracovat. Zkontrolujte prosím formát nahrávaných souborů.",
+  "notification.apiError.500": "Server narazil na chybu. Zkuste to prosím později.",
+  "notification.apiError.gateway": "Služba je dočasně nedostupná. Zkuste to prosím později.",
   "notification.cookieConsent": "Tato stránka používá cookies pro uložení zvoleného režimu zobrazení.",
   "error.chapterSaveFailed": "Uložení kapitoly selhalo: "
 }

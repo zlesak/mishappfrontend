@@ -57,6 +57,7 @@ export class TextureManager {
                         try {
                             const texture = new THREE.Texture();
                             texture.image = img;
+                            texture.colorSpace = THREE.SRGBColorSpace;
                             texture.needsUpdate = true;
                             onProgress?.(100, 'Texture loaded');
                             resolve(texture);
@@ -301,6 +302,7 @@ export class TextureManager {
                 ctx.putImageData(mainImageData, 0, 0);
 
                 const resultTexture = new THREE.CanvasTexture(resultCanvas);
+                resultTexture.colorSpace = THREE.SRGBColorSpace;
                 model.applyTexture(resultTexture);
 
                 worker.terminate();

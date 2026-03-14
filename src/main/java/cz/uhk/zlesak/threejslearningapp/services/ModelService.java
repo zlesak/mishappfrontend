@@ -1,15 +1,13 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractApiClient;
 import cz.uhk.zlesak.threejslearningapp.api.clients.ModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
-import cz.uhk.zlesak.threejslearningapp.domain.model.FileEntityRecursive;
-import cz.uhk.zlesak.threejslearningapp.domain.model.FileEntityTree;
-import cz.uhk.zlesak.threejslearningapp.domain.model.FileSenseType;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +16,10 @@ import org.springframework.context.ApplicationContextException;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +33,12 @@ import java.util.stream.Collectors;
 @Slf4j
 @Scope("prototype")
 public class ModelService extends AbstractService<ModelEntity, QuickModelEntity, ModelFilter> {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String DESCRIPTION_THUMBNAIL_KEY = "thumbnailDataUrl";
+    private static final String DESCRIPTION_BACKGROUND_KEY = "background";
+    private static final int MAX_PERSISTED_DESCRIPTION_LENGTH = 250_000;
+    private static final String DESCRIPTION_BACKGROUND_SPEC_KEY = "backgroundSpec";
+    private static final String DESCRIPTION_BACKGROUND_SPEC_JSON_KEY = "backgroundSpecJson";
 
     /**
      * Constructor for ModelService.
@@ -144,17 +150,22 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
             InputStreamMultipartFile mainTextureFile,
             List<InputStreamMultipartFile> otherTextureFiles,
             List<InputStreamMultipartFile> csvFiles,
-            String thumbnailDataUrl
+            String thumbnailDataUrl,
+            String backgroundSpecJson
     ) {
         boolean hasMainTexture = mainTextureFile != null;
         boolean hasOtherTextures = otherTextureFiles != null && !otherTextureFiles.isEmpty();
         boolean hasTextures = hasMainTexture || hasOtherTextures;
 
+        InputStreamMultipartFile backgroundImageFile = toBackgroundImageFile(backgroundSpecJson);
+        String persistedBackgroundSpecJson = selectBackgroundSpecForDescriptionPersistence(existingMetadataId, backgroundSpecJson);
+
         final ModelEntity.ModelEntityBuilder<?, ?> builder = ModelEntity.builder()
                 .name(name.trim())
                 .inputStreamMultipartFile(modelFile)
                 .isAdvanced(hasTextures)
-                .description(thumbnailDataUrl);
+                .description(encodeModelDescription(thumbnailDataUrl, persistedBackgroundSpecJson))
+                .backgroundImageFile(backgroundImageFile);
 
         if (hasMainTexture) {
             builder.fullMainTexture(TextureEntity.builder().textureFile(mainTextureFile).build());
@@ -178,10 +189,320 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         return create(builder.build());
     }
 
+    private String selectBackgroundSpecForDescriptionPersistence(String existingMetadataId, String requestedBackgroundSpecJson) {
+        String requested = requestedBackgroundSpecJson == null ? "" : requestedBackgroundSpecJson.trim();
+        if (requested.isEmpty()) {
+            return "";
+        }
+
+        String requestedType = extractBackgroundType(requested);
+        if (!"image".equalsIgnoreCase(requestedType)) {
+            return requested;
+        }
+        return "";
+    }
+
+    private String extractBackgroundType(String backgroundSpecJson) {
+        if (backgroundSpecJson == null || backgroundSpecJson.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode node = OBJECT_MAPPER.readTree(backgroundSpecJson);
+            return node.path("type").asText("").trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private static String toCsvName(String textureName) {
         if (textureName == null) return "texture.csv";
         int dot = textureName.lastIndexOf('.');
         return (dot > 0 ? textureName.substring(0, dot) : textureName) + ".csv";
+    }
+
+    /**
+     * Encodes model UI metadata (thumbnail + background) into description.
+     * Falls back to legacy plain thumbnail string when no background is provided.
+     */
+    public String encodeModelDescription(String thumbnailDataUrl, String backgroundSpecJson) {
+        String safeThumbnail = thumbnailDataUrl == null ? "" : thumbnailDataUrl.trim();
+        String safeBackground = sanitizeBackgroundForPersistence(backgroundSpecJson);
+
+        if (safeBackground.isEmpty()) {
+            return safeThumbnail;
+        }
+
+        try {
+            ObjectNode root = OBJECT_MAPPER.createObjectNode();
+            root.put(DESCRIPTION_THUMBNAIL_KEY, safeThumbnail);
+            JsonNode backgroundNode = OBJECT_MAPPER.readTree(safeBackground);
+            root.set(DESCRIPTION_BACKGROUND_KEY, backgroundNode);
+            String encoded = OBJECT_MAPPER.writeValueAsString(root);
+            if (encoded.length() > MAX_PERSISTED_DESCRIPTION_LENGTH) {
+                log.warn("Encoded model description is too large ({} chars), storing thumbnail only.", encoded.length());
+                return safeThumbnail;
+            }
+            return encoded;
+        } catch (Exception e) {
+            log.warn("Could not encode background metadata into model description: {}", e.getMessage());
+            return safeThumbnail;
+        }
+    }
+
+    private String sanitizeBackgroundForPersistence(String backgroundSpecJson) {
+        String safeBackground = backgroundSpecJson == null ? "" : backgroundSpecJson.trim();
+        if (safeBackground.isEmpty()) {
+            return "";
+        }
+
+        try {
+            JsonNode node = OBJECT_MAPPER.readTree(safeBackground);
+            String type = node.path("type").asText("");
+            JsonNode valueNode = node.path("value");
+
+            if ("image".equalsIgnoreCase(type) && valueNode.isTextual()) {
+                String value = valueNode.asText("");
+                if (value.startsWith("data:")) {
+                    return "";
+                }
+            }
+
+            if (safeBackground.length() > 20_000) {
+                return "";
+            }
+
+            return safeBackground;
+        } catch (Exception e) {
+            log.warn("Invalid background spec JSON, skipping persistence: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Parses description that may be either legacy thumbnail string or JSON metadata.
+     */
+    public ModelDescriptionData parseModelDescription(String description) {
+        if (description == null || description.isBlank()) {
+            return new ModelDescriptionData("", null);
+        }
+
+        String trimmed = description.trim();
+        if (!trimmed.startsWith("{")) {
+            return new ModelDescriptionData(trimmed, null);
+        }
+
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(trimmed);
+            String thumbnail = root.path(DESCRIPTION_THUMBNAIL_KEY).asText("");
+            JsonNode backgroundNode = resolveBackgroundNode(root);
+            String background = normalizeBackgroundNodeToJson(backgroundNode);
+            return new ModelDescriptionData(thumbnail, background);
+        } catch (Exception e) {
+            log.warn("Could not parse model description metadata, using legacy thumbnail fallback: {}", e.getMessage());
+            return new ModelDescriptionData(trimmed, null);
+        }
+    }
+
+    public String extractThumbnailDataUrl(String description) {
+        return parseModelDescription(description).thumbnailDataUrl();
+    }
+
+    public String extractBackgroundSpecJson(String description) {
+        return parseModelDescription(description).backgroundSpecJson();
+    }
+
+    public String resolveBackgroundSpecJson(ModelEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+
+        String backgroundFileId = findBackgroundImageFileId(entity);
+        if (backgroundFileId != null && !backgroundFileId.isBlank()) {
+            String streamUrl = AbstractApiClient.getStreamBeEndpointUrl(backgroundFileId);
+            try {
+                ObjectNode root = OBJECT_MAPPER.createObjectNode();
+                root.put("type", "image");
+                root.put("value", streamUrl);
+                return OBJECT_MAPPER.writeValueAsString(root);
+            } catch (Exception e) {
+                log.warn("ModelService.resolveBackgroundSpecJson: could not serialize resolved background image spec: {}", e.getMessage());
+            }
+        }
+
+        String fromDescription = extractBackgroundSpecJson(entity.getDescription());
+        if (fromDescription != null && !fromDescription.isBlank()) {
+            return fromDescription;
+        }
+
+        return null;
+    }
+
+    private String findBackgroundImageFileId(ModelEntity entity) {
+        if (entity.getModel() == null || entity.getModel().getRelated() == null) {
+            return null;
+        }
+
+        for (ModelFileEntity related : entity.getModel().getRelated()) {
+            if (related != null && related.getSenseType() == FileSenseType.BACKGROUND_IMAGE) {
+                return related.getId();
+            }
+        }
+        return null;
+    }
+
+    private InputStreamMultipartFile toBackgroundImageFile(String backgroundSpecJson) {
+        if (backgroundSpecJson == null || backgroundSpecJson.isBlank()) {
+            return null;
+        }
+
+        try {
+            JsonNode backgroundNode = OBJECT_MAPPER.readTree(backgroundSpecJson);
+            String type = backgroundNode.path("type").asText("");
+            if (!"image".equalsIgnoreCase(type)) {
+                return null;
+            }
+
+            String value = backgroundNode.path("value").asText("");
+            if (!value.startsWith("data:")) {
+                String existingFileId = extractModelDownloadFileId(value);
+                if (existingFileId == null) {
+                    return null;
+                }
+
+                try {
+                    InputStreamMultipartFile existingBackground = downloadFile(existingFileId);
+                    if (existingBackground != null && !existingBackground.isEmpty()) {
+                        String originalName = existingBackground.getOriginalFilename() != null
+                                ? existingBackground.getOriginalFilename()
+                                : "background-image.jpg";
+                        return InputStreamMultipartFile.builder()
+                                .inputStream(new ByteArrayInputStream(existingBackground.getBytes()))
+                                .fileName(originalName)
+                                .displayName("background-image")
+                                .build();
+                    }
+                } catch (Exception e) {
+                    log.warn("Could not re-download existing background image file {} for update: {}", existingFileId, e.getMessage());
+                }
+
+                return null;
+            }
+
+            int comma = value.indexOf(',');
+            if (comma <= 0 || comma >= value.length() - 1) {
+                return null;
+            }
+
+            String metadata = value.substring(5, comma);
+            String base64Data = value.substring(comma + 1);
+            if (!metadata.contains(";base64")) {
+                return null;
+            }
+
+            String mimeType = metadata.substring(0, metadata.indexOf(';')).trim();
+            byte[] bytes = Base64.getDecoder().decode(base64Data);
+            String extension = extensionForMimeType(mimeType);
+            String fileName = "background-image." + extension;
+
+            return InputStreamMultipartFile.builder()
+                    .inputStream(new ByteArrayInputStream(bytes))
+                    .fileName(fileName)
+                    .displayName("background-image")
+                    .build();
+        } catch (Exception e) {
+            log.warn("Could not convert background image data URL to multipart file: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String extensionForMimeType(String mimeType) {
+        if (mimeType == null) {
+            return "jpg";
+        }
+        return switch (mimeType.toLowerCase()) {
+            case "image/png" -> "png";
+            case "image/webp" -> "webp";
+            case "image/gif" -> "gif";
+            default -> "jpg";
+        };
+    }
+
+    private String extractModelDownloadFileId(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+
+        String marker = "/api/model/download/";
+        int idx = url.indexOf(marker);
+        if (idx < 0) {
+            return null;
+        }
+
+        String rest = url.substring(idx + marker.length());
+        int end = rest.indexOf('?');
+        if (end >= 0) {
+            rest = rest.substring(0, end);
+        }
+        end = rest.indexOf('/');
+        if (end >= 0) {
+            rest = rest.substring(0, end);
+        }
+
+        String trimmed = rest.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private JsonNode resolveBackgroundNode(JsonNode root) {
+        JsonNode backgroundNode = root.get(DESCRIPTION_BACKGROUND_KEY);
+        if (backgroundNode != null && !backgroundNode.isNull()) {
+            return backgroundNode;
+        }
+
+        JsonNode legacyBackgroundSpec = root.get(DESCRIPTION_BACKGROUND_SPEC_KEY);
+        if (legacyBackgroundSpec != null && !legacyBackgroundSpec.isNull()) {
+            return legacyBackgroundSpec;
+        }
+
+        JsonNode legacyBackgroundSpecJson = root.get(DESCRIPTION_BACKGROUND_SPEC_JSON_KEY);
+        if (legacyBackgroundSpecJson != null && !legacyBackgroundSpecJson.isNull()) {
+            return legacyBackgroundSpecJson;
+        }
+        return null;
+    }
+
+    private String normalizeBackgroundNodeToJson(JsonNode backgroundNode) {
+        if (backgroundNode == null || backgroundNode.isNull()) {
+            return null;
+        }
+
+        try {
+            if (backgroundNode.isObject()) {
+                return OBJECT_MAPPER.writeValueAsString(backgroundNode);
+            }
+
+            if (backgroundNode.isTextual()) {
+                String textValue = backgroundNode.asText("").trim();
+                if (textValue.isEmpty()) {
+                    return null;
+                }
+
+                if (textValue.startsWith("{")) {
+                    JsonNode parsedTextNode = OBJECT_MAPPER.readTree(textValue);
+                    if (parsedTextNode != null && parsedTextNode.isObject()) {
+                        return OBJECT_MAPPER.writeValueAsString(parsedTextNode);
+                    }
+                }
+
+                ObjectNode colorSpec = OBJECT_MAPPER.createObjectNode();
+                colorSpec.put("type", "color");
+                colorSpec.put("value", textValue);
+                return OBJECT_MAPPER.writeValueAsString(colorSpec);
+            }
+        } catch (Exception e) {
+            log.warn("Could not normalize background metadata: {}", e.getMessage());
+        }
+
+        return null;
     }
 
     private ModelEntity mapFileEntityTreeToModelEntity(FileEntityTree tree, String modelMetadataId) {
@@ -272,5 +593,8 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
             List<InputStreamMultipartFile> otherTextures,
             List<InputStreamMultipartFile> csvFiles
     ) {
+    }
+
+    public record ModelDescriptionData(String thumbnailDataUrl, String backgroundSpecJson) {
     }
 }

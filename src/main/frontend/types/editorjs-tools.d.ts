@@ -180,3 +180,26 @@ declare module 'editorjs-md-parser' {
 
     export function MDtoBlocks(markdown: string): Promise<any[]>;
 }
+
+declare module '@skchawala/editorjs-text-style' {
+    class TextStyleTool {
+        static get isInline(): boolean;
+        static get title(): string;
+        constructor(options: any);
+        render(): HTMLElement;
+        surround(range: Range): void;
+        checkState(selection: Selection): void;
+    }
+
+    export default TextStyleTool;
+}
+
+declare module 'editorjs-undo' {
+    class Undo {
+        constructor(options: { editor: any; config?: any });
+        initialize(data: any): void;
+    }
+
+    export default Undo;
+}
+

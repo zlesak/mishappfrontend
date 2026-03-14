@@ -47,6 +47,7 @@ export class ThreeJSScene {
     private _resizeObserver: ResizeObserver | null = null;
     private _windowResizeHandler: (() => void) | null = null;
     private _backgroundHandler: ((ev: Event) => void) | null = null;
+    private modelLoadViewById: Map<string, { cameraPosition: THREE.Vector3; controlsTarget: THREE.Vector3 }> = new Map();
 
     // Camera animation
     private cameraAnimation: ICameraAnimation = {
@@ -60,6 +61,8 @@ export class ThreeJSScene {
     };
 
     private currentBackgroundTexture: THREE.Texture | null = null;
+    private currentBackgroundSpec: { type: string; value: any } | null = null;
+    private pendingBackgroundSpec: { type: string; value: any } | null = null;
 
     /**
      * Constructor for ThreeJSScene
@@ -147,6 +150,10 @@ export class ThreeJSScene {
             };
             window.addEventListener('threejs-set-background', this._backgroundHandler);
 
+            if (this.pendingBackgroundSpec) {
+                await this.setBackground(this.pendingBackgroundSpec);
+            }
+
             resizeHandler();
             this.startAnimation();
             this.eventManager.registerClickHandler(
@@ -167,6 +174,20 @@ export class ThreeJSScene {
             this.renderer.render(this.scene, this.camera);
         }
     };
+
+    private waitForNextFrame(): Promise<void> {
+        return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+    }
+
+    private async waitForSceneSettle(maxWaitMs: number = 2500): Promise<void> {
+        const start = Date.now();
+        while (this.cameraAnimation.active && (Date.now() - start) < maxWaitMs) {
+            await this.waitForNextFrame();
+        }
+
+        await this.waitForNextFrame();
+        await this.waitForNextFrame();
+    }
 
     /**
      * Main animation loop using requestAnimationFrame
@@ -206,6 +227,8 @@ export class ThreeJSScene {
         if (this.controls) {
             this.controls.update();
         }
+
+        this.updateDynamicCameraClipping();
 
         this.render();
         this.animationId = requestAnimationFrame(this.animate);
@@ -277,6 +300,67 @@ export class ThreeJSScene {
         this.cameraAnimation.active = true;
     }
 
+    /**
+     * Keep camera clipping and orbit limits proportional to current model size.
+     */
+    private applyCameraFitConstraints(center: THREE.Vector3, radius: number, targetDistance: number): void {
+        if (!this.camera || !this.controls) return;
+
+        const safeRadius = Math.max(radius, 0.01);
+        const safeDistance = Math.max(
+            targetDistance,
+            this.camera.position.distanceTo(center),
+            safeRadius
+        );
+
+        this.controls.minDistance = Math.max(0.001, safeRadius * 0.01);
+        this.controls.maxDistance = Math.max(
+            this.controls.minDistance + 1,
+            safeRadius * 20,
+            safeDistance * 6
+        );
+
+        const dynamicNear = Math.max(0.0001, Math.min(safeRadius * 0.05, safeDistance / 100));
+        const dynamicFar = Math.max(dynamicNear + 10, safeDistance + safeRadius * 20);
+        this.camera.near = dynamicNear;
+        this.camera.far = dynamicFar;
+        this.camera.updateProjectionMatrix();
+    }
+
+    /**
+     * Keeps clipping planes stable while user zooms to very small distances.
+     */
+    private updateDynamicCameraClipping(): void {
+        if (!this.camera || !this.controls) return;
+
+        const currentModel = this.modelManager.getCurrentModel();
+        if (!currentModel?.modelLoader) return;
+
+        const box = new THREE.Box3().setFromObject(currentModel.modelLoader);
+        if (box.isEmpty()) return;
+
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const radius = Math.max(sphere.radius, 0.0001);
+        const distance = Math.max(this.camera.position.distanceTo(this.controls.target), 0.0001);
+
+        const near = Math.max(0.00005, Math.min(radius * 0.05, distance / 80));
+        const far = Math.max(near + 10, distance + radius * 30);
+
+        if (Math.abs(this.camera.near - near) > 1e-6 || Math.abs(this.camera.far - far) > 1e-3) {
+            this.camera.near = near;
+            this.camera.far = far;
+            this.camera.updateProjectionMatrix();
+        }
+    }
+
+    private rememberModelLoadView(modelId: string): void {
+        if (!this.camera || !this.controls) return;
+
+        this.modelLoadViewById.set(modelId, {
+            cameraPosition: this.camera.position.clone(),
+            controlsTarget: this.controls.target.clone()
+        });
+    }
     // ========== Public API Methods ==========
 
     /**
@@ -311,6 +395,7 @@ export class ThreeJSScene {
                 modelId,
                 (obj) => this.disposalManager.disposeObject(obj)
             );
+            this.modelLoadViewById.delete(modelId);
             this.render();
         });
     }
@@ -343,6 +428,7 @@ export class ThreeJSScene {
             const result = await this.modelManager.showModelById(
                 modelId,
                 (m) => {
+                    this.rememberModelLoadView(m.id);
                     void this.fitCameraToModel(m.id);
                 },
                 await this.getAuthHeaders(),
@@ -548,47 +634,54 @@ export class ThreeJSScene {
      * @returns Base64 encoded PNG image data URL of the thumbnail
      */
     async getThumbnail(modelId: string, width: number, height: number): Promise<string> {
-        const currentModel = this.modelManager.getCurrentModel();
-        if (currentModel == null || currentModel.id !== modelId) {
-            await this.showModelById(modelId);
+        await this.waitForIdleActions();
+
+        const activeModel = this.modelManager.getCurrentModel();
+        const targetModelId = activeModel?.modelLoader ? activeModel.id : modelId;
+
+        let currentModel = this.modelManager.getCurrentModel();
+        if (currentModel == null || currentModel.id !== targetModelId || !currentModel.modelLoader) {
+            await this.showModelById(targetModelId);
         }
 
-        const model = this.modelManager.getCurrentModel();
-        if (!this.renderer || !this.camera || !this.controls || !model || !model.modelLoader) {
+        currentModel = this.modelManager.getCurrentModel();
+        if (!currentModel || currentModel.id !== targetModelId || !currentModel.modelLoader) {
+            throw new Error('Model is not ready for thumbnail generation');
+        }
+
+        await this.fitCameraToModel(targetModelId);
+        await this.waitForSceneSettle(5000);
+
+        if (!this.renderer || !this.camera || !this.controls) {
             throw new Error('Renderer or camera not initialized');
         }
 
+        const model = currentModel;
         const originalSize = new THREE.Vector2();
         this.renderer.getSize(originalSize);
 
         const originalAspect = this.camera.aspect;
-        const originalCameraPosition = this.camera.position.clone();
-        const originalControlsTarget = this.controls.target.clone();
-        const originalAnimationActive = this.cameraAnimation.active;
         const originalSelectedTextureId = this.lastSelectedTextureId;
 
         try {
+            // For thumbnails always prefer main texture when present.
             if (model.loadedMainTexture) {
                 await this.textureManager.switchToMainTexture(model);
                 this.lastSelectedTextureId = null;
             }
 
-            this.frameCameraToModelInstant(model, 1.2);
-
             this.renderer.setSize(width, height);
             this.camera.aspect = width / height;
             this.camera.updateProjectionMatrix();
             this.render();
+            await this.waitForSceneSettle(1500);
+            this.render();
 
-            return this.renderer.domElement.toDataURL('image/png');
+            return this.renderer.domElement.toDataURL('image/jpeg', 1.0);
         } finally {
             this.renderer.setSize(originalSize.x, originalSize.y);
             this.camera.aspect = originalAspect;
-            this.camera.position.copy(originalCameraPosition);
-            this.controls.target.copy(originalControlsTarget);
-            this.controls.update();
             this.camera.updateProjectionMatrix();
-            this.cameraAnimation.active = originalAnimationActive;
 
             if (originalSelectedTextureId && model.getOtherTexture(originalSelectedTextureId)) {
                 const restored = await this.textureManager.switchOtherTexture(originalSelectedTextureId, model);
@@ -631,6 +724,7 @@ export class ThreeJSScene {
             );
 
             this.modelManager.removeFromList(modelId);
+            this.modelLoadViewById.delete(modelId);
             this.render();
         });
     }
@@ -645,6 +739,7 @@ export class ThreeJSScene {
                 this.ambientLight!,
                 this.modelManager.getCurrentModel()
             );
+            this.modelLoadViewById.clear();
             await new Promise(resolve => setTimeout(resolve, 100));
             this.render();
         });
@@ -683,6 +778,8 @@ export class ThreeJSScene {
             this.modelManager.clear();
         }
 
+        this.modelLoadViewById.clear();
+
         if (this.guiManager) {
             this.guiManager.dispose();
         }
@@ -715,7 +812,8 @@ export class ThreeJSScene {
         if (!model || !model.modelLoader) return;
 
         const box = new THREE.Box3().setFromObject(model.modelLoader);
-        const {center, targetPos} = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
+        const {center, targetPos, radius} = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
+        this.applyCameraFitConstraints(center, radius, targetPos.distanceTo(center));
 
         this.cameraAnimation.startPos = this.camera.position.clone();
         this.cameraAnimation.targetPos = targetPos.clone();
@@ -727,30 +825,24 @@ export class ThreeJSScene {
         this.startAnimation();
     }
 
-    /**
-     * Immediately frame whole model in camera view without animation.
-     * Used for deterministic thumbnail rendering.
-     */
-    private frameCameraToModelInstant(model: Model, margin: number = 1.2): void {
-        if (!this.camera || !this.controls || !model.modelLoader) {
-            return;
-        }
-
-        const box = new THREE.Box3().setFromObject(model.modelLoader);
-        const {center, targetPos} = SceneSetup.fitCameraToBox(this.camera, this.controls, box, margin);
-
-        this.cameraAnimation.active = false;
-        this.camera.position.copy(targetPos);
-        this.controls.target.copy(center);
-        this.controls.update();
-    }
 
     /**
      * Set scene background. bgSpec: { type: 'color'|'image'|'cube'|'gradient', value }
      * @param bgSpec - Background specification object with type and value
      */
     async setBackground(bgSpec: { type: string; value: any }): Promise<void> {
-        if (!this.scene) return;
+        const normalized = this.normalizeBackgroundSpec(bgSpec);
+        if (!normalized) {
+            console.warn('Invalid background spec', bgSpec);
+            return;
+        }
+
+        this.currentBackgroundSpec = this.cloneBackgroundSpec(normalized);
+
+        if (!this.scene) {
+            this.pendingBackgroundSpec = this.cloneBackgroundSpec(normalized);
+            return;
+        }
 
         if (this.currentBackgroundTexture) {
             try {
@@ -761,13 +853,13 @@ export class ThreeJSScene {
             this.currentBackgroundTexture = null;
         }
 
-        switch (bgSpec.type) {
+        switch (normalized.type) {
             case 'color':
-                this.scene.background = new THREE.Color(bgSpec.value || 0x000000);
+                this.scene.background = new THREE.Color(normalized.value || 0x000000);
                 break;
             case 'image':
                 try {
-                    const tex = await this.textureManager.loadTextureWithAuth(bgSpec.value, await this.getAuthHeaders());
+                    const tex = await this.textureManager.loadTextureWithAuth(normalized.value, await this.getAuthHeaders());
                     tex.needsUpdate = true;
                     this.scene.background = tex;
                     this.currentBackgroundTexture = tex;
@@ -777,8 +869,8 @@ export class ThreeJSScene {
                 break;
             case 'cube':
                 try {
-                    const loader = new THREE.CubeTextureLoader().setPath(bgSpec.value.path || 'skybox/');
-                    const tex = loader.load(bgSpec.value.files);
+                    const loader = new THREE.CubeTextureLoader().setPath(normalized.value.path || 'skybox/');
+                    const tex = loader.load(normalized.value.files);
                     this.scene.background = tex;
                     this.currentBackgroundTexture = tex as unknown as THREE.Texture;
                 } catch (e) {
@@ -786,10 +878,71 @@ export class ThreeJSScene {
                 }
                 break;
             default:
-                console.warn('Unknown background type', bgSpec.type);
+                console.warn('Unknown background type', normalized.type);
         }
 
+        this.pendingBackgroundSpec = null;
+
         this.render();
+        console.info('[ThreeJSScene] background applied successfully');
+        window.dispatchEvent(new CustomEvent('threejs-background-updated', {detail: this.cloneBackgroundSpec(normalized)}));
+    }
+
+    getBackgroundSpec(): { type: string; value: any } | null {
+        return this.cloneBackgroundSpec(this.currentBackgroundSpec);
+    }
+
+    private normalizeBackgroundSpec(bgSpec: any): { type: string; value: any } | null {
+        if (!bgSpec || typeof bgSpec !== 'object') {
+            return null;
+        }
+
+        if (bgSpec.type === 'color') {
+            const value = bgSpec.value;
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return {type: 'color', value};
+            }
+            if (typeof value === 'string' && value.trim().length > 0) {
+                return {type: 'color', value: value.trim()};
+            }
+            return {type: 'color', value: 0x000000};
+        }
+
+        if (bgSpec.type === 'image') {
+            if (typeof bgSpec.value !== 'string' || bgSpec.value.trim().length === 0) {
+                return null;
+            }
+            return {type: 'image', value: bgSpec.value.trim()};
+        }
+
+        if (bgSpec.type === 'cube') {
+            const value = bgSpec.value;
+            if (!value || typeof value !== 'object' || !Array.isArray(value.files) || value.files.length !== 6) {
+                return null;
+            }
+
+            const files = value.files
+                .filter((file: unknown) => typeof file === 'string')
+                .map((file: string) => file.trim())
+                .filter((file: string) => file.length > 0);
+
+            if (files.length !== 6) {
+                return null;
+            }
+
+            const path = typeof value.path === 'string' && value.path.trim().length > 0
+                ? value.path.trim()
+                : 'skybox/';
+
+            return {type: 'cube', value: {path, files}};
+        }
+
+        return null;
+    }
+
+    private cloneBackgroundSpec(bgSpec: { type: string; value: any } | null): { type: string; value: any } | null {
+        if (!bgSpec) return null;
+        return JSON.parse(JSON.stringify(bgSpec));
     }
 
     /**
@@ -817,6 +970,16 @@ export class ThreeJSScene {
         this.actionQueue.push(description);
         if (this.element?.$server?.doingActions) {
             await this.element.$server.doingActions(this.actionQueue[this.actionQueue.length - 1]);
+        }
+    }
+
+    private async waitForIdleActions(maxWaitMs: number = 12000): Promise<void> {
+        const startedAt = Date.now();
+        while (this.actionQueue.length > 0) {
+            if ((Date.now() - startedAt) > maxWaitMs) {
+                throw new Error('Timed out waiting for Three.js actions to finish');
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
     }
 

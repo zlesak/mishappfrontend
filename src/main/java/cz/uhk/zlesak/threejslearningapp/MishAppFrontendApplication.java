@@ -8,10 +8,17 @@ import com.vaadin.flow.component.page.Push;
 import com.vaadin.flow.server.AppShellSettings;
 import com.vaadin.flow.shared.ui.Transport;
 import com.vaadin.flow.theme.Theme;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestClient;
+
+import java.net.http.HttpClient;
+import java.time.Duration;
+import java.util.concurrent.Executor;
 
 /**
  * Main application class for the Three.js Learning App.
@@ -38,7 +45,24 @@ public class MishAppFrontendApplication implements AppShellConfigurator {
      */
     @Bean
     public RestClient restClient() {
-        return RestClient.create();
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build();
+        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(120));
+        return RestClient.builder().requestFactory(requestFactory).build();
+    }
+
+    @Bean(name = "modelIoExecutor")
+    @Primary
+    public Executor modelIoExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(8);
+        executor.setMaxPoolSize(16);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("model-io-");
+        executor.initialize();
+        return executor;
     }
 
     /**

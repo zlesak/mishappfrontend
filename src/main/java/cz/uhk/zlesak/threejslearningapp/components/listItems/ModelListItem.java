@@ -25,7 +25,8 @@ public class ModelListItem extends AbstractListItem {
         super(listView, administrationView, VaadinIcon.CUBES);
 
         try {
-            String desc = model.getDescription();
+            ModelService modelService = SpringContextUtils.getBean(ModelService.class);
+            String desc = modelService.extractThumbnailDataUrl(model.getDescription());
 
             if (desc != null && !desc.isBlank()) {
                 Image thumb = new Image(desc, model.getModel().getName());

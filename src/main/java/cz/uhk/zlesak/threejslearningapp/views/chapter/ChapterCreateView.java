@@ -38,6 +38,7 @@ public class ChapterCreateView extends AbstractChapterView {
     private boolean isEditMode = false;
     private final ModelService modelService;
     private CreateChapterForm createChapterForm;
+    private volatile boolean editDataLoadingStarted = false;
 
     /**
      * Constructor for CreateChapterView.
@@ -77,7 +78,8 @@ public class ChapterCreateView extends AbstractChapterView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (isEditMode) {
+        if (isEditMode && !editDataLoadingStarted) {
+            editDataLoadingStarted = true;
             loadChapterForEdit();
         }
     }
@@ -104,53 +106,68 @@ public class ChapterCreateView extends AbstractChapterView {
     private ChapterEntity loadedChapter;
     
     private void loadChapterForEdit() {
-        try {
-            final UI ui = UI.getCurrent();
-            if (VaadinSession.getCurrent().getAttribute("chapterEntity") != null) {
-                loadedChapter = (ChapterEntity) VaadinSession.getCurrent().getAttribute("chapterEntity");
-                VaadinSession.getCurrent().setAttribute("chapterEntity", null);
-            } else {
-                loadedChapter = service.read(chapterId);
-            }
-            
-            nameTextField.setValue(loadedChapter.getName());
-            editorjs.setChapterContentData(service.getChapterContent(chapterId));
-            
-            Map<String, QuickModelEntity> modelsMap = service.getChaptersModels(chapterId);
-
-            editorjs.getElement().executeJs(
-                    "return $0.editorReadyPromise",
-                    editorjs.getElement()
-            )
-            .toCompletableFuture().thenCompose(result -> editorjs.getSubchaptersNames())
-            .thenAccept(subchapterNames -> {
-                if (ui == null || ui.isClosing()) {
-                    return;
-                }
-                ui.access(() -> {
-                    secondaryNavigation.getModelsScroller().initSelects(subchapterNames);
-
-                    if (modelsMap != null && !modelsMap.isEmpty()) {
-                        modelsMap.forEach((blockId, model) ->
-                                secondaryNavigation.getModelsScroller().updateModelSelect(blockId, model)
-                        );
-                    }
-                    setupData(modelsMap);
-                });
-            })
-            .exceptionally(ex -> {
-                log.error("Editor initialization or model loading failed: {}", ex.getMessage(), ex);
-                if (ui != null && !ui.isClosing()) {
-                    ui.access(() -> new ErrorNotification(text("error.editorInitializationFailed") + ": " + ex.getMessage()));
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.error("Error loading chapter for edit: {}", e.getMessage(), e);
-            new ErrorNotification(text("error.chapterLoadFailed") + ": " + e.getMessage());
-            skipBeforeLeaveDialog = true;
-            UI.getCurrent().navigate(ChapterListingView.class);
+        final UI ui = UI.getCurrent();
+        if (ui == null) {
+            log.error("UI is not available for chapter edit loading");
+            return;
         }
+
+        ChapterEntity chapterFromSession = null;
+        if (VaadinSession.getCurrent().getAttribute("chapterEntity") != null) {
+            chapterFromSession = (ChapterEntity) VaadinSession.getCurrent().getAttribute("chapterEntity");
+            VaadinSession.getCurrent().setAttribute("chapterEntity", null);
+        }
+        final ChapterEntity chapterFromSessionFinal = chapterFromSession;
+
+        runAsync(() -> {
+                    try {
+                        ChapterEntity chapter = chapterFromSessionFinal != null ? chapterFromSessionFinal : service.read(chapterId);
+                        String chapterContent = service.getChapterContent(chapterId);
+                        Map<String, QuickModelEntity> fullModelsMap = resolveFullModels(service.getChaptersModels(chapterId));
+                        return new ChapterEditData(chapter, chapterContent, fullModelsMap);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                editData -> {
+                    loadedChapter = editData.chapter();
+                    nameTextField.setValue(loadedChapter.getName());
+                    editorjs.setChapterContentData(editData.chapterContent());
+
+                    editorjs.getElement().executeJs(
+                                    "return $0.editorReadyPromise",
+                                    editorjs.getElement()
+                            )
+                            .toCompletableFuture().thenCompose(result -> editorjs.getSubchaptersNames())
+                            .thenAccept(subchapterNames -> {
+                                if (ui.isClosing()) {
+                                    return;
+                                }
+                                ui.access(() -> {
+                                    secondaryNavigation.getModelsScroller().initSelects(subchapterNames);
+
+                                    if (editData.modelsMap() != null && !editData.modelsMap().isEmpty()) {
+                                        editData.modelsMap().forEach((blockId, model) ->
+                                                secondaryNavigation.getModelsScroller().updateModelSelect(blockId, model)
+                                        );
+                                    }
+                                    setupData(editData.modelsMap());
+                                });
+                            })
+                            .exceptionally(ex -> {
+                                log.error("Editor initialization or model loading failed: {}", ex.getMessage(), ex);
+                                if (!ui.isClosing()) {
+                                    ui.access(() -> new ErrorNotification(text("error.editorInitializationFailed") + ": " + ex.getMessage()));
+                                }
+                                return null;
+                            });
+                },
+                error -> {
+                    log.error("Error loading chapter for edit: {}", error.getMessage(), error);
+                    new ErrorNotification(text("error.chapterLoadFailed") + ": " + error.getMessage());
+                    skipBeforeLeaveDialog = true;
+                    UI.getCurrent().navigate(ChapterListingView.class);
+                });
     }
 
     /**
@@ -205,28 +222,27 @@ public class ChapterCreateView extends AbstractChapterView {
      * @param allModels map of all selected models
      */
     private void createChapterAndNavigate(String bodyData, Map<String, QuickModelEntity> allModels) {
-        try {
-            String savedChapterId = service.saveChapter(
-                    chapterId,
-                    isEditMode,
-                    nameTextField.getValue(),
-                    bodyData,
-                    allModels,
-                    loadedChapter
-            );
-
-            if (isEditMode) {
-                new SuccessNotification(text("chapter.update.success"));
-            } else {
-                new SuccessNotification(text("chapter.create.success"));
-            }
-            skipBeforeLeaveDialog = true;
-            UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", savedChapterId)));
-        } catch (Exception e) {
-            log.error("Error saving chapter: {}", e.getMessage(), e);
-            throw new ApplicationContextException(
-                text(isEditMode ? "error.chapterUpdateFailed" : "error.chapterCreationFailed") + ": " + e.getMessage(), e);
-        }
+        runAsync(() -> service.saveChapter(
+                        chapterId,
+                        isEditMode,
+                        nameTextField.getValue(),
+                        bodyData,
+                        allModels,
+                        loadedChapter
+                ),
+                savedChapterId -> {
+                    if (isEditMode) {
+                        new SuccessNotification(text("chapter.update.success"));
+                    } else {
+                        new SuccessNotification(text("chapter.create.success"));
+                    }
+                    skipBeforeLeaveDialog = true;
+                    UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", savedChapterId)));
+                },
+                error -> {
+                    log.error("Error saving chapter: {}", error.getMessage(), error);
+                    new ErrorNotification(text(isEditMode ? "error.chapterUpdateFailed" : "error.chapterCreationFailed") + ": " + error.getMessage());
+                });
     }
 
     /**
@@ -247,28 +263,37 @@ public class ChapterCreateView extends AbstractChapterView {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelSelectedFromDialogEvent.class,
-                event -> {
-                    try {
-                        QuickModelEntity selectedModel = event.getSelectedModel();
-                        QuickModelEntity fullModel = selectedModel;
-                        if (selectedModel != null && selectedModel.getMetadataId() != null && !selectedModel.getMetadataId().isBlank()) {
-                            fullModel = modelService.read(selectedModel.getMetadataId());
-                        }
-                        if (fullModel == null || fullModel.getModel() == null || fullModel.getModel().getId() == null) {
-                            throw new ApplicationContextException(text("error.modelLoadFailed"));
-                        }
-
-                        secondaryNavigation.getModelsScroller().updateModelSelect(
-                                event.getBlockId(),
-                                fullModel
-                        );
-                        loadSingleModelWithTextures(fullModel, event.getBlockId(), fullModel.getModel().getId(), true);
-                        editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
-                    } catch (Exception ex) {
-                        log.error("Failed to load full model data after model selection: {}", ex.getMessage(), ex);
-                        new ErrorNotification(text("error.modelLoadFailed") + ": " + ex.getMessage());
-                    }
-                }
+                event -> runAsync(() -> {
+                            QuickModelEntity selectedModel = event.getSelectedModel();
+                            QuickModelEntity fullModel = selectedModel;
+                            if (selectedModel != null && selectedModel.getMetadataId() != null && !selectedModel.getMetadataId().isBlank()) {
+                                fullModel = modelService.read(selectedModel.getMetadataId());
+                            }
+                            if (fullModel == null || fullModel.getModel() == null || fullModel.getModel().getId() == null) {
+                                throw new ApplicationContextException(text("error.modelLoadFailed"));
+                            }
+                            return fullModel;
+                        },
+                        fullModel -> {
+                            secondaryNavigation.getModelsScroller().updateModelSelect(
+                                    event.getBlockId(),
+                                    fullModel
+                            );
+                            rememberModelBackgroundSpec(fullModel);
+                            loadSingleModelWithTextures(fullModel, event.getBlockId(), fullModel.getModel().getId(), true);
+                            editorjs.initializeTextureSelects(secondaryNavigation.getModelsScroller().getAllModelsMappedToChapterHeaderBlockId());
+                        },
+                        error -> {
+                            log.error("Failed to load full model data after model selection: {}", error.getMessage(), error);
+                            new ErrorNotification(text("error.modelLoadFailed") + ": " + error.getMessage());
+                        })
         ));
+    }
+
+    private record ChapterEditData(
+            ChapterEntity chapter,
+            String chapterContent,
+            Map<String, QuickModelEntity> modelsMap
+    ) {
     }
 }

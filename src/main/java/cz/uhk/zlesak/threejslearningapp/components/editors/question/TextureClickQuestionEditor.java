@@ -13,17 +13,20 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.TextureClickQuestio
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
  * Editor for texture click questions.
  */
+@Slf4j
 public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuestionOption> {
 
     private final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
-    private final Function<String, QuickModelEntity> modelResolver;
+    private final Function<String, CompletableFuture<QuickModelEntity>> modelResolver;
     private TextureClickQuestionData pendingModelLoadData;
     private TextureClickAnswerData pendingAnswerData;
     private String savedModelId;
@@ -33,7 +36,7 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
     /**
      * Constructor for TextureClickQuestionEditor.
      */
-    public TextureClickQuestionEditor(Function<String, QuickModelEntity> modelResolver) {
+    public TextureClickQuestionEditor(Function<String, CompletableFuture<QuickModelEntity>> modelResolver) {
         super(QuestionTypeEnum.TEXTURE_CLICK);
         this.modelResolver = modelResolver;
         modelTextureAreaSelectContainer.setQuestionId(questionId);
@@ -135,39 +138,54 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
     private void dispatchPendingData() {
         getUI().ifPresent(ui -> ui.beforeClientResponse(this, context -> {
             if (pendingModelLoadData != null) {
-                QuickModelEntity quickModelEntity = modelResolver.apply(pendingModelLoadData.getModelId());
-                ComponentUtil.fireEvent(ui, new ModelLoadEvent(ui, quickModelEntity, pendingModelLoadData.getQuestionId()));
-                if (pendingModelLoadData.getTextureId() != null && !pendingModelLoadData.getTextureId().isBlank()) {
-                    ComponentUtil.fireEvent(
-                            ui,
-                            new ThreeJsActionEvent(
-                                    ui,
-                                    pendingModelLoadData.getModelId(),
-                                    pendingModelLoadData.getTextureId(),
-                                    ThreeJsActions.SWITCH_OTHER_TEXTURE,
-                                    true,
-                                    pendingModelLoadData.getQuestionId()
-                            )
-                    );
-                }
+                TextureClickQuestionData modelLoadData = pendingModelLoadData;
                 pendingModelLoadData = null;
+
+                modelResolver.apply(modelLoadData.getModelId())
+                        .thenAccept(quickModelEntity -> ui.access(() -> {
+                            ComponentUtil.fireEvent(ui, new ModelLoadEvent(ui, quickModelEntity, modelLoadData.getQuestionId()));
+                            if (modelLoadData.getTextureId() != null && !modelLoadData.getTextureId().isBlank()) {
+                                ComponentUtil.fireEvent(
+                                        ui,
+                                        new ThreeJsActionEvent(
+                                                ui,
+                                                modelLoadData.getModelId(),
+                                                modelLoadData.getTextureId(),
+                                                ThreeJsActions.SWITCH_OTHER_TEXTURE,
+                                                true,
+                                                modelLoadData.getQuestionId()
+                                        )
+                                );
+                            }
+                            dispatchPendingAnswer(ui);
+                        }))
+                        .exceptionally(error -> {
+                            log.error("Failed to resolve model for texture question {}: {}", modelLoadData.getQuestionId(), error.getMessage(), error);
+                            return null;
+                        });
+                return;
             }
-            if (pendingAnswerData != null) {
-                ComponentUtil.fireEvent(
-                        ui,
-                        new ThreeJsActionEvent(
-                                ui,
-                                pendingAnswerData.getModelId(),
-                                pendingAnswerData.getTextureId(),
-                                ThreeJsActions.APPLY_MASK_TO_TEXTURE,
-                                true,
-                                pendingAnswerData.getQuestionId(),
-                                pendingAnswerData.getHexColor()
-                        )
-                );
-                pendingAnswerData = null;
-            }
+            dispatchPendingAnswer(ui);
         }));
+    }
+
+    private void dispatchPendingAnswer(com.vaadin.flow.component.UI ui) {
+        if (pendingAnswerData == null) {
+            return;
+        }
+        ComponentUtil.fireEvent(
+                ui,
+                new ThreeJsActionEvent(
+                        ui,
+                        pendingAnswerData.getModelId(),
+                        pendingAnswerData.getTextureId(),
+                        ThreeJsActions.APPLY_MASK_TO_TEXTURE,
+                        true,
+                        pendingAnswerData.getQuestionId(),
+                        pendingAnswerData.getHexColor()
+                )
+        );
+        pendingAnswerData = null;
     }
 
     /**
