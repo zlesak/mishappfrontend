@@ -386,10 +386,35 @@ export class GUIManager {
         colorInput.type = 'color';
         colorInput.value = '#000000';
         colorInput.style.width = '100%';
+
+        const toHexColor = (value: unknown): string | null => {
+            if (typeof value === 'string') {
+                const v = value.trim();
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) return v;
+                if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+                    const r = v[1], g = v[2], b = v[3];
+                    return `#${r}${r}${g}${g}${b}${b}`;
+                }
+                if (/^0x[0-9a-fA-F]{6}$/.test(v)) return `#${v.slice(2)}`;
+                if (/^[0-9a-fA-F]{6}$/.test(v)) return `#${v}`;
+                return null;
+            }
+
+            if (typeof value === 'number' && Number.isFinite(value)) {
+                return `#${Math.max(0, Math.min(0xffffff, value)).toString(16).padStart(6, '0')}`;
+            }
+
+            return null;
+        };
+
+        const dispatchColorBackground = () => {
+            window.dispatchEvent(new CustomEvent('threejs-set-background', {
+                detail: { type: 'color', value: colorInput.value }
+            }));
+        };
+
         colorInput.addEventListener('input', () => {
-            const color = colorInput.value;
-            const event = new CustomEvent('threejs-set-background', { detail: { type: 'color', value: color } });
-            window.dispatchEvent(event);
+            dispatchColorBackground();
         });
 
         const fileInput = document.createElement('input');
@@ -428,9 +453,12 @@ export class GUIManager {
              if (bg.type === 'cube' || bg.type === 'color' || bg.type === 'image') {
                  bgSelect.value = bg.type;
              }
-             if (bg.type === 'color' && typeof bg.value === 'string' && bg.value.trim().length > 0) {
-                 colorInput.value = bg.value;
-             }
+             if (bg.type === 'color') {
+                 const normalizedColor = toHexColor(bg.value);
+                 if (normalizedColor) {
+                     colorInput.value = normalizedColor;
+                 }
+              }
 
              const v = bgSelect.value;
              colorInput.style.display = v === 'color' ? 'block' : 'none';
@@ -439,14 +467,20 @@ export class GUIManager {
          window.addEventListener('threejs-background-updated', this.backgroundSyncHandler);
 
          bgSelect.addEventListener('change', () => {
-             const v = bgSelect.value;
-             colorInput.style.display = v === 'color' ? 'block' : 'none';
-             fileInput.style.display = v === 'image' ? 'block' : 'none';
-             if (v === 'cube') {
-                 const event = new CustomEvent('threejs-set-background', { detail: { type: 'cube', value: { files: ['px.bmp','nx.bmp','py.bmp','ny.bmp','pz.bmp','nz.bmp'], path: 'skybox/' } } });
-                 window.dispatchEvent(event);
-             }
-         });
+              const v = bgSelect.value;
+              colorInput.style.display = v === 'color' ? 'block' : 'none';
+              fileInput.style.display = v === 'image' ? 'block' : 'none';
+              if (v === 'cube') {
+                  const event = new CustomEvent('threejs-set-background', { detail: { type: 'cube', value: { files: ['px.bmp','nx.bmp','py.bmp','ny.bmp','pz.bmp','nz.bmp'], path: 'skybox/' } } });
+                  window.dispatchEvent(event);
+                  return;
+              }
+
+              if (v === 'color') {
+                 // Apply currently selected color immediately when switching back from skybox/image.
+                 dispatchColorBackground();
+              }
+          });
 
         return container;
     }
