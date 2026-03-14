@@ -251,25 +251,43 @@ export class Model implements IModelData {
             }
         }
 
+        texture.colorSpace = THREE.SRGBColorSpace;
         if (referenceMap) {
-            texture.colorSpace = referenceMap.colorSpace !== THREE.NoColorSpace
-                ? referenceMap.colorSpace
-                : THREE.SRGBColorSpace;
             texture.flipY = referenceMap.flipY;
-        } else {
-            texture.colorSpace = THREE.SRGBColorSpace;
         }
         texture.needsUpdate = true;
     }
 
     private applyTextureToMaterial(material: THREE.Material, texture: THREE.Texture): THREE.Material {
-        const mappedMaterial = material as THREE.Material & { map?: THREE.Texture | null };
+        const mappedMaterial = material as THREE.Material & {
+            map?: THREE.Texture | null;
+            color?: THREE.Color;
+            vertexColors?: boolean;
+            metalness?: number;
+            roughness?: number;
+        };
+
         if ('map' in mappedMaterial) {
             mappedMaterial.map = texture;
+
+            if (mappedMaterial.color) {
+                mappedMaterial.color.set(0xffffff);
+            }
+
+            if (typeof mappedMaterial.vertexColors === 'boolean' && mappedMaterial.vertexColors) {
+                mappedMaterial.vertexColors = false;
+            }
+            if (typeof mappedMaterial.metalness === 'number') {
+                mappedMaterial.metalness = 0;
+            }
+            if (typeof mappedMaterial.roughness === 'number') {
+                mappedMaterial.roughness = Math.max(0.8, mappedMaterial.roughness);
+            }
+
             mappedMaterial.needsUpdate = true;
             return material;
         }
-        return new THREE.MeshStandardMaterial({ map: texture });
+        return new THREE.MeshStandardMaterial({ map: texture, color: 0xffffff, metalness: 0, roughness: 1 });
     }
 
     /**
