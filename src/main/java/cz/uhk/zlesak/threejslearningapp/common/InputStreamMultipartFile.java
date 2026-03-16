@@ -1,7 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.common;
 
 import lombok.Builder;
-import org.jetbrains.annotations.NotNull;
+import lombok.Getter;
+import org.jspecify.annotations.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -14,9 +15,11 @@ import java.io.InputStream;
  * Used to handle file uploads for model or texture files.
  * Stores the file name and a display name (fallbacks to fileName).
  */
+@SuppressWarnings("NullableProblems")
 public class InputStreamMultipartFile implements MultipartFile {
     private final byte[] content;
     private final String fileName;
+    @Getter
     private String displayName;
 
     /**
@@ -40,26 +43,16 @@ public class InputStreamMultipartFile implements MultipartFile {
         }
         this.content = bytes;
         this.fileName = fileName;
-        this.displayName = displayName != null ? displayName : fileName;
+        this.displayName = displayName != null ? displayName : (fileName != null ? fileName : "");
     }
 
     /**
      * Override of method for the name getter
      * @return FILE NAME!
      */
-    @NotNull
     @Override
-    public String getName() {
-        return fileName;
-    }
-
-    /**
-     * Display name getter
-     * @return display name
-     */
-    @NotNull
-    public String getDisplayName() {
-        return displayName;
+    public @NonNull String getName() {
+        return fileName != null ? fileName : "";
     }
 
     /**
@@ -68,7 +61,7 @@ public class InputStreamMultipartFile implements MultipartFile {
      */
 
     public void setDisplayName(String displayName) {
-        this.displayName = displayName != null ? displayName : fileName;
+        this.displayName = displayName != null ? displayName : (fileName != null ? fileName : "");
     }
 
     /**
@@ -111,9 +104,8 @@ public class InputStreamMultipartFile implements MultipartFile {
      * Gets the bytes of the file
      * @return byte array of the file content
      */
-    @NotNull
     @Override
-    public byte[] getBytes() {
+    public @NonNull byte[] getBytes() {
         return content.clone();
     }
 
@@ -121,9 +113,8 @@ public class InputStreamMultipartFile implements MultipartFile {
      * Gets the InputStream of the file
      * @return InputStream of the file content
      */
-    @NotNull
     @Override
-    public InputStream getInputStream() {
+    public @NonNull InputStream getInputStream() {
         return new ByteArrayInputStream(content);
     }
 
@@ -133,7 +124,7 @@ public class InputStreamMultipartFile implements MultipartFile {
      * @throws IllegalStateException if the transfer fails
      */
     @Override
-    public void transferTo(@NotNull File dest) throws IllegalStateException {
+    public void transferTo(@NonNull File dest) throws IllegalStateException {
         throw new UnsupportedOperationException("Not supported.");
     }
 }

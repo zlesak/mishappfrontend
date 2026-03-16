@@ -10,7 +10,9 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 
@@ -295,9 +297,12 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @return Parsed object of type R
      * @throws Exception if parsing or status fails
      */
+    @SuppressWarnings("SameParameterValue")
     protected <R> R parseResponse(ResponseEntity<String> response, JavaType javaType, String errorMessage, String entityId) throws Exception {
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            return objectMapper.readValue(response.getBody(), javaType);
+            byte[] payload = response.getBody().getBytes(StandardCharsets.UTF_8);
+            var node = objectMapper.readTree(payload);
+            return objectMapper.convertValue(node, javaType);
         } else {
             throw new ApiCallException(errorMessage, entityId, null, response.getStatusCode(), response.getBody(), null);
         }
@@ -312,6 +317,7 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
      * @return InputStreamMultipartFile representing the downloaded file
      * @throws Exception if parsing or status fails
      */
+    @SuppressWarnings("SameParameterValue")
     protected InputStreamMultipartFile parseFileResponse(ResponseEntity<byte[]> response, String errorMessage, String entityId) throws Exception {
         if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
             String contentDisposition = response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION);
@@ -440,12 +446,12 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
             for (int i = 0; i < params.length; i += 2) {
                 if (i + 1 < params.length) {
                     try {
+                        if (i > 0) {
+                            urlBuilder.append("&");
+                        }
                         urlBuilder.append(URLEncoder.encode(params[i], StandardCharsets.UTF_8))
                                 .append("=")
                                 .append(URLEncoder.encode(params[i + 1], StandardCharsets.UTF_8));
-                        if (i + 2 < params.length) {
-                            urlBuilder.append("&");
-                        }
                     } catch (Exception e) {
                         throw new ApiCallException("Chyba při kódování URL parametru: " + params[i], null, null, null, null, e);
                     }
@@ -457,6 +463,9 @@ public abstract class AbstractApiClient<E extends Q, Q extends AbstractEntity, F
     }
 
     public static String getStreamBeEndpointUrl(String id) {
-        return IApiClient.getExternalAppUrl() + "model/download/" + id;
+        if (id == null || !id.matches("[A-Za-z0-9_-]+")) {
+            throw new IllegalArgumentException("Invalid model file id");
+        }
+        return "/api/model/download/" + id;
     }
 }

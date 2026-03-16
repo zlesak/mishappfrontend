@@ -25,6 +25,10 @@ public class SpringContextUtils implements ApplicationContextAware {
         context = applicationContext;
     }
 
+    public static void setContext(@NotNull ApplicationContext applicationContext) {
+        context = applicationContext;
+    }
+
     /**
      * Retrieves a bean from the Spring ApplicationContext by its class type.
      *

@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
  */
 public class DateFormater {
     private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.systemDefault());
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     /**
      * Formats an Instant to a string representation.
@@ -18,6 +18,6 @@ public class DateFormater {
      * @return the formatted date string
      */
     public static String formatDate(Instant instant) {
-        return DATE_FORMATTER.format(instant);
+        return DATE_FORMATTER.format(instant.atZone(ZoneId.systemDefault()));
     }
 }
