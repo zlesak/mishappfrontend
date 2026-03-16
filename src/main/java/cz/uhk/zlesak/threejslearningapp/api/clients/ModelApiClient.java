@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
@@ -18,6 +19,7 @@ import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * ModelApiClient provides connection to the backend service for managing models.
@@ -234,11 +236,13 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
     }
 
     private QuickModelEntity sendMultipartPost(String url, MultiValueMap<String, Object> body, String errorMessage, String entityId) throws Exception {
-        String token = getJwtToken();
         try {
-            var spec = restClient.post().uri(url).contentType(MediaType.MULTIPART_FORM_DATA);
-            if (token != null) spec = spec.headers(h -> h.setBearerAuth(token));
-            String json = spec.body(body).retrieve().body(String.class);
+            String json = executeWithUnauthorizedRetry(() -> {
+                String token = getJwtToken();
+                var spec = restClient.post().uri(url).contentType(MediaType.MULTIPART_FORM_DATA);
+                if (token != null) spec = spec.headers(h -> h.setBearerAuth(token));
+                return spec.body(body).retrieve().body(String.class);
+            });
             return objectMapper.readValue(json, QuickModelEntity.class);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
@@ -248,16 +252,30 @@ public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEnt
     }
 
     private QuickModelEntity sendMultipartPut(String url, MultiValueMap<String, Object> body, String errorMessage, String entityId) throws Exception {
-        String token = getJwtToken();
         try {
-            var spec = restClient.put().uri(url).contentType(MediaType.MULTIPART_FORM_DATA);
-            if (token != null) spec = spec.headers(h -> h.setBearerAuth(token));
-            String json = spec.body(body).retrieve().body(String.class);
+            String json = executeWithUnauthorizedRetry(() -> {
+                String token = getJwtToken();
+                var spec = restClient.put().uri(url).contentType(MediaType.MULTIPART_FORM_DATA);
+                if (token != null) spec = spec.headers(h -> h.setBearerAuth(token));
+                return spec.body(body).retrieve().body(String.class);
+            });
             return objectMapper.readValue(json, QuickModelEntity.class);
         } catch (HttpStatusCodeException ex) {
             throw new ApiCallException(errorMessage, entityId, url, ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
         } catch (Exception e) {
             throw new Exception("Neočekávaná chyba při volání API: " + errorMessage + " - " + e.getMessage(), e);
+        }
+    }
+
+    private <R> R executeWithUnauthorizedRetry(Callable<R> call) throws Exception {
+        try {
+            return call.call();
+        } catch (HttpStatusCodeException ex) {
+            if (ex.getStatusCode().value() == 401 && ApiTokenContext.get() != null) {
+                ApiTokenContext.clear();
+                return call.call();
+            }
+            throw ex;
         }
     }
 }

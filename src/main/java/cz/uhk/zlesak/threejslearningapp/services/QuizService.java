@@ -66,8 +66,9 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         try {
             return quizApiClient.readAll(quizId);
         } catch (Exception e) {
-            log.error("Nepodařilo se naříst kvíz s odpověďmi: {}", String.valueOf(e));
-            throw new ApplicationContextException("Nepodařilo se naříst kvíz s odpověďmi");
+            String detail = e.getMessage() == null ? "" : ": " + e.getMessage();
+            log.error("Nepodařilo se načíst kvíz s odpověďmi{}", detail, e);
+            throw new ApplicationContextException("Nepodařilo se načíst kvíz s odpověďmi" + detail, e);
         }
     }
 
@@ -81,8 +82,9 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
         try {
             return quizApiClient.readQuizStudent(quizId);
         } catch (Exception e) {
-            log.error("Nepodařilo se naříst kvíz: {}", String.valueOf(e));
-            throw new ApplicationContextException("Nepodařilo se naříst kvíz");
+            String detail = e.getMessage() == null ? "" : ": " + e.getMessage();
+            log.error("Nepodařilo se načíst kvíz{}", detail, e);
+            throw new ApplicationContextException("Nepodařilo se načíst kvíz" + detail, e);
         }
     }
 

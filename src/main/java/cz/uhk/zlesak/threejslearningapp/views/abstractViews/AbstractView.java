@@ -285,11 +285,19 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
                             return;
                         }
                         ui.access(() -> {
-                            if (error != null) {
-                                onError.accept(unwrapAsyncError(error));
-                                return;
+                            try {
+                                if (error != null) {
+                                    onError.accept(unwrapAsyncError(error));
+                                    return;
+                                }
+                                onSuccess.accept(result);
+                            } catch (Throwable callbackError) {
+                                try {
+                                    onError.accept(unwrapAsyncError(callbackError));
+                                } catch (Throwable ignored) {
+                                    // Ignored
+                                }
                             }
-                            onSuccess.accept(result);
                         });
                     });
         } catch (Throwable t) {

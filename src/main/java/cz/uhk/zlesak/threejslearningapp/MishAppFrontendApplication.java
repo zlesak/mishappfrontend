@@ -13,6 +13,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.security.task.DelegatingSecurityContextAsyncTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.client.RestClient;
 
@@ -62,7 +63,7 @@ public class MishAppFrontendApplication implements AppShellConfigurator {
         executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("model-io-");
         executor.initialize();
-        return executor;
+        return new DelegatingSecurityContextAsyncTaskExecutor(executor);
     }
 
     /**
