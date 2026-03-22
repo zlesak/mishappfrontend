@@ -1,7 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
-import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ChapterTabSheetContainer;
@@ -11,8 +11,8 @@ import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextFie
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ChapterContentScroller;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ModelsSelectScroller;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
@@ -20,9 +20,9 @@ import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.LinkedHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -172,10 +172,8 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
         }
         if (backgroundSpecJson != null && !backgroundSpecJson.isBlank()) {
             modelBackgroundSpecByModelId.put(modelId, backgroundSpecJson);
-            log.info("AbstractChapterView: cached background for modelId={}", modelId);
         } else {
             modelBackgroundSpecByModelId.remove(modelId);
-            log.info("AbstractChapterView: no background cached for modelId={}", modelId);
         }
     }
 
@@ -201,7 +199,8 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
 
         String backgroundSpecJson = modelBackgroundSpecByModelId.get(modelId);
         if (backgroundSpecJson == null || backgroundSpecJson.isBlank()) {
-            log.info("AbstractChapterView: no background mapping for shown modelId={}", modelId);
+            log.info("AbstractChapterView: no background mapping for shown modelId={}, restoring default skybox", modelId);
+            modelDiv.renderer.restoreDefaultBackground();
             return;
         }
 

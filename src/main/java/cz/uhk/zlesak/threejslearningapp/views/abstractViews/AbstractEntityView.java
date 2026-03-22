@@ -20,7 +20,6 @@ import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -188,12 +187,12 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelLoadEvent.class,
-                event -> {
-                    if (event.getQuickModelEntity().getMainTexture() == null && event.getQuickModelEntity().getOtherTextures().isEmpty()) {
-                        return;
-                    }
-                    loadSingleModelWithTextures(event.getQuickModelEntity(), event.getQuestionId(), event.getQuickModelEntity().getModel().getId(), true);
-                }
+                event -> loadSingleModelWithTextures(
+                        event.getQuickModelEntity(),
+                        event.getQuestionId(),
+                        event.getQuickModelEntity().getModel().getId(),
+                        true
+                )
         ));
     }
 }

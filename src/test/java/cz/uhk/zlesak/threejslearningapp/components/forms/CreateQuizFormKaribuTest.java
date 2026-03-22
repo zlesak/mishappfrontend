@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.github.mvysny.kaributesting.v10.LocatorJ._assert;
 import static com.github.mvysny.kaributesting.v10.LocatorJ._assertOne;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -58,6 +59,7 @@ class CreateQuizFormKaribuTest {
 
         assertEquals(QuestionTypeEnum.SINGLE_CHOICE, form.getQuestionTypeSelect().getValue());
         assertEquals(0, form.getTimeLimit());
+        assertTrue(form.getTimeLimitField().getHelperText().contains("0 = bez limitu"));
         assertEquals("Vybrat kapitolu", form.getChooseChapterButton().getText());
         assertEquals("Vytvořit kvíz", form.getSaveQuizButton().getText());
     }

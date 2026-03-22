@@ -1,6 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.views.chapter;
 
+import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
@@ -21,6 +23,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -69,7 +72,8 @@ class ChapterListingViewKaribuTest {
         view.afterNavigation(null);
         flushUi();
 
-        com.vaadin.flow.component.ComponentUtil.fireEvent(UI.getCurrent(), new SearchEvent("lebka", Sort.Direction.DESC, "Created", UI.getCurrent()));
+        FilterComponent filterComponent = (FilterComponent) ReflectionTestUtils.getField(view, "filter");
+        ComponentUtil.fireEvent(filterComponent, new SearchEvent("lebka", Sort.Direction.DESC, "Created", filterComponent));
         flushUi();
 
         ArgumentCaptor<FilterParameters<ChapterFilter>> captor = filterParametersCaptor();

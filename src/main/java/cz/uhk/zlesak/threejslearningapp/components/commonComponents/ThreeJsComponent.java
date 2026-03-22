@@ -21,9 +21,13 @@ import org.springframework.context.annotation.Scope;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * This component integrates Three.js into a Vaadin application.
@@ -49,6 +53,9 @@ public class ThreeJsComponent extends Component {
     private String lastProgressDescription = null;
     private long lastDoingActionAtMs = 0L;
     private String lastDoingActionDescription = null;
+    private final AtomicLong callbackRequestSequence = new AtomicLong(0);
+    private final Map<String, Consumer<String>> thumbnailCallbacks = new ConcurrentHashMap<>();
+    private final Map<String, Consumer<String>> backgroundSpecCallbacks = new ConcurrentHashMap<>();
 
     /**
      * Default constructor for ThreeJsComponent.
@@ -352,55 +359,56 @@ public class ThreeJsComponent extends Component {
      * @param callback a callback function that will be called with the generated thumbnail data URL once it is ready.
      */
     public void getThumbnailDataUrl(String modelId, int width, int height, java.util.function.Consumer<String> callback) {
-        this.thumbnailCallback = callback;
+        String requestId = String.valueOf(callbackRequestSequence.incrementAndGet());
+        thumbnailCallbacks.put(requestId, callback);
         dispatchJsAsync("""
                 try {
                     if (typeof window.getThumbnail === 'function') {
                         window.getThumbnail($0, $1, $2, $3).then(dataUrl => {
-                            $4.$server.onThumbnailReady(dataUrl);
+                            $4.$server.onThumbnailReady($5, dataUrl);
                         });
                     } else {
-                        $4.$server.onThumbnailReady(null);
+                        $4.$server.onThumbnailReady($5, null);
                     }
                 } catch (e) {
                     console.error('[JS] Error in getThumbnailDataUrl:', e);
-                    $4.$server.onThumbnailReady(null);
+                    $4.$server.onThumbnailReady($5, null);
                 }
-                """, getElement(), modelId, width, height, this);
+                """, getElement(), modelId, width, height, this, requestId);
     }
 
-    private java.util.function.Consumer<String> thumbnailCallback;
-    private java.util.function.Consumer<String> backgroundSpecCallback;
-
     @ClientCallable
-    private void onThumbnailReady(String dataUrl) {
-        if (thumbnailCallback != null) {
-            thumbnailCallback.accept(dataUrl);
-            thumbnailCallback = null;
+    private void onThumbnailReady(String requestId, String dataUrl) {
+        if (requestId == null || requestId.isBlank()) {
+            return;
+        }
+
+        java.util.function.Consumer<String> callback = thumbnailCallbacks.remove(requestId);
+        if (callback != null) {
+            callback.accept(dataUrl);
         }
     }
 
     public void getBackgroundSpecData(java.util.function.Consumer<String> callback) {
-        this.backgroundSpecCallback = callback;
-        log.info("ThreeJsComponent.getBackgroundSpecData: requesting background spec from JS");
+        String requestId = String.valueOf(callbackRequestSequence.incrementAndGet());
+        backgroundSpecCallbacks.put(requestId, callback);
         dispatchJsAsync("""
                 try {
                     if (typeof window.getBackgroundSpec === 'function') {
                         window.getBackgroundSpec($0).then(backgroundSpec => {
-                            $1.$server.onBackgroundSpecReady(backgroundSpec ? JSON.stringify(backgroundSpec) : null);
+                            $1.$server.onBackgroundSpecReady($2, backgroundSpec ? JSON.stringify(backgroundSpec) : null);
                         });
                     } else {
-                        $1.$server.onBackgroundSpecReady(null);
+                        $1.$server.onBackgroundSpecReady($2, null);
                     }
                 } catch (e) {
                     console.error('[JS] Error in getBackgroundSpecData:', e);
-                    $1.$server.onBackgroundSpecReady(null);
+                    $1.$server.onBackgroundSpecReady($2, null);
                 }
-                """, getElement(), this);
+                """, getElement(), this, requestId);
     }
 
     public void setBackgroundSpec(String backgroundSpecJson) {
-        log.info("ThreeJsComponent.setBackgroundSpec: dispatching to JS, payload={}", backgroundSpecJson);
         dispatchJsAsync("""
                 try {
                     if (typeof window.setBackgroundSpec === 'function') {
@@ -412,12 +420,27 @@ public class ThreeJsComponent extends Component {
                 """, getElement(), backgroundSpecJson);
     }
 
+    public void restoreDefaultBackground() {
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.restoreDefaultBackground === 'function') {
+                        window.restoreDefaultBackground($0).then(_ => {});
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in restoreDefaultBackground:', e);
+                }
+                """, getElement());
+    }
+
     @ClientCallable
-    private void onBackgroundSpecReady(String backgroundSpecJson) {
-        log.info("ThreeJsComponent.onBackgroundSpecReady: received payload={}", backgroundSpecJson);
-        if (backgroundSpecCallback != null) {
-            backgroundSpecCallback.accept(backgroundSpecJson);
-            backgroundSpecCallback = null;
+    private void onBackgroundSpecReady(String requestId, String backgroundSpecJson) {
+        if (requestId == null || requestId.isBlank()) {
+            return;
+        }
+
+        java.util.function.Consumer<String> callback = backgroundSpecCallbacks.remove(requestId);
+        if (callback != null) {
+            callback.accept(backgroundSpecJson);
         }
     }
 
@@ -573,6 +596,8 @@ public class ThreeJsComponent extends Component {
         super.onDetach(detachEvent);
         registrations.forEach(Registration::remove);
         registrations.clear();
+        thumbnailCallbacks.clear();
+        backgroundSpecCallbacks.clear();
         shutdownJsDispatchExecutor();
     }
 }

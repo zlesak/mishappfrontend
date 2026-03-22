@@ -193,6 +193,33 @@ describe('ThreeJSScene', () => {
     expect(render).toHaveBeenCalledTimes(3);
   });
 
+  it('restores cached default skybox without reloading it', async () => {
+    const { subject } = createSubject();
+    const render = vi.spyOn(subject as any, 'render');
+    const defaultSkybox = new THREE.Texture();
+    const customSkybox = new THREE.Texture();
+    const load = vi.spyOn(THREE.CubeTextureLoader.prototype, 'load').mockReturnValue(customSkybox as any);
+
+    Object.assign(subject as any, {
+      defaultBackgroundTexture: defaultSkybox,
+      currentBackgroundTexture: customSkybox,
+    });
+
+    await subject.restoreDefaultBackground();
+
+    expect((subject as any).scene.background).toBe(defaultSkybox);
+    expect((subject as any).currentBackgroundTexture).toBeNull();
+    expect(load).not.toHaveBeenCalled();
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(subject.getBackgroundSpec()).toEqual({
+      type: 'cube',
+      value: {
+        path: 'skybox/',
+        files: ['px.bmp', 'nx.bmp', 'py.bmp', 'ny.bmp', 'pz.bmp', 'nz.bmp'],
+      }
+    });
+  });
+
   it('fits camera to model and disposes internal managers and listeners', async () => {
     const { subject, modelManager, disposalManager, guiManager, eventManager } = createSubject();
     const resizeObserver = { disconnect: vi.fn() };

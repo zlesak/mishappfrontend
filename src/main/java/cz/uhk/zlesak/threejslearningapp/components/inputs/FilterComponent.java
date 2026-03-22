@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.components.inputs;
 
 import com.vaadin.flow.component.ComponentUtil;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -71,7 +70,7 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
                 orderBySelect.setEnabled(true);
                 searchDirectionSelect.setEnabled(true);
                 createButton.setEnabled(false);
-                ComponentUtil.fireEvent(UI.getCurrent(), new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), UI.getCurrent()));
+                ComponentUtil.fireEvent(this, new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), this));
             }
         });
         return searchField;
@@ -85,7 +84,7 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
     private Button getSearchButton() {
         Button searchButton = new Button(text("button.search"));
         searchButton.addClickListener(e ->
-                ComponentUtil.fireEvent(UI.getCurrent(), new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), UI.getCurrent())));
+                ComponentUtil.fireEvent(this, new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), this)));
         searchButton.setEnabled(false);
         searchButton.setIcon(VaadinIcon.SEARCH.create());
         searchButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -107,7 +106,7 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
         select.setHelperText(text("filter.orderBy.label"));
         select.setItemLabelGenerator(name -> text("filter." + name.toLowerCase() + ".label"));
         select.addValueChangeListener(event ->
-                ComponentUtil.fireEvent(UI.getCurrent(), new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), UI.getCurrent())));
+                ComponentUtil.fireEvent(this, new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), this)));
         return select;
     }
 
@@ -126,7 +125,7 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
             case DESC -> text("filter.sort.direction.desc");
         });
         sortDirectionSelect.addValueChangeListener(event ->
-                ComponentUtil.fireEvent(UI.getCurrent(), new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), UI.getCurrent())));
+                ComponentUtil.fireEvent(this, new SearchEvent(searchField.getValue(), searchDirectionSelect.getValue(), orderBySelect.getValue(), this)));
         return sortDirectionSelect;
     }
 

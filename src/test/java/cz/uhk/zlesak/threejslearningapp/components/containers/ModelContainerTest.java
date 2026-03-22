@@ -34,7 +34,9 @@ class ModelContainerTest {
     @Test
     void overlayShouldReactToDoingProgressAndFinishedEvents() throws Exception {
         ModelContainer container = new ModelContainer();
+        ModelContainer foreignContainer = new ModelContainer();
         UI.getCurrent().add(container);
+        UI.getCurrent().add(foreignContainer);
 
         ProgressBar progressBar = (ProgressBar) getField(container, "overlayProgressBar");
         Div background = (Div) getField(container, "overlayBackground");
@@ -44,6 +46,10 @@ class ModelContainerTest {
         ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(renderer, "Nacitam model"));
         assertTrue(background.isVisible());
         assertTrue(progressBar.isVisible());
+        assertEquals("Nacitam model", actionDescription.getText());
+
+        ThreeJsComponent foreignRenderer = (ThreeJsComponent) getField(foreignContainer, "renderer");
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(foreignRenderer, "Cizi renderer"));
         assertEquals("Nacitam model", actionDescription.getText());
 
         ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsLoadingProgress(renderer, 25, "Textury"));
@@ -58,6 +64,10 @@ class ModelContainerTest {
         assertFalse(background.isVisible());
         assertFalse(progressBar.isVisible());
         assertFalse(actionDescription.isVisible());
+
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(foreignRenderer, "Cizi renderer"));
+        assertFalse(background.isVisible());
+        assertFalse(progressBar.isVisible());
     }
 
     @Test

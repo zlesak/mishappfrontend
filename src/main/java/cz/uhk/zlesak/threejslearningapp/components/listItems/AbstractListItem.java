@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Span;
@@ -10,7 +11,15 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractView;
+
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * AbstractListItem Class - A base class for list items in the application.
@@ -186,5 +195,44 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
      */
     public void setDeleteButtonClickListener(ComponentEventListener<ClickEvent<Button>> listener) {
         deleteButton.addClickListener(listener);
+    }
+
+    protected <T> void runBackendCallWithOverlay(Supplier<T> supplier, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            onError.accept(new IllegalStateException("UI is not available"));
+            return;
+        }
+
+        AbstractView<?> activeView = AbstractView.findCurrentAbstractView(ui);
+        if (activeView != null) {
+            activeView.executeAsyncWithOverlay(supplier, onSuccess, onError);
+            return;
+        }
+
+        Executor ioExecutor = SpringContextUtils.getBean(Executor.class);
+        CompletableFuture
+                .supplyAsync(() -> {
+                    try {
+                        return supplier.get();
+                    } catch (Throwable t) {
+                        throw new CompletionException(t);
+                    }
+                }, ioExecutor)
+                .whenComplete((result, error) -> {
+                    if (ui.isClosing()) {
+                        return;
+                    }
+                    ui.access(() -> {
+                        if (error != null) {
+                            Throwable cause = error instanceof CompletionException && error.getCause() != null
+                                    ? error.getCause()
+                                    : error;
+                            onError.accept(cause);
+                            return;
+                        }
+                        onSuccess.accept(result);
+                    });
+                });
     }
 }

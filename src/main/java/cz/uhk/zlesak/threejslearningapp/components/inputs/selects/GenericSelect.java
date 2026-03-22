@@ -13,6 +13,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
 import java.util.LinkedHashMap;
@@ -27,6 +28,7 @@ import java.util.Map;
  * @param <T> the type of items in the select, extending HasPrimarySecondary
  * @param <E> the type of component event for item addition
  */
+@Slf4j
 @Scope("prototype")
 public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends ComponentEvent<UI>> extends Select<T> implements I18nAware {
     @Setter
@@ -58,8 +60,9 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
             }));
         }
         items = new ObservableMap<>((value, fromClient) -> {
-            if (fromClient)
+            if (fromClient) {
                 showRelevantItemsBasedOnContext(value != null ? value.primary() : null, value != null ? value.secondary() : null);
+            }
         }
         );
         addValueChangeListener(e -> {
@@ -121,5 +124,14 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
             item = itemsToShow.values().stream().filter(HasPrimarySecondaryMain::mainItem).findFirst().orElse(null);
         }
         setValue(item);
+    }
+
+    public boolean hasAvailableItems() {
+        return !items.isEmpty();
+    }
+
+    public T gatMainOrFirst() {
+        T main = items.get("main");
+        return main != null ? main : items.values().stream().findFirst().orElse(null);
     }
 }

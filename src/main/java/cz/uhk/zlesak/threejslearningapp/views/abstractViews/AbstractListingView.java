@@ -9,10 +9,10 @@ import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.NoItemInfoComponent;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PaginationComponent;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ErrorDialog;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterBase;
@@ -242,7 +242,7 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        registrations.add(ComponentUtil.addListener(attachEvent.getUI(), SearchEvent.class, this::showFilteredEntities));
+        registrations.add(ComponentUtil.addListener(filter, SearchEvent.class, this::showFilteredEntities));
     }
 
     /**

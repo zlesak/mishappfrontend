@@ -17,6 +17,7 @@ import org.springframework.context.support.GenericApplicationContext;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -75,14 +76,46 @@ class ThreeJsComponentTest {
         AtomicReference<Boolean> disposed = new AtomicReference<>(false);
 
         component.getThumbnailDataUrl("model-1", 64, 64, thumbnail::set);
-        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class}, "data:image/png;base64,abc");
+        String requestId = getOnlyRequestId(component, "thumbnailCallbacks");
+        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class, String.class}, requestId, "data:image/png;base64,abc");
         assertEquals("data:image/png;base64,abc", thumbnail.get());
-        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class}, new Object[]{null});
-        assertNull(getThumbnailCallback(component));
+        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class, String.class}, requestId, null);
+        assertTrue(getCallbackMap(component, "thumbnailCallbacks").isEmpty());
 
         component.dispose(() -> disposed.set(true));
         invokeClientCallable(component, "notifyDisposed", new Class[0]);
         assertTrue(disposed.get());
+    }
+
+    @Test
+    void overlappingJsCallbacksShouldResolveByRequestId() throws Exception {
+        ThreeJsComponent component = attach(new ThreeJsComponent());
+        AtomicReference<String> firstThumbnail = new AtomicReference<>();
+        AtomicReference<String> secondThumbnail = new AtomicReference<>();
+        AtomicReference<String> firstBackground = new AtomicReference<>();
+        AtomicReference<String> secondBackground = new AtomicReference<>();
+
+        component.getThumbnailDataUrl("model-a", 64, 64, firstThumbnail::set);
+        String thumbRequestA = getLatestRequestId(component, "thumbnailCallbacks");
+        component.getThumbnailDataUrl("model-b", 64, 64, secondThumbnail::set);
+        String thumbRequestB = getLatestRequestId(component, "thumbnailCallbacks");
+
+        component.getBackgroundSpecData(firstBackground::set);
+        String backgroundRequestA = getLatestRequestId(component, "backgroundSpecCallbacks");
+        component.getBackgroundSpecData(secondBackground::set);
+        String backgroundRequestB = getLatestRequestId(component, "backgroundSpecCallbacks");
+
+        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class, String.class}, thumbRequestB, "thumb-B");
+        invokeClientCallable(component, "onThumbnailReady", new Class[]{String.class, String.class}, thumbRequestA, "thumb-A");
+        invokeClientCallable(component, "onBackgroundSpecReady", new Class[]{String.class, String.class}, backgroundRequestB, "{\"type\":\"b\"}");
+        invokeClientCallable(component, "onBackgroundSpecReady", new Class[]{String.class, String.class}, backgroundRequestA, "{\"type\":\"a\"}");
+
+        assertEquals("thumb-A", firstThumbnail.get());
+        assertEquals("thumb-B", secondThumbnail.get());
+        assertEquals("{\"type\":\"a\"}", firstBackground.get());
+        assertEquals("{\"type\":\"b\"}", secondBackground.get());
+        assertTrue(getCallbackMap(component, "thumbnailCallbacks").isEmpty());
+        assertTrue(getCallbackMap(component, "backgroundSpecCallbacks").isEmpty());
     }
 
     @Test
@@ -151,14 +184,33 @@ class ThreeJsComponentTest {
         }
     }
 
-    private Object getThumbnailCallback(ThreeJsComponent component) {
+    @SuppressWarnings("unchecked")
+    private Map<String, ?> getCallbackMap(ThreeJsComponent component, String fieldName) {
         try {
-            var field = ThreeJsComponent.class.getDeclaredField("thumbnailCallback");
+            var field = ThreeJsComponent.class.getDeclaredField(fieldName);
             field.setAccessible(true);
-            return field.get(component);
+            return (Map<String, ?>) field.get(component);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String getOnlyRequestId(ThreeJsComponent component, String fieldName) {
+        Map<String, ?> map = getCallbackMap(component, fieldName);
+        assertEquals(1, map.size());
+        return map.keySet().iterator().next();
+    }
+
+    private String getLatestRequestId(ThreeJsComponent component, String fieldName) {
+        Map<String, ?> map = getCallbackMap(component, fieldName);
+        assertFalse(map.isEmpty());
+        return map.keySet().stream()
+                .mapToLong(Long::parseLong)
+                .max()
+                .stream()
+                .mapToObj(String::valueOf)
+                .findFirst()
+                .orElseThrow();
     }
 
     private void invokeClientCallable(ThreeJsComponent component, String methodName, Class<?>[] types, Object... args) throws Exception {

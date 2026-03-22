@@ -34,7 +34,7 @@ class FilterComponentTest {
         FilterComponent component = new FilterComponent();
         UI.getCurrent().add(component);
         AtomicReference<SearchEvent> fired = new AtomicReference<>();
-        ComponentUtil.addListener(UI.getCurrent(), SearchEvent.class, fired::set);
+        ComponentUtil.addListener(component, SearchEvent.class, fired::set);
 
         component.getSearchField().setValue("atlas");
 
@@ -55,7 +55,7 @@ class FilterComponentTest {
         FilterComponent component = new FilterComponent();
         UI.getCurrent().add(component);
         AtomicReference<SearchEvent> fired = new AtomicReference<>();
-        ComponentUtil.addListener(UI.getCurrent(), SearchEvent.class, fired::set);
+        ComponentUtil.addListener(component, SearchEvent.class, fired::set);
 
         component.getSearchField().setValue("bone");
         directionSelect(component).setValue(Sort.Direction.DESC);

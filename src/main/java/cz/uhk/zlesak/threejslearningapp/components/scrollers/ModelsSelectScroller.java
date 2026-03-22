@@ -1,15 +1,24 @@
 package cz.uhk.zlesak.threejslearningapp.components.scrollers;
 
+import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
+import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
+import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import org.jspecify.annotations.NonNull;
 import org.springframework.context.ApplicationContextException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A scroller component that contains selects for choosing 3D models for the main chapter and its sub-chapters.
@@ -64,12 +73,44 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
     private void modelSelectHorizontalLayout(String label, String id, boolean main) {
         ModelSelectContainer container = new ModelSelectContainer(label, id, main, true);
 
+        Button removeButton = getButton(container);
+
+        container.getSelect().addValueChangeListener(event -> {
+            if (event.getValue() == null || event.getValue().getModel() == null) {
+                removeButton.setVisible(false);
+                return;
+            }
+            boolean visible = event.getValue().getModel().getId() != null;
+            removeButton.setVisible(visible);
+        });
+
         if (main) {
             this.mainModelSelect = container.getSelect();
         } else {
             otherModelsHorizontalLayouts.putIfAbsent(id, container);
+            removeButton.setVisible(false);
+            container.add(removeButton);
         }
         scrollerLayout.add(container);
+    }
+
+    private @NonNull Button getButton(ModelSelectContainer container) {
+        Button removeButton = new Button(new Icon(VaadinIcon.CLOSE_SMALL));
+        removeButton.addClickListener(e -> {
+            AtomicInteger modelInstances = new AtomicInteger();
+            getAllModelsMappedToChapterHeaderBlockId(false).values().forEach(model -> {
+                if (container.getSelect().getValue() != null && model.getMetadataId().equals(container.getSelect().getValue().getMetadataId())) {
+                    modelInstances.getAndIncrement();
+                }
+            });
+
+            if (modelInstances.get() == 1 && container.getSelect().getValue() != null && container.getSelect().getValue().getModel() != null) {
+                ComponentUtil.fireEvent(UI.getCurrent(), new RemoveFileEvent(UI.getCurrent(), container.getSelect().getValue().getModel().getId(), FileType.MODEL, container.getSelect().getValue().getModel().getId(), true));
+            }
+            container.getSelect().setValue(null);
+            container.getSelect().clear();
+        });
+        return removeButton;
     }
 
     /**
@@ -79,13 +120,15 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
      * @return Map of chapter header block IDs to selected QuickModelEntity instances.
      * @throws ApplicationContextException if the main model is not selected or the main model select has not been initialized yet.
      */
-    public Map<String, QuickModelEntity> getAllModelsMappedToChapterHeaderBlockId() throws ApplicationContextException {
-
-        if (mainModelSelect == null || mainModelSelect.getValue() == null) {
-            throw new ApplicationContextException("Hlavní model není vybrán!");
+    public Map<String, QuickModelEntity> getAllModelsMappedToChapterHeaderBlockId(boolean... checkMainModel) throws ApplicationContextException {
+        Map<String, QuickModelEntity> models = new HashMap<>();
+        if  (checkMainModel.length == 0 || checkMainModel[0]) {
+            if (mainModelSelect == null || mainModelSelect.getValue() == null) {
+                throw new ApplicationContextException("Hlavní model není vybrán!");
+            }
+            models.put("main", mainModelSelect.getValue());
         }
 
-        Map<String, QuickModelEntity> models = new HashMap<>();
         for (ModelSelectContainer container : otherModelsHorizontalLayouts.values()) {
             Select<QuickModelEntity> select = container.getSelect();
             QuickModelEntity selected = select.getValue();
@@ -93,8 +136,6 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
                 models.put(select.getElement().getAttribute("block-id"), selected);
             }
         }
-
-        models.put("main", mainModelSelect.getValue());
         return models;
     }
 

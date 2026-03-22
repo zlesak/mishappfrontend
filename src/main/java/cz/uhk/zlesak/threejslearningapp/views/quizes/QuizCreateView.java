@@ -1,11 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
-import com.vaadin.flow.router.AfterNavigationEvent;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.NotFoundException;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.router.*;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -37,11 +33,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 /**
@@ -177,7 +173,7 @@ public class QuizCreateView extends AbstractQuizView {
             return CompletableFuture.completedFuture(cached);
         }
 
-        return CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<QuickModelEntity> resolveFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 QuickModelEntity chapterModel = chapterModelsByModelId.get(modelId);
                 if (chapterModel != null && chapterModel.getMetadataId() != null && !chapterModel.getMetadataId().isBlank()) {
@@ -203,6 +199,8 @@ public class QuizCreateView extends AbstractQuizView {
                 throw new CompletionException(e);
             }
         }, ioExecutor);
+
+        return futureWithLoadingOverlay(resolveFuture);
     }
 
     /**

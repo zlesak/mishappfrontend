@@ -11,6 +11,7 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 
@@ -27,6 +28,9 @@ public class LogoutController {
 
     @Value("${EXTERNAL_GATEWAY_URL:http://localhost:8081}")
     private String externalGatewayUrl;
+
+    @Value("${KEYCLOAK_REALM:mock-realm}")
+    private String keycloakRealm;
 
     /**
      * Handles POST requests to /custom-logout by performing logout and redirecting to Keycloak's logout endpoint.
@@ -70,9 +74,13 @@ public class LogoutController {
         SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
         logoutHandler.logout(request, response, auth);
 
-        String logoutUrl = externalKeycloakUrl + "/realms/mock-realm/protocol/openid-connect/logout" +
-                "?id_token_hint=" + idToken +
-                "&post_logout_redirect_uri=" + externalGatewayUrl;
+        String logoutUrl = UriComponentsBuilder.fromUriString(externalKeycloakUrl)
+                .pathSegment("realms", keycloakRealm, "protocol", "openid-connect", "logout")
+                .queryParam("id_token_hint", idToken)
+                .queryParam("post_logout_redirect_uri", externalGatewayUrl)
+                .build()
+                .encode()
+                .toUriString();
 
         response.sendRedirect(logoutUrl);
     }

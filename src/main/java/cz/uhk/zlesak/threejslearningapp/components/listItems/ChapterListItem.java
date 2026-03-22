@@ -23,6 +23,8 @@ import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterDetailView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
+
 @Slf4j
 @Tag("div")
 public class ChapterListItem extends AbstractListItem {
@@ -149,8 +151,13 @@ public class ChapterListItem extends AbstractListItem {
 
             modelsRow.add(cubeIcon, modelsLabel);
 
+            HashMap<String, QuickModelEntity> addedModels = new HashMap<>();
             for (QuickModelEntity model : chapter.getModels()) {
                 if (model != null && model.getModel() != null) {
+                    if (addedModels.containsKey(model.getModel().getId())) {
+                        continue;
+                    }
+                    addedModels.put(model.getModel().getId(), model);
                     String modelName = model.getModel().getName();
                     String routeModelId = model.getMetadataId() != null && !model.getMetadataId().isBlank()
                             ? model.getMetadataId()
@@ -213,18 +220,32 @@ public class ChapterListItem extends AbstractListItem {
     }
 
     private void deleteChapter(String chapterId) {
-        try {
-            ChapterService chapterService = SpringContextUtils.getBean(ChapterService.class);
-            boolean deleted = chapterService.delete(chapterId);
+        UI sourceUi = UI.getCurrent();
+        runBackendCallWithOverlay(() -> {
+                    ChapterService chapterService = SpringContextUtils.getBean(ChapterService.class);
+                    return chapterService.delete(chapterId);
+                }, deleted -> {
             if (deleted) {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new SuccessNotification(text("chapter.delete.success"));
-                UI.getCurrent().getPage().reload();
             } else {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new ErrorNotification(text("chapter.delete.failed"));
             }
-        } catch (Exception ex) {
+        }, ex -> {
             log.error("Error deleting chapter: {}", ex.getMessage(), ex);
+            if (isUiInActive(sourceUi)) {
+                return;
+            }
             new ErrorNotification(text("chapter.delete.error") + ": " + ex.getMessage());
-        }
+        });
+    }
+
+    private boolean isUiInActive(UI ui) {
+        return ui == null || ui.getSession() == null || !ui.isAttached() || ui.isClosing();
     }
 }

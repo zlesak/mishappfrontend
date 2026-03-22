@@ -71,7 +71,7 @@ class AbstractEntityViewTest {
     }
 
     @Test
-    void modelLoadEventShouldIgnoreModelsWithoutTexturesAndHandleModelsWithTextures() {
+    void modelLoadEventShouldHandleModelsWithoutTexturesAndWithTextures() {
         TestEntityView view = new TestEntityView();
         UI.getCurrent().add(view);
         List<UploadFileEvent> uploads = new ArrayList<>();
@@ -80,7 +80,10 @@ class AbstractEntityViewTest {
         ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(view, modelWithoutTextures(), "question-1"));
         ComponentUtil.fireEvent(UI.getCurrent(), new ModelLoadEvent(view, modelWithMainAndOtherTexture(), "question-1"));
 
-        assertEquals(4, uploads.size());
+        assertEquals(5, uploads.size());
+        assertTrue(uploads.stream().anyMatch(event ->
+                event.getFileType() == FileType.MODEL && "model-1".equals(event.getModelId())
+        ));
         assertTrue(uploads.stream().anyMatch(event -> event.getFileType() == FileType.MAIN));
     }
 

@@ -71,18 +71,32 @@ public class ModelListItem extends AbstractListItem {
     }
 
     private void deleteModel(String modelId) {
-        try {
-            ModelService modelService = SpringContextUtils.getBean(ModelService.class);
-            boolean deleted = modelService.delete(modelId);
+        UI sourceUi = UI.getCurrent();
+        runBackendCallWithOverlay(() -> {
+                    ModelService modelService = SpringContextUtils.getBean(ModelService.class);
+                    return modelService.delete(modelId);
+                }, deleted -> {
             if (deleted) {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new SuccessNotification(text("model.delete.success"));
-                UI.getCurrent().getPage().reload();
             } else {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new ErrorNotification(text("model.delete.failed"));
             }
-        } catch (Exception ex) {
+        }, ex -> {
             log.error("Error deleting model: {}", ex.getMessage(), ex);
+            if (isUiInActive(sourceUi)) {
+                return;
+            }
             new ErrorNotification(text("model.delete.error") + ": " + ex.getMessage());
-        }
+        });
+    }
+
+    private boolean isUiInActive(UI ui) {
+        return ui == null || ui.getSession() == null || !ui.isAttached() || ui.isClosing();
     }
 }

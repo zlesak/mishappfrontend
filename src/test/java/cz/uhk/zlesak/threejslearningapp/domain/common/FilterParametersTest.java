@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.domain.common;
 
-import com.vaadin.flow.component.UI;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
 import org.junit.jupiter.api.Test;
@@ -8,6 +8,7 @@ import org.springframework.data.domain.Sort;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
 
 class FilterParametersTest {
 
@@ -15,7 +16,7 @@ class FilterParametersTest {
     void setFilteredParameters_shouldResetPaginationAndApplyFilter() {
         FilterParameters<ModelFilter> parameters = new FilterParameters<>();
         ModelFilter filter = ModelFilter.builder().SearchText("atlas").build();
-        SearchEvent event = new SearchEvent("atlas", Sort.Direction.DESC, "created", new UI());
+        SearchEvent event = new SearchEvent("atlas", Sort.Direction.DESC, "created", mock(FilterComponent.class));
 
         parameters.setFilteredParameters(event, filter);
 

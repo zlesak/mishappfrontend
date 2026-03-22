@@ -29,6 +29,7 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 @Tag("main-page-view")
 @AnonymousAllowed
 public class MainPageView extends Composite<VerticalLayout> implements IView {
+    private static final String TRANSPARENT_GIF_PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     /**
      * Constructor for MainPageView.
      * Initializes the main layout and adds sections to the page.
@@ -38,6 +39,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         mainLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         mainLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         mainLayout.getStyle().set("margin", "0 auto");
+        mainLayout.addAttachListener(event -> initGifLazyLoading());
         mainLayout.add(
                 createHeroSection(),
                 new DividerComponent(),
@@ -201,6 +203,11 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         container.setPadding(false);
 
         Image gifImage = new Image(gifPath, text(titleKey));
+        gifImage.getElement().setAttribute("data-lazy-src", gifPath);
+        gifImage.setSrc(TRANSPARENT_GIF_PLACEHOLDER);
+        gifImage.getElement().setAttribute("loading", "lazy");
+        gifImage.getElement().setAttribute("decoding", "async");
+        gifImage.getElement().setAttribute("fetchpriority", "low");
         gifImage.setWidthFull();
         gifImage.setHeight("400px");
         gifImage.getStyle().set("object-fit", "contain");
@@ -211,6 +218,48 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
         container.add(gifImage, title);
         return container;
+    }
+
+    private void initGifLazyLoading() {
+        getContent().getElement().executeJs(
+                """
+                const root = this;
+                const imgs = root.querySelectorAll('img[data-lazy-src]:not([data-lazy-bound])');
+                if (!imgs.length) {
+                  return;
+                }
+
+                const loadImage = (img) => {
+                  const src = img.getAttribute('data-lazy-src');
+                  if (!src) {
+                    return;
+                  }
+                  img.src = src;
+                  img.removeAttribute('data-lazy-src');
+                  img.setAttribute('data-lazy-loaded', 'true');
+                };
+
+                if (!('IntersectionObserver' in window)) {
+                  imgs.forEach(loadImage);
+                  return;
+                }
+
+                const observer = new IntersectionObserver((entries) => {
+                  entries.forEach((entry) => {
+                    if (entry.isIntersecting || entry.intersectionRatio > 0) {
+                      const img = entry.target;
+                      loadImage(img);
+                      observer.unobserve(img);
+                    }
+                  });
+                }, { root: null, rootMargin: '300px 0px', threshold: 0.01 });
+
+                imgs.forEach((img) => {
+                  img.setAttribute('data-lazy-bound', 'true');
+                  observer.observe(img);
+                });
+                """
+        );
     }
 
     /**

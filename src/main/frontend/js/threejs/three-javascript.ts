@@ -1,5 +1,5 @@
-import { ThreeJSScene } from './ThreeJSScene';
-import type { IVaadinElement } from './types/interfaces';
+import {ThreeJSScene} from './ThreeJSScene';
+import type {IVaadinElement} from './types/interfaces';
 
 // Multi-instance management
 const instances = new WeakMap<IVaadinElement, any>();
@@ -353,6 +353,18 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     } catch (e) {
         console.error('Invalid background spec JSON', e);
     }
+};
+
+(window as any).restoreDefaultBackground = async function(
+    element: IVaadinElement
+): Promise<void> {
+    const inst = getInstance(element);
+    if (!inst) {
+        pendingBackgroundSpecs.set(element, { type: 'cube', value: { path: 'skybox/', files: ['px.bmp', 'nx.bmp', 'py.bmp', 'ny.bmp', 'pz.bmp', 'nz.bmp'] } });
+        return;
+    }
+
+    await inst.restoreDefaultBackground();
 };
 
 // Cleanup on page unload

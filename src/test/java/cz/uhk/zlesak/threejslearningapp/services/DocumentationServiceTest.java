@@ -159,4 +159,38 @@ class DocumentationServiceTest {
 
         assertTrue(documentationService.getEntries().isEmpty());
     }
+
+    @Test
+    void getAllEntriesForSave_shouldBypassRoleFiltering() throws Exception {
+        String json = """
+                [
+                  {"id":"entry-admin","type":"restricted","title":"Admin","content":"{}","roles":["ROLE_ADMIN"]},
+                  {"id":"entry-public","type":"public","title":"Public","content":"{}","roles":[]}
+                ]
+                """;
+        Files.writeString(tempDir.resolve("documentation_all_for_save.json"), json, StandardCharsets.UTF_8);
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("student", "pass", "ROLE_STUDENT"));
+
+        List<DocumentationEntry> visibleEntries = documentationService.getEntries();
+        List<DocumentationEntry> allEntries = documentationService.getAllEntriesForSave();
+
+        assertTrue(visibleEntries.stream().noneMatch(entry -> "entry-admin".equals(entry.getId())));
+        assertTrue(allEntries.stream().anyMatch(entry -> "entry-admin".equals(entry.getId())));
+        assertTrue(allEntries.stream().anyMatch(entry -> "entry-public".equals(entry.getId())));
+    }
+
+    @Test
+    void getEntries_shouldTreatRoleAdministratorAsRoleAdminAlias() throws Exception {
+        String json = """
+                [
+                  {"id":"entry-admin","type":"restricted","title":"Admin","content":"{}","roles":["ROLE_ADMIN"]}
+                ]
+                """;
+        Files.writeString(tempDir.resolve("documentation_admin_alias.json"), json, StandardCharsets.UTF_8);
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("administrator", "pass", "ROLE_ADMINISTRATOR"));
+
+        List<DocumentationEntry> entries = documentationService.getEntriesByType("restricted");
+        assertEquals(1, entries.size());
+        assertEquals("entry-admin", entries.getFirst().getId());
+    }
 }

@@ -90,19 +90,33 @@ public class QuizListItem extends AbstractListItem {
     }
 
     private void deleteQuiz(String quizId) {
-        try {
-            QuizService quizService = SpringContextUtils.getBean(QuizService.class);
-            boolean deleted = quizService.delete(quizId);
+        UI sourceUi = UI.getCurrent();
+        runBackendCallWithOverlay(() -> {
+                    QuizService quizService = SpringContextUtils.getBean(QuizService.class);
+                    return quizService.delete(quizId);
+                }, deleted -> {
             if (deleted) {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new SuccessNotification(text("quiz.delete.success"));
-                UI.getCurrent().getPage().reload();
             } else {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new ErrorNotification(text("quiz.delete.failed"));
             }
-        } catch (Exception ex) {
+        }, ex -> {
             log.error("Error deleting quiz: {}", ex.getMessage(), ex);
+            if (isUiInActive(sourceUi)) {
+                return;
+            }
             new ErrorNotification(text("quiz.delete.error") + ": " + ex.getMessage());
-        }
+        });
+    }
+
+    private boolean isUiInActive(UI ui) {
+        return ui == null || ui.getSession() == null || !ui.isAttached() || ui.isClosing();
     }
 }
 

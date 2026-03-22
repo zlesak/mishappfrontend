@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Custom I18NProvider for providing Czech translations.
@@ -22,6 +23,7 @@ import java.util.*;
 @Component
 public class CustomI18NProvider implements I18NProvider {
     private final Map<String, String> csTranslations = new HashMap<>();
+    private final Set<String> missingKeysLogged = ConcurrentHashMap.newKeySet();
     private final ObjectMapper mapper;
 
     /**
@@ -84,7 +86,8 @@ public class CustomI18NProvider implements I18NProvider {
      */
     @Override
     public String getTranslation(String key, Locale locale, Object... params) {
-        if (locale.getLanguage().equals("cs")) {
+        Locale safeLocale = locale == null ? Locale.getDefault() : locale;
+        if (safeLocale.getLanguage().equals("cs")) {
             String value = csTranslations.get(key);
             if (value != null) {
                 if (params != null && params.length > 0) {
@@ -93,7 +96,13 @@ public class CustomI18NProvider implements I18NProvider {
                 return value;
             }
         }
-        log.warn("Translation not found for: {} in locale: {}", key, locale.getLanguage(), new Exception("Stack trace"));
+
+        String marker = safeLocale.toLanguageTag() + "::" + key;
+        if (missingKeysLogged.add(marker)) {
+            log.warn("Translation not found for key='{}' locale='{}'", key, safeLocale.toLanguageTag());
+        } else {
+            log.debug("Translation still missing for key='{}' locale='{}'", key, safeLocale.toLanguageTag());
+        }
         return key;
     }
 

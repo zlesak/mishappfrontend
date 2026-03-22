@@ -62,7 +62,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         descriptionField.setMaxLength(500);
 
         timeLimitField = new IntegerField();
-        timeLimitField.setHelperText(text("quiz.timeLimit.label"));
+        timeLimitField.setHelperText(text("quiz.timeLimit.helper"));
         timeLimitField.setStepButtonsVisible(true);
         timeLimitField.setValue(0);
         timeLimitField.setMin(0);

@@ -153,19 +153,32 @@ public class ModelContainer extends Div {
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsDoingActions.class,
-                event -> showOverlayProgressBar(event.getDescription())
+                event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
+                    showOverlayProgressBar(event.getDescription());
+                }
         ));
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsFinishedActions.class,
-                event -> hideOverlayProgressBar()
+                event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
+                    hideOverlayProgressBar();
+                }
         ));
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsLoadingProgress.class,
                 event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
                     int percent = event.getPercent();
                     String desc = event.getDescription();
                     if (percent < 0) {

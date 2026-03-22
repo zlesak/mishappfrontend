@@ -28,7 +28,7 @@ import java.util.*;
 @Slf4j
 @Service
 @Scope("prototype")
-public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> { //TODO quick chapter entity on BE side
+public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> {
     private final ObjectMapper objectMapper;
 
     /**
@@ -235,9 +235,11 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
             blocks.forEach(blockNode -> {
                 if (blockNode.has("id") && blockNode.has("type") && "header".equals(blockNode.get("type").asText())) {
                     String blockId = blockNode.get("id").asText();
-                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().containsKey(blockId) ? chapterCreateEntity.getModelHeaderMap().get(blockId) : chapterCreateEntity.getModelHeaderMap().get("main");
-                    ObjectNode dataNode = (ObjectNode) blockNode.get("data");
-                    dataNode.put("modelId", model.getModel().getId());
+                    QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().getOrDefault(blockId, null);
+                    if (model != null) {
+                        ObjectNode dataNode = (ObjectNode) blockNode.get("data");
+                        dataNode.put("modelId", model.getModel().getId());
+                    }
                 }
             });
             content = objectMapper.writeValueAsString(bodyJson);
