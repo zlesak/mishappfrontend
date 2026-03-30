@@ -12,6 +12,7 @@ describe('TextureManager', () => {
     const manager = new TextureManager();
     const model = new Model('model-1', '/model.glb');
     const loadedTexture = new THREE.Texture();
+    const restoreBaseMaterials = vi.spyOn(model, 'restoreBaseMaterials');
 
     vi.spyOn(manager, 'loadTextureWithAuth').mockResolvedValue(loadedTexture);
 
@@ -26,6 +27,7 @@ describe('TextureManager', () => {
 
     expect(model.loadedMainTexture).toBeNull();
     expect(model.getOtherTexture('mask-1')).toBeUndefined();
+    expect(restoreBaseMaterials).toHaveBeenCalled();
   });
 
   it('does not load duplicate secondary textures and clears all secondary textures', async () => {
@@ -70,8 +72,10 @@ describe('TextureManager', () => {
     expect(applyTexture).toHaveBeenCalledWith(otherTexture);
 
     const noMain = new Model('model-2', '/model.glb');
+    const restoreBaseMaterials = vi.spyOn(noMain, 'restoreBaseMaterials');
     const mainResult = await manager.switchToMainTexture(noMain);
     expect(mainResult.lastSelectedTextureId).toBeNull();
+    expect(restoreBaseMaterials).toHaveBeenCalled();
 
     vi.useRealTimers();
   });

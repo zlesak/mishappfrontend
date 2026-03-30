@@ -159,6 +159,25 @@ public class ThreeJsComponent extends Component {
                 """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null);
     }
 
+    private void loadModelAndShow(String modelUrl, String modelId, boolean mainModel, String... questionId) {
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.loadModel === 'function') {
+                        window.loadModel($0, $1, $2, $3, $4)
+                            .then(() => {
+                                if (typeof window.showModel === 'function') {
+                                    return window.showModel($0, $2);
+                                }
+                            })
+                            .then(_ => {})
+                            .catch(e => console.error('[JS] Error in loadModelAndShow chain:', e));
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in loadModelAndShow:', e);
+                }
+                """, getElement(), modelUrl, modelId, mainModel, questionId.length > 0 ? questionId[0] : null);
+    }
+
     private void removeModel(String modelId) {
         dispatchJsAsync("""
                 try {
@@ -188,6 +207,25 @@ public class ThreeJsComponent extends Component {
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
+                }
+                """, getElement(), mainTexture, modelId);
+    }
+
+    private void addMainTextureAndSwitch(String mainTexture, String modelId) {
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.addMainTexture === 'function') {
+                        window.addMainTexture($0, $1, $2)
+                            .then(() => {
+                                if (typeof window.switchToMainTexture === 'function') {
+                                    return window.switchToMainTexture($0, $2);
+                                }
+                            })
+                            .then(_ => {})
+                            .catch(e => console.error('[JS] Error in addMainTextureAndSwitch chain:', e));
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in addMainTextureAndSwitch:', e);
                 }
                 """, getElement(), mainTexture, modelId);
     }
@@ -229,6 +267,25 @@ public class ThreeJsComponent extends Component {
                     }
                 } catch (e) {
                     console.error('[JS] Error in addOtherTexture:', e);
+                }
+                """, getElement(), otherTextureUrl, textureId, modelId);
+    }
+
+    private void addOtherTextureAndSwitch(String otherTextureUrl, String textureId, String modelId) {
+        dispatchJsAsync("""
+                try {
+                    if (typeof window.addOtherTexture === 'function') {
+                        window.addOtherTexture($0, $1, $2, $3)
+                            .then(() => {
+                                if (typeof window.switchOtherTexture === 'function') {
+                                    return window.switchOtherTexture($0, $3, $2);
+                                }
+                            })
+                            .then(_ => {})
+                            .catch(e => console.error('[JS] Error in addOtherTextureAndSwitch chain:', e));
+                    }
+                } catch (e) {
+                    console.error('[JS] Error in addOtherTextureAndSwitch:', e);
                 }
                 """, getElement(), otherTextureUrl, textureId, modelId);
     }
@@ -537,21 +594,24 @@ public class ThreeJsComponent extends Component {
                 event -> {
                     switch (event.getFileType()) {
                         case MODEL -> {
-                            loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.getQuestionId());
-                            if (event.isFromClient()){
-                                showModel(event.getModelId());
+                            if (event.isFromClient()) {
+                                loadModelAndShow(event.getBase64File(), event.getModelId(), event.isMain(), event.getQuestionId());
+                            } else {
+                                loadModel(event.getBase64File(), event.getModelId(), event.isMain(), event.getQuestionId());
                             }
                         }
                         case OTHER -> {
-                            addOtherTexture(event.getBase64File(), event.getEntityId(), event.getModelId());
-                            if (event.isFromClient()){
-                                switchOtherTexture(event.getModelId(), event.getEntityId());
+                            if (event.isFromClient()) {
+                                addOtherTextureAndSwitch(event.getBase64File(), event.getEntityId(), event.getModelId());
+                            } else {
+                                addOtherTexture(event.getBase64File(), event.getEntityId(), event.getModelId());
                             }
                         }
                         case MAIN -> {
-                            addMainTexture(event.getBase64File(), event.getModelId());
-                            if (event.isFromClient()){
-                                switchToMainTexture(event.getModelId());
+                            if (event.isFromClient()) {
+                                addMainTextureAndSwitch(event.getBase64File(), event.getModelId());
+                            } else {
+                                addMainTexture(event.getBase64File(), event.getModelId());
                             }
                         }
                         case CSV -> { /* CSV files are not handled in ThreeJs component */ }

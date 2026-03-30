@@ -418,8 +418,13 @@ export class ThreeJSScene {
      */
     async showModelById(modelId: string): Promise<IModelSwitchResult> {
         const currentModel = this.modelManager.getCurrentModel();
+        const currentModelAttachedToScene = !!(
+            currentModel?.modelLoader
+            && this.scene
+            && this.scene.children.includes(currentModel.modelLoader)
+        );
 
-        if (currentModel != null && currentModel.id === modelId) {
+        if (currentModel != null && currentModel.id === modelId && currentModelAttachedToScene) {
             await this.textureManager.switchToMainTexture(currentModel);
             await this.fitCameraToModel(currentModel.id);
             return {

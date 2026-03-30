@@ -161,6 +161,40 @@ describe('ThreeJSScene', () => {
     expect(result).toEqual({ model: currentModel, lastSelectedTextureId: 'mask-1' });
   });
 
+  it('reloads model when ids match but current loader is missing', async () => {
+    const { subject, currentModel, modelManager, textureManager } = createSubject();
+    currentModel.modelLoader = null;
+    const fitCameraToModel = vi.spyOn(subject, 'fitCameraToModel').mockResolvedValue(undefined);
+
+    await subject.showModelById(currentModel.id);
+
+    expect(modelManager.showModelById).toHaveBeenCalledWith(
+      currentModel.id,
+      expect.any(Function),
+      expect.any(Object),
+      expect.any(Function)
+    );
+    expect(textureManager.switchToMainTexture).not.toHaveBeenCalled();
+    expect(fitCameraToModel).not.toHaveBeenCalledWith(currentModel.id);
+  });
+
+  it('reloads model when current loader exists but is detached from scene', async () => {
+    const { subject, currentModel, modelManager, textureManager } = createSubject();
+    (subject as any).scene.remove(currentModel.modelLoader);
+    const fitCameraToModel = vi.spyOn(subject, 'fitCameraToModel').mockResolvedValue(undefined);
+
+    await subject.showModelById(currentModel.id);
+
+    expect(modelManager.showModelById).toHaveBeenCalledWith(
+      currentModel.id,
+      expect.any(Function),
+      expect.any(Object),
+      expect.any(Function)
+    );
+    expect(textureManager.switchToMainTexture).not.toHaveBeenCalled();
+    expect(fitCameraToModel).not.toHaveBeenCalledWith(currentModel.id);
+  });
+
   it('delegates texture removal and mask fallbacks through public api', async () => {
     const { subject } = createSubject();
     const switchToMainTexture = vi.spyOn(subject, 'switchToMainTexture').mockResolvedValue(undefined);
