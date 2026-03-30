@@ -4,7 +4,7 @@ const baseURL =
   process.env.E2E_BASE_URL ??
   process.env.EXTERNAL_GATEWAY_URL ??
   process.env.FE_URL ??
-  'http://mish';
+  'https://mish';
 
 export default defineConfig({
   testDir: './e2e',
@@ -18,6 +18,7 @@ export default defineConfig({
   },
   use: {
     baseURL,
+    ignoreHTTPSErrors: true,
     headless: process.env.E2E_HEADLESS !== 'false',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',

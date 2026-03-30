@@ -176,6 +176,9 @@
   },
   "scripts": {
     "test:e2e": "playwright test",
+    "test:e2e:orchestrated": "playwright test --workers=1 e2e/auth-role-guard.spec.ts e2e/teacher-routes-access.spec.ts e2e/chapter-import.spec.ts e2e/chapter-crud.spec.ts e2e/model-crud.spec.ts e2e/quiz-crud-execute.spec.ts e2e/student-access.spec.ts e2e/student-no-teacher-routes.spec.ts e2e/model-assets-visibility.spec.ts e2e/public-routes.spec.ts --headed",
+    "test:e2e:orchestrated:full": "playwright test --workers=1 e2e/auth-role-guard.spec.ts e2e/teacher-routes-access.spec.ts e2e/chapter-import.spec.ts e2e/chapter-crud.spec.ts e2e/model-crud.spec.ts e2e/quiz-crud-execute.spec.ts e2e/student-access.spec.ts e2e/student-no-teacher-routes.spec.ts e2e/model-assets-visibility.spec.ts e2e/public-routes.spec.ts e2e/model-load.perf.spec.ts",
+    "test:e2e:perf:model-load": "playwright test e2e/model-load.perf.spec.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:md": "npx tsx scripts/test-md-converters.ts",
     "test": "vitest --config vitest.config.ts",
