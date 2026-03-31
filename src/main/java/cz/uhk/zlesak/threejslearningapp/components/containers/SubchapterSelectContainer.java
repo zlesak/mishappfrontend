@@ -33,8 +33,10 @@ public class SubchapterSelectContainer extends HorizontalLayout {
      * Constructor for SubchapterSelectContainer.
      */
     public SubchapterSelectContainer() {
+        addClassName("subchapter-select-row");
         add(subchapterListingSelect, headingListingSelect);
         setWidthFull();
+        setWrap(true);
     }
 
     /**

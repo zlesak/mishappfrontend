@@ -1,22 +1,25 @@
 package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.Tag;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.router.AfterNavigationEvent;
-import com.vaadin.flow.router.BeforeEnterEvent;
-import com.vaadin.flow.router.Route;
-import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.router.*;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
+import cz.uhk.zlesak.threejslearningapp.components.containers.QuizResultsHistoryPanel;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
+import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
+import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter;
 import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 /**
  * View for displaying quiz details before starting.
@@ -27,6 +30,7 @@ import org.springframework.context.annotation.Scope;
 @Tag("quiz-detail")
 @PermitAll
 public class QuizDetailView extends AbstractQuizView {
+    private final QuizResultService quizResultService;
 
     /**
      * Constructor for QuizDetailView.
@@ -36,13 +40,26 @@ public class QuizDetailView extends AbstractQuizView {
     @Autowired
     public QuizDetailView(QuizResultService quizResultService) {
         super("page.title.quizView");
-        replaceModelWithQuizResultListing(quizResultService);
+        this.quizResultService = quizResultService;
+        modelDiv.setVisible(false);
+        modelDiv.getStyle().set("display", "none");
+        modelSide.removeAll();
+        modelSide.getStyle().set("overflow", "auto");
+        setCompactSplitterPosition(58);
     }
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         runAsync(
-                () -> service.readQuick(quizId),
+                () -> new QuizDetailData(
+                        service.readQuick(quizId),
+                        quizResultService.readEntities(
+                                new FilterParameters<>(
+                                        PageRequest.of(0, 10, Sort.Direction.DESC, "Created"),
+                                        QuizResultFilter.builder().Name("").quizId(quizId).build()
+                                )
+                        )
+                ),
                 this::displayQuizDetails,
                 error -> {
                     log.error("Error loading quiz: {}", error.getMessage(), error);
@@ -53,32 +70,21 @@ public class QuizDetailView extends AbstractQuizView {
 
     /**
      * Displays the quiz details in the view.
-     *
-     * @param quiz Quiz entity to display
      */
-    private void displayQuizDetails(QuickQuizEntity quiz) {
+    private void displayQuizDetails(QuizDetailData data) {
         entityContent.removeAll();
-        entityContent.setAlignItems(FlexComponent.Alignment.CENTER);
-        entityContent.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        entityContent.setAlignItems(FlexComponent.Alignment.STRETCH);
+        entityContent.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
+        entityContent.addClassName(LumoUtility.Gap.MEDIUM);
 
-        QuizDetailContainer detailContainer = new QuizDetailContainer(quiz);
+        QuizDetailContainer detailContainer = new QuizDetailContainer(data.quiz());
+        detailContainer.getStyle().set("margin", "0 auto");
 
+        QuizResultsHistoryPanel historyPanel = new QuizResultsHistoryPanel(quizResultService, data.quiz().getId());
+        historyPanel.renderInitialPage(data.resultsPage());
+        modelSide.removeAll();
+        modelSide.add(historyPanel);
         entityContent.add(detailContainer);
-    }
-
-    /**
-     * Replaces the 3D model area with a quiz result listing.
-     * @param quizResultService the quiz result service
-     */
-    private void replaceModelWithQuizResultListing(QuizResultService quizResultService) {
-        modelDiv.renderer.dispose(null);
-        modelDiv.setHeight("0");
-        modelDiv.setWidth("0");
-
-        Div resultHistoryListingDiv = new Div(new QuizResultsListingView(quizResultService));
-        resultHistoryListingDiv.setSizeFull();
-        modelSide.addComponentAsFirst(resultHistoryListingDiv);
-        modelSide.addClassNames(LumoUtility.Overflow.HIDDEN);
     }
 
     /**
@@ -95,5 +101,12 @@ public class QuizDetailView extends AbstractQuizView {
             return;
         }
         quizId = parameters.get("quizId").get();
+    }
+
+    @Override
+    public void beforeLeave(BeforeLeaveEvent event) {
+    }
+
+    private record QuizDetailData(QuickQuizEntity quiz, PageResult<QuickQuizResult> resultsPage) {
     }
 }

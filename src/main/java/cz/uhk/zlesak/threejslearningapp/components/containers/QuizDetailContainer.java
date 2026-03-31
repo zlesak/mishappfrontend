@@ -24,9 +24,11 @@ public class QuizDetailContainer extends VerticalLayout implements I18nAware {
      */
     public QuizDetailContainer(QuickQuizEntity quiz) {
         super();
-        setWidth("600px");
+        setWidthFull();
+        setMaxWidth("600px");
         setPadding(true);
         setSpacing(true);
+        addClassName("quiz-detail-container");
         addClassName(LumoUtility.Background.CONTRAST_5);
         addClassName(LumoUtility.BorderRadius.LARGE);
         addClassName(LumoUtility.Padding.LARGE);

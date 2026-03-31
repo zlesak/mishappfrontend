@@ -29,6 +29,7 @@ import java.util.Objects;
  * @param <S> the type of service associated with the entity view
  */
 public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> extends AbstractView<S> {
+    private static final int MOBILE_TABLET_BREAKPOINT = 1023;
     protected VerticalLayout entityContent = new VerticalLayout();
     protected VerticalLayout modelSide = new VerticalLayout();
     protected SplitLayout splitLayout;
@@ -36,6 +37,7 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
     protected ModelContainer modelDiv = new ModelContainer();
     protected boolean skipBeforeLeaveDialog;
     private ModelService modelService = SpringContextUtils.getBean(ModelService.class);
+    private int compactSplitterPosition = 62;
 
     /**
      * Constructor for AbstractEntityView.
@@ -51,15 +53,24 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
         entityContent.setSizeFull();
         entityContent.setPadding(false);
         entityContent.addClassName(LumoUtility.Gap.XSMALL);
+        entityContent.getStyle().set("min-width", "0");
+        entityContent.getStyle().set("min-height", "0");
+        entityContent.getStyle().set("overflow", "auto");
 
         modelSide.add(modelDiv);
         modelSide.setSizeFull();
         modelSide.setPadding(false);
         modelSide.addClassNames(LumoUtility.Flex.GROW, LumoUtility.Gap.MEDIUM);
+        modelSide.getStyle().set("min-width", "0");
+        modelSide.getStyle().set("min-height", "0");
+        modelSide.getStyle().set("overflow", "hidden");
 
         splitLayout = new SplitLayout(entityContent, modelSide);
+        splitLayout.addClassName("responsive-entity-split");
         splitLayout.setSizeFull();
         splitLayout.addClassName(LumoUtility.Gap.MEDIUM);
+        splitLayout.getStyle().set("min-width", "0");
+        splitLayout.getStyle().set("min-height", "0");
 
         getContent().add(splitLayout);
     }
@@ -78,6 +89,9 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
         modelSide.setSizeFull();
         modelSide.setPadding(false);
         modelSide.addClassNames(LumoUtility.Flex.GROW, LumoUtility.Gap.MEDIUM);
+        modelSide.getStyle().set("min-width", "0");
+        modelSide.getStyle().set("min-height", "0");
+        modelSide.getStyle().set("overflow", "hidden");
         getContent().add(modelSide);
     }
 
@@ -184,6 +198,15 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
 
+        if (splitLayout != null) {
+            registrations.add(attachEvent.getUI().getPage().addBrowserWindowResizeListener(
+                    event -> applyResponsiveSplitLayout(event.getWidth())
+            ));
+            attachEvent.getUI().getPage().retrieveExtendedClientDetails(
+                    details -> applyResponsiveSplitLayout(details.getBodyClientWidth())
+            );
+        }
+
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ModelLoadEvent.class,
@@ -194,5 +217,23 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
                         true
                 )
         ));
+    }
+
+    private void applyResponsiveSplitLayout(int width) {
+        if (splitLayout == null) {
+            return;
+        }
+        if (width <= MOBILE_TABLET_BREAKPOINT) {
+            splitLayout.setOrientation(SplitLayout.Orientation.VERTICAL);
+            splitLayout.setSplitterPosition(compactSplitterPosition);
+            return;
+        }
+
+        splitLayout.setOrientation(SplitLayout.Orientation.HORIZONTAL);
+        splitLayout.setSplitterPosition(50);
+    }
+
+    protected void setCompactSplitterPosition(int compactSplitterPosition) {
+        this.compactSplitterPosition = compactSplitterPosition;
     }
 }

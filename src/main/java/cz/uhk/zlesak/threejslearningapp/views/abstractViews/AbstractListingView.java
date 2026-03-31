@@ -1,9 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
-import com.vaadin.flow.component.AttachEvent;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.ComponentUtil;
-import com.vaadin.flow.component.Tag;
+import com.vaadin.flow.component.*;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -42,7 +40,10 @@ import java.util.function.Consumer;
 @Scope("prototype")
 @Tag("listing-scaffold")
 public abstract class AbstractListingView<Q extends AbstractEntity, F extends FilterBase, E extends Q, S extends AbstractService<E, Q, F>> extends AbstractView<S> {
+    private static final int DESKTOP_BREAKPOINT = 1024;
     protected final VerticalLayout listingLayout, itemListLayout, paginationLayout, secondaryFilterLayout;
+    protected final VerticalLayout filterContentLayout;
+    protected final Button filterToggleButton;
     protected final FilterComponent filter = new FilterComponent();
     protected final boolean listView;
     @Setter
@@ -52,6 +53,9 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     protected FilterParameters<F> filterParameters;
     protected final S service;
     private final AtomicLong listRequestSequence = new AtomicLong(0);
+    private boolean filtersExpanded = true;
+    private boolean compactFiltersExpanded = true;
+    private String filtersStateKey = "";
 
     /**
      * Constructor for AbstractListingView.
@@ -90,8 +94,22 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
         this.listingLayout = new VerticalLayout();
         this.itemListLayout = new VerticalLayout();
         this.paginationLayout = new VerticalLayout();
-        this.secondaryFilterLayout = new VerticalLayout(filter);
+        this.secondaryFilterLayout = new VerticalLayout();
+        this.filterContentLayout = new VerticalLayout(filter);
         this.service = service;
+
+        listingLayout.addClassName("listing-layout");
+        itemListLayout.addClassName("listing-grid");
+        paginationLayout.addClassName("listing-pagination");
+        secondaryFilterLayout.addClassName("listing-filter-wrap");
+        filterContentLayout.addClassName("listing-filter-content");
+
+        filterToggleButton = new Button("Filtry", VaadinIcon.ANGLE_DOWN.create());
+        filterToggleButton.addClassNames(
+                LumoUtility.AlignSelf.START,
+                LumoUtility.Margin.Bottom.XSMALL
+        );
+        filterToggleButton.addClickListener(e -> setFiltersExpanded(!filtersExpanded, true));
 
         filterParameters = new FilterParameters<>(PageRequest.of(0, 10, Sort.Direction.ASC, "Name"), createFilter(""));
 
@@ -105,6 +123,8 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
                 LumoUtility.Gap.MEDIUM,
                 LumoUtility.Padding.MEDIUM
         );
+        itemListLayout.getStyle().set("align-items", "stretch");
+        itemListLayout.getStyle().set("grid-auto-rows", "1fr");
 
         Scroller listScroller = new Scroller(itemListLayout, Scroller.ScrollDirection.VERTICAL);
         listScroller.setSizeFull();
@@ -118,6 +138,13 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
         listingLayout.setSizeFull();
         listingLayout.setSpacing(false);
         listingLayout.setPadding(false);
+        secondaryFilterLayout.setWidthFull();
+        secondaryFilterLayout.setPadding(false);
+        secondaryFilterLayout.setSpacing(false);
+        filterContentLayout.setWidthFull();
+        filterContentLayout.setPadding(false);
+        filterContentLayout.setSpacing(false);
+        secondaryFilterLayout.add(filterToggleButton, filterContentLayout);
         listingLayout.add(secondaryFilterLayout, listScroller, paginationLayout);
 
         getContent().setPadding(false);
@@ -253,6 +280,64 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
         filter.setSearchFieldValue("");
+        filtersStateKey = "listing.filters." + event.getLocation().getPath();
+        initializeFilterVisibilityFromClient();
         listEntities();
+    }
+
+    private void initializeFilterVisibilityFromClient() {
+        UI currentUi = UI.getCurrent();
+        if (currentUi == null) {
+            setFiltersExpanded(true, false);
+            return;
+        }
+
+        currentUi.getPage()
+                .executeJs("return window.innerWidth;")
+                .then(Integer.class, width -> {
+                    int viewportWidth = width == null ? DESKTOP_BREAKPOINT : width;
+                    if (viewportWidth >= DESKTOP_BREAKPOINT) {
+                        applyFilterModeForWidth(viewportWidth);
+                        return;
+                    }
+                    currentUi.getPage()
+                            .executeJs("const raw = sessionStorage.getItem($0); return raw === null ? '' : raw;", filtersStateKey)
+                            .then(String.class, storedValue -> {
+                                if (storedValue != null && !storedValue.isBlank()) {
+                                    compactFiltersExpanded = Boolean.parseBoolean(storedValue);
+                                } else {
+                                    compactFiltersExpanded = viewportWidth > 599;
+                                }
+                                applyFilterModeForWidth(viewportWidth);
+                            });
+                });
+
+        registrations.add(currentUi.getPage().addBrowserWindowResizeListener(event -> applyFilterModeForWidth(event.getWidth())));
+    }
+
+    private void setFiltersExpanded(boolean expanded, boolean persist) {
+        filtersExpanded = expanded;
+        filterContentLayout.setVisible(expanded);
+        filterToggleButton.setIcon(expanded ? VaadinIcon.ANGLE_UP.create() : VaadinIcon.ANGLE_DOWN.create());
+        filterToggleButton.setText(expanded ? "Filtry (skrýt)" : "Filtry (zobrazit)");
+
+        if (!persist || filtersStateKey == null || filtersStateKey.isBlank()) {
+            return;
+        }
+        UI currentUi = UI.getCurrent();
+        if (currentUi != null) {
+            compactFiltersExpanded = expanded;
+            currentUi.getPage().executeJs("sessionStorage.setItem($0, $1);", filtersStateKey, String.valueOf(expanded));
+        }
+    }
+
+    private void applyFilterModeForWidth(int viewportWidth) {
+        boolean desktop = viewportWidth >= DESKTOP_BREAKPOINT;
+        filterToggleButton.setVisible(!desktop);
+        if (desktop) {
+            setFiltersExpanded(true, false);
+        } else {
+            setFiltersExpanded(compactFiltersExpanded, false);
+        }
     }
 }

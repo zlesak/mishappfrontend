@@ -79,12 +79,14 @@ public class AdministrationView extends AbstractView<ChapterService> {
         quizListingView.setAdministrationView(true);
 
         navigationTabs = new TabSheet();
+        navigationTabs.addClassName("admin-tabsheet");
         navigationTabs.add(chaptersTab, chapterListingView);
         navigationTabs.add(modelsTab, modelListingView);
         navigationTabs.add(quizzesTab, quizListingView);
         navigationTabs.setSizeFull();
 
         Button createButton = new Button(text("button.createChapter"), VaadinIcon.PLUS.create());
+        createButton.addClassName("admin-create-button");
         createButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         createButton.addClickListener(e -> navigateToCreate());
         navigationTabs.setSuffixComponent(createButton);
@@ -123,4 +125,3 @@ public class AdministrationView extends AbstractView<ChapterService> {
         }
     }
 }
-

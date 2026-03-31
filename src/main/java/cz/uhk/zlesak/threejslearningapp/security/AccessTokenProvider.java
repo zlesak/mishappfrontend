@@ -1,17 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.security;
 
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinServletRequest;
+import com.vaadin.flow.server.VaadinServletResponse;
 import com.vaadin.flow.spring.annotation.UIScope;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.server.VaadinServletRequest;
-import com.vaadin.flow.server.VaadinServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +53,19 @@ public class AccessTokenProvider {
 
             if (client != null && client.getAccessToken() != null) {
                 return client.getAccessToken().getTokenValue();
+            }
+
+            try {
+                OAuth2AuthorizedClientService clientService = SpringContextUtils.getBean(OAuth2AuthorizedClientService.class);
+                OAuth2AuthorizedClient storedClient = clientService.loadAuthorizedClient(
+                        oauth.getAuthorizedClientRegistrationId(),
+                        oauth.getName()
+                );
+                if (storedClient != null && storedClient.getAccessToken() != null) {
+                    return storedClient.getAccessToken().getTokenValue();
+                }
+            } catch (Exception ignored) {
+                // Fallback fail
             }
         }
         return null;

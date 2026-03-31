@@ -42,11 +42,23 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
         setWidthFull();
         setPadding(false);
         setAlignItems(FlexComponent.Alignment.START);
+        setWrap(true);
+        addClassName("app-filter");
 
         this.searchField = createSearchField();
         this.searchDirectionSelect = getSortDirectionSelect();
         this.orderBySelect = getOrderBySelect();
         this.createButton = getSearchButton();
+
+        searchField.addClassName("app-filter-search");
+        searchDirectionSelect.addClassName("app-filter-direction");
+        orderBySelect.addClassName("app-filter-order");
+        createButton.addClassName("app-filter-submit");
+
+        searchField.getStyle().set("flex", "1 1 20rem");
+        orderBySelect.getStyle().set("flex", "1 1 14rem");
+        searchDirectionSelect.getStyle().set("flex", "1 1 14rem");
+        createButton.getStyle().set("flex", "0 0 auto");
 
         add(orderBySelect, searchDirectionSelect, searchField, createButton);
     }
@@ -182,4 +194,3 @@ public class FilterComponent extends HorizontalLayout implements I18nAware {
         this.searchField.setValue(value);
     }
 }
-

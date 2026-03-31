@@ -34,6 +34,7 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
     @Setter
     protected String questionId;
     protected ObservableMap<String, T> items;
+    private final ItemLabelGenerator<T> itemLabelGenerator;
 
     /**
      * Constructor for GenericSelect.
@@ -45,6 +46,7 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
      */
     public GenericSelect(String label, ItemLabelGenerator<T> itemLabelGenerator, Class<T> itemType, boolean allowEmptySelection) {
         super();
+        this.itemLabelGenerator = itemLabelGenerator;
 
         setEmptySelectionCaption(text(label));
         setWidthFull();
@@ -66,6 +68,7 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
         }
         );
         addValueChangeListener(e -> {
+                    getElement().setProperty("title", e.getValue() != null ? itemLabelGenerator.apply(e.getValue()) : "");
                     if (e.isFromClient()) {
                         ComponentUtil.fireEvent(UI.getCurrent(), createChangeEvent(e));
                     }
@@ -124,6 +127,7 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
             item = itemsToShow.values().stream().filter(HasPrimarySecondaryMain::mainItem).findFirst().orElse(null);
         }
         setValue(item);
+        getElement().setProperty("title", item != null ? itemLabelGenerator.apply(item) : "");
     }
 
     public boolean hasAvailableItems() {

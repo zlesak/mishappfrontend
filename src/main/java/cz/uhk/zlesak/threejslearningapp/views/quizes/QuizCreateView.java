@@ -70,6 +70,7 @@ public class QuizCreateView extends AbstractQuizView {
     @Autowired
     public QuizCreateView(QuizService quizService, ChapterService chapterService, ModelService modelService) {
         super("page.title.createQuizView", false, quizService);
+        setCompactSplitterPosition(72);
         this.chapterService = chapterService;
         this.modelService = modelService;
 
@@ -78,7 +79,7 @@ public class QuizCreateView extends AbstractQuizView {
         quizForm.setAccordionOpenedChangeListener(this::onAccordionPanelOpened);
 
         quizForm.setHeightFull();
-        quizForm.getScroller().setHeightFull();
+        quizForm.getScroller().getStyle().set("min-height", "0");
         quizForm.getScroller().getStyle().set("overflow", "auto");
         entityContent.add(quizForm);
 

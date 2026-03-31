@@ -59,12 +59,14 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private HorizontalLayout createHeroSection() {
         HorizontalLayout section = new HorizontalLayout();
+        section.addClassName("main-hero-section");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
         section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         section.setWidthFull();
         section.setMinHeight("calc(100vh - 100px)");
 
         Div logoWrapper = new Div();
+        logoWrapper.addClassName("main-hero-logo");
         logoWrapper.setWidth("50%");
         logoWrapper.setHeightFull();
         logoWrapper.addClassNames(LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER, LumoUtility.Display.FLEX);
@@ -77,6 +79,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         logoWrapper.add(logo);
 
         VerticalLayout textContent = new VerticalLayout();
+        textContent.addClassName("main-hero-text");
         textContent.setWidth("50%");
         textContent.setSpacing(false);
         textContent.setAlignItems(FlexComponent.Alignment.START);
@@ -94,6 +97,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         description.getStyle().set("max-width", "600px");
 
         HorizontalLayout buttons = new HorizontalLayout();
+        buttons.addClassName("main-hero-cta");
         Button startBtn = new Button(text("cta.start"), new Icon(VaadinIcon.OPEN_BOOK));
         startBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
         startBtn.addClickListener(e -> UI.getCurrent().navigate(ChapterListingView.class));
@@ -116,6 +120,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createFeaturesSection() {
         VerticalLayout section = new VerticalLayout();
+        section.addClassName("main-section-features");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
         section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         section.setWidth("80%");
@@ -124,6 +129,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         title.addClassNames(LumoUtility.Margin.Bottom.XLARGE);
 
         FlexLayout cardsLayout = new FlexLayout();
+        cardsLayout.addClassName("main-features-grid");
         cardsLayout.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         cardsLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         cardsLayout.getStyle().set("gap", "var(--lumo-space-xl)");
@@ -143,6 +149,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
     private VerticalLayout createFeatureCard(VaadinIcon icon, String titleKey, String descKey) {
         VerticalLayout card = new VerticalLayout();
+        card.addClassName("main-feature-card");
         card.setAlignItems(FlexComponent.Alignment.CENTER);
         card.setWidth("250px");
         card.addClassNames(LumoUtility.TextAlignment.CENTER);
@@ -167,6 +174,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createShowcaseSection() {
         VerticalLayout section = new VerticalLayout();
+        section.addClassName("main-section-showcase");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
         section.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         section.setWidth("80%");
@@ -176,6 +184,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         title.addClassNames(LumoUtility.Margin.Bottom.LARGE);
 
         FlexLayout showcaseGrid = new FlexLayout();
+        showcaseGrid.addClassName("main-showcase-grid");
         showcaseGrid.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         showcaseGrid.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         showcaseGrid.getStyle().set("gap", "var(--lumo-space-l)");
@@ -198,6 +207,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createGifPlaceholder(String titleKey, String gifPath) {
         VerticalLayout container = new VerticalLayout();
+        container.addClassName("main-showcase-item");
         container.setAlignItems(FlexComponent.Alignment.CENTER);
         container.setWidthFull();
         container.setPadding(false);
@@ -268,6 +278,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      */
     private VerticalLayout createAboutSection() {
         VerticalLayout section = new VerticalLayout();
+        section.addClassName("main-section-about");
         section.setWidth("80%");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
 
@@ -288,6 +299,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
     }
     private VerticalLayout createCollaborationSection() {
         VerticalLayout section = new VerticalLayout();
+        section.addClassName("main-section-collaboration");
         section.setWidth("80%");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
 
@@ -305,6 +317,7 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
 
         HorizontalLayout logosLayout = new HorizontalLayout();
+        logosLayout.addClassName("main-collab-logos");
         logosLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
         logosLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         logosLayout.setWidthFull();

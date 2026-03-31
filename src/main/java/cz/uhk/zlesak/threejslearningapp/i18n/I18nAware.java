@@ -24,8 +24,8 @@ public interface I18nAware {
      * @return the string in the current locale corresponding to the key
      */
     default String text(String key, Object... params) {
-        Locale locale = UI.getCurrent().getLocale();
+        UI currentUi = UI.getCurrent();
+        Locale locale = currentUi != null ? currentUi.getLocale() : Locale.forLanguageTag("cs");
         return i18nProvider().getTranslation(key, locale, params);
     }
 }
-

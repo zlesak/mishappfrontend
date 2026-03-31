@@ -8,11 +8,13 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
+import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractListingView;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractView;
 
 import java.util.concurrent.CompletableFuture;
@@ -45,12 +47,14 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
      */
     public AbstractListItem(boolean listView, boolean administrationView, VaadinIcon icon) {
         addClassNames(
+                "entity-card",
                 LumoUtility.Background.CONTRAST_5,
                 LumoUtility.BorderRadius.MEDIUM,
                 LumoUtility.Border.ALL,
                 LumoUtility.BorderColor.CONTRAST_10
         );
         setWidthFull();
+        setHeightFull();
         setPadding(false);
         setSpacing(false);
 
@@ -66,6 +70,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         applyEllipsis(titleSpan);
 
         headerLayout.addClassNames(
+                "entity-card-header",
                 LumoUtility.Padding.MEDIUM,
                 LumoUtility.Gap.SMALL,
                 LumoUtility.AlignItems.CENTER,
@@ -77,11 +82,14 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         headerLayout.expand(titleSpan);
 
         details.addClassNames(
+                "entity-card-details",
                 LumoUtility.Padding.MEDIUM,
                 LumoUtility.Gap.SMALL
         );
         details.setPadding(true);
         details.setSpacing(true);
+        details.setWidthFull();
+        details.getStyle().set("flex-grow", "1");
 
         openButton = getOpenButton(listView);
         selectButton = getSelectButton(listView);
@@ -89,6 +97,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         deleteButton = getDeleteButton(administrationView);
 
         actionsLayout.addClassNames(
+                "entity-card-actions",
                 LumoUtility.Padding.MEDIUM,
                 LumoUtility.Gap.SMALL,
                 LumoUtility.JustifyContent.END,
@@ -97,6 +106,8 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         );
 
         actionsLayout.setWidthFull();
+        actionsLayout.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.CENTER);
+        actionsLayout.getStyle().set("margin-top", "auto");
         actionsLayout.add(deleteButton, editButton, selectButton, openButton);
 
         add(headerLayout, details, actionsLayout);
@@ -114,6 +125,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         Button selectButton = new Button(text("button.select"));
         selectButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
         selectButton.setVisible(!listView);
+        styleActionButton(selectButton, false);
         return selectButton;
     }
 
@@ -132,6 +144,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         button.addThemeVariants(listView
                 ? ButtonVariant.LUMO_PRIMARY
                 : ButtonVariant.LUMO_CONTRAST);
+        styleActionButton(button, listView);
         return button;
     }
 
@@ -145,6 +158,7 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         Button editButton = new Button(text("button.edit"));
         editButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
         editButton.setVisible(administrationView);
+        styleActionButton(editButton, false);
         return editButton;
     }
 
@@ -158,7 +172,20 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
         Button deleteButton = new Button(text("button.delete"));
         deleteButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
         deleteButton.setVisible(administrationView);
+        styleActionButton(deleteButton, false);
         return deleteButton;
+    }
+
+    private void styleActionButton(Button button, boolean emphasize) {
+        button.addClassNames(LumoUtility.FontSize.SMALL);
+        button.getStyle().set("min-width", "0");
+        button.getStyle().set("max-width", "100%");
+        button.getStyle().set("overflow", "hidden");
+        button.getStyle().set("text-overflow", "ellipsis");
+        button.getStyle().set("white-space", "nowrap");
+        if (emphasize) {
+            button.getStyle().set("margin-left", "auto");
+        }
     }
 
     /**
@@ -234,5 +261,16 @@ public class AbstractListItem extends VerticalLayout implements I18nAware {
                         onSuccess.accept(result);
                     });
                 });
+    }
+
+    protected void refreshParentListingFromBackend() {
+        var parent = getParent();
+        while (parent.isPresent()) {
+            if (parent.get() instanceof AbstractListingView<?, ?, ?, ?> listingView) {
+                listingView.listEntities();
+                return;
+            }
+            parent = parent.get().getParent();
+        }
     }
 }

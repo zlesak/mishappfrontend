@@ -79,8 +79,11 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         this.documentationService = documentationService;
 
         sidebar = new VerticalLayout();
-        sidebar.setWidth("300px");
+        sidebar.addClassName("documentation-sidebar");
+        sidebar.setWidth(null);
         sidebar.setPadding(false);
+        sidebar.getStyle().set("flex", "0 0 300px");
+        sidebar.getStyle().set("max-width", "300px");
         sidebar.getStyle().set("overflow", "auto");
         sidebar.addClassNames(LumoUtility.Padding.Right.MEDIUM);
         sidebar.setHeightFull();
@@ -91,6 +94,7 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         entriesListLayout.setWidthFull();
 
         contentContainer = new Div();
+        contentContainer.addClassName("documentation-content");
         contentContainer.setSizeFull();
 
         editButton = new Button(text("doc.admin.edit"), e -> enterEditMode());
@@ -137,6 +141,7 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
      */
     private void configureLayout() {
         HorizontalLayout mainWrapper = new HorizontalLayout();
+        mainWrapper.addClassName("documentation-main-wrapper");
         mainWrapper.setSizeFull();
         mainWrapper.setPadding(false);
         mainWrapper.setSpacing(false);
@@ -147,6 +152,7 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         centerLayout.setSpacing(false);
 
         HorizontalLayout navigation = new HorizontalLayout();
+        navigation.addClassName("documentation-nav");
         navigation.setSpacing(true);
 
         createFilterButton(navigation, text("doc.nav.chapters"), "chapter");
@@ -154,9 +160,11 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
         createFilterButton(navigation, text("doc.nav.quizzes"), "quiz");
 
         HorizontalLayout adminArea = new HorizontalLayout(editButton, saveButton, cancelButton);
+        adminArea.addClassName("documentation-admin-actions");
         adminArea.setSpacing(true);
 
         HorizontalLayout topBar = new HorizontalLayout(navigation, adminArea);
+        topBar.addClassName("documentation-topbar");
         topBar.setWidthFull();
         topBar.expand(navigation);
         topBar.setAlignItems(FlexComponent.Alignment.CENTER);

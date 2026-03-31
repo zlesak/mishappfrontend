@@ -100,6 +100,7 @@ public class QuizListItem extends AbstractListItem {
                     return;
                 }
                 new SuccessNotification(text("quiz.delete.success"));
+                refreshParentListingFromBackend();
             } else {
                 if (isUiInActive(sourceUi)) {
                     return;
@@ -119,4 +120,3 @@ public class QuizListItem extends AbstractListItem {
         return ui == null || ui.getSession() == null || !ui.isAttached() || ui.isClosing();
     }
 }
-
