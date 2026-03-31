@@ -38,6 +38,7 @@ public class ModelCreateView extends AbstractModelView {
     @Autowired
     public ModelCreateView(ModelService modelService) {
         super("page.title.createModelView", false, modelService);
+        setCompactSplitterPosition(68);
     }
 
     /**

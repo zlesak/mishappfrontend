@@ -81,6 +81,7 @@ public class ModelListItem extends AbstractListItem {
                     return;
                 }
                 new SuccessNotification(text("model.delete.success"));
+                refreshParentListingFromBackend();
             } else {
                 if (isUiInActive(sourceUi)) {
                     return;

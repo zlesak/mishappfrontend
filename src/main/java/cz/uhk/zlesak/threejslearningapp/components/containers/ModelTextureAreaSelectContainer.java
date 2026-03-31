@@ -41,8 +41,13 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
     String questionId;
 
     public ModelTextureAreaSelectContainer() {
+        addClassName("model-texture-select-row");
+        modelListingSelect.addClassName("model-texture-model-select");
+        textureListingSelect.addClassName("model-texture-texture-select");
+        textureAreaSelect.addClassName("model-texture-area-select");
         add(modelListingSelect, textureListingSelect, textureAreaSelect);
         setWidthFull();
+        setWrap(true);
     }
 
     public void setQuestionId(String questionId) {

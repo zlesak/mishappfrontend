@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.contextmenu.ContextMenu;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -23,16 +24,11 @@ import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterDetailView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Tag("div")
 public class ChapterListItem extends AbstractListItem {
-    private static final int MAX_VISIBLE_MODEL_BADGES = 2;
-
     public ChapterListItem(ChapterEntity chapter, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.OPEN_BOOK);
 
@@ -142,11 +138,11 @@ public class ChapterListItem extends AbstractListItem {
                 LumoUtility.FlexWrap.NOWRAP
             );
             modelsRow.setWidthFull();
-            modelsRow.getStyle().set("overflow-x", "auto");
-            modelsRow.getStyle().set("overflow-y", "hidden");
+            modelsRow.getStyle().set("min-width", "0");
 
             Icon cubeIcon = VaadinIcon.CUBE.create();
             cubeIcon.addClassNames(LumoUtility.IconSize.SMALL, LumoUtility.TextColor.SECONDARY);
+            cubeIcon.getElement().setProperty("title", text("chapter.models"));
 
             Span modelsLabel = new Span(text("chapter.models") + ":");
             modelsLabel.addClassNames(
@@ -155,78 +151,211 @@ public class ChapterListItem extends AbstractListItem {
                     LumoUtility.Display.HIDDEN,
                     LumoUtility.Display.Breakpoint.XLarge.INLINE
             );
+            modelsLabel.setVisible(false);
 
-            modelsRow.add(cubeIcon, modelsLabel);
+            HorizontalLayout modelBadgesContainer = new HorizontalLayout();
+            modelBadgesContainer.addClassNames(
+                    LumoUtility.Gap.XSMALL,
+                    LumoUtility.AlignItems.CENTER,
+                    LumoUtility.FlexWrap.NOWRAP
+            );
+            modelBadgesContainer.setSpacing(true);
+            modelBadgesContainer.setPadding(false);
+            modelBadgesContainer.setWidthFull();
+            modelBadgesContainer.getStyle().set("min-width", "0");
+            modelBadgesContainer.getStyle().set("overflow", "hidden");
+
+            modelsRow.add(cubeIcon, modelsLabel, modelBadgesContainer);
+            modelsRow.expand(modelBadgesContainer);
 
             HashMap<String, QuickModelEntity> addedModels = new HashMap<>();
-            List<QuickModelEntity> uniqueModels = new ArrayList<>();
             for (QuickModelEntity model : chapter.getModels()) {
                 if (model != null && model.getModel() != null) {
                     if (addedModels.containsKey(model.getModel().getId())) {
                         continue;
                     }
                     addedModels.put(model.getModel().getId(), model);
-                    uniqueModels.add(model);
-                }
-            }
+                    String modelName = model.getModel().getName();
+                    String routeModelId = model.getMetadataId() != null && !model.getMetadataId().isBlank()
+                            ? model.getMetadataId()
+                            : model.getModel().getId();
+                    if (modelName == null || modelName.isBlank() || routeModelId == null || routeModelId.isBlank()) {
+                        continue;
+                    }
 
-            int visibleCount = Math.min(MAX_VISIBLE_MODEL_BADGES, uniqueModels.size());
-            for (int i = 0; i < visibleCount; i++) {
-                QuickModelEntity model = uniqueModels.get(i);
-                String modelName = model.getModel().getName();
-                String routeModelId = model.getMetadataId() != null && !model.getMetadataId().isBlank()
-                        ? model.getMetadataId()
-                        : model.getModel().getId();
-                if (modelName != null && !modelName.isBlank() && routeModelId != null) {
                     Span modelBadge = new Span(modelName);
                     modelBadge.addClassNames(
-                        LumoUtility.Background.CONTRAST_10,
-                        LumoUtility.TextColor.BODY,
-                        LumoUtility.BorderRadius.SMALL,
-                        LumoUtility.Padding.Horizontal.SMALL,
-                        LumoUtility.Padding.Vertical.XSMALL,
-                        LumoUtility.FontSize.SMALL
+                            LumoUtility.Background.CONTRAST_10,
+                            LumoUtility.TextColor.BODY,
+                            LumoUtility.BorderRadius.SMALL,
+                            LumoUtility.Padding.Horizontal.SMALL,
+                            LumoUtility.Padding.Vertical.XSMALL,
+                            LumoUtility.FontSize.SMALL
                     );
-                    modelBadge.getElement().getStyle().set("cursor", "pointer");
+                    modelBadge.addClassName("chapter-model-badge");
+                    modelBadge.getElement().setAttribute("data-model-name", modelName);
+                    modelBadge.getStyle()
+                            .set("cursor", "pointer")
+                            .set("white-space", "nowrap")
+                            .set("display", "inline-flex")
+                            .set("justify-content", "flex-start");
+                    modelBadge.getElement().setProperty("title", modelName);
 
                     modelBadge.getElement().addEventListener("click", e -> {
                         VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
                         UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", routeModelId)));
                     });
-
-                    modelBadge.getStyle()
-                            .set("max-width", "120px")
-                            .set("white-space", "nowrap")
-                            .set("overflow", "hidden")
-                            .set("text-overflow", "ellipsis");
-
-                    modelBadge.getElement().setProperty("title", modelName);
-                    modelsRow.add(modelBadge);
+                    modelBadgesContainer.add(modelBadge);
                 }
             }
 
-            int hiddenCount = uniqueModels.size() - visibleCount;
-            if (hiddenCount > 0) {
-                Span moreBadge = new Span("+" + hiddenCount);
-                moreBadge.addClassNames(
-                        LumoUtility.Background.CONTRAST_10,
-                        LumoUtility.TextColor.SECONDARY,
-                        LumoUtility.BorderRadius.SMALL,
-                        LumoUtility.Padding.Horizontal.SMALL,
-                        LumoUtility.Padding.Vertical.XSMALL,
-                        LumoUtility.FontSize.SMALL,
-                        LumoUtility.FontWeight.SEMIBOLD
-                );
-                String hiddenModels = uniqueModels.stream()
-                        .skip(visibleCount)
-                        .map(quickModelEntity -> quickModelEntity.getModel() != null ? quickModelEntity.getModel().getName() : null)
-                        .filter(name -> name != null && !name.isBlank())
-                        .collect(Collectors.joining(", "));
-                if (!hiddenModels.isBlank()) {
-                    moreBadge.getElement().setProperty("title", hiddenModels);
+            Span overflowBadge = new Span("+0");
+            overflowBadge.addClassNames(
+                    LumoUtility.Background.CONTRAST_10,
+                    LumoUtility.TextColor.SECONDARY,
+                    LumoUtility.BorderRadius.SMALL,
+                    LumoUtility.Padding.Horizontal.SMALL,
+                    LumoUtility.Padding.Vertical.XSMALL,
+                    LumoUtility.FontSize.SMALL,
+                    LumoUtility.FontWeight.SEMIBOLD
+            );
+            overflowBadge.addClassName("chapter-model-overflow");
+            overflowBadge.getStyle()
+                    .set("display", "none")
+                    .set("cursor", "pointer")
+                    .set("white-space", "nowrap")
+                    .set("justify-content", "center")
+                    .set("text-align", "center")
+                    .set("min-width", "40px");
+            overflowBadge.getElement().setProperty("aria-label", "Další modely");
+            modelBadgesContainer.add(overflowBadge);
+
+            ContextMenu overflowMenu = new ContextMenu(overflowBadge);
+            overflowMenu.setOpenOnClick(true);
+            for (QuickModelEntity model : addedModels.values()) {
+                if (model == null || model.getModel() == null) {
+                    continue;
                 }
-                modelsRow.add(moreBadge);
+                String modelName = model.getModel().getName();
+                String routeModelId = model.getMetadataId() != null && !model.getMetadataId().isBlank()
+                        ? model.getMetadataId()
+                        : model.getModel().getId();
+                if (modelName == null || modelName.isBlank() || routeModelId == null || routeModelId.isBlank()) {
+                    continue;
+                }
+                overflowMenu.addItem(modelName, event -> {
+                    VaadinSession.getCurrent().setAttribute("quickModelEntity", model);
+                    UI.getCurrent().navigate(ModelDetailView.class, new RouteParameters(new RouteParam("modelId", routeModelId)));
+                });
             }
+
+            modelBadgesContainer.getElement().executeJs("""
+                const container = this;
+                const overflow = container.querySelector('.chapter-model-overflow');
+                const badges = () => Array.from(container.querySelectorAll('.chapter-model-badge'));
+
+                const getGap = () => {
+                  const style = getComputedStyle(container);
+                  const raw = style.columnGap || style.gap || '8px';
+                  const parsed = Number.parseFloat(raw);
+                  return Number.isFinite(parsed) ? parsed : 8;
+                };
+
+                const relayout = () => {
+                  if (!overflow) return;
+                  const allBadges = badges();
+                  allBadges.forEach((badge) => {
+                    badge.style.display = 'inline-flex';
+                    badge.style.flex = '0 0 auto';
+                    badge.style.minWidth = '';
+                    badge.style.maxWidth = '';
+                    badge.style.overflow = 'hidden';
+                    badge.style.textOverflow = 'ellipsis';
+                    badge.style.whiteSpace = 'nowrap';
+                  });
+                  overflow.style.display = 'none';
+                  overflow.style.flex = '0 0 auto';
+                  overflow.textContent = '+0';
+                  overflow.title = '';
+
+                  const available = container.clientWidth;
+                  if (available <= 0 || allBadges.length === 0) return;
+
+                  if (allBadges.length === 1) {
+                    const only = allBadges[0];
+                    only.style.flex = '1 1 auto';
+                    only.style.minWidth = '0';
+                    only.style.maxWidth = '100%';
+                    only.style.overflow = 'hidden';
+                    only.style.textOverflow = 'ellipsis';
+                    return;
+                  }
+
+                  const gap = getGap();
+                  const widths = allBadges.map((badge) => badge.offsetWidth);
+                  const measureOverflowWidth = (hiddenCount) => {
+                    overflow.style.display = 'inline-flex';
+                    overflow.style.visibility = 'hidden';
+                    overflow.textContent = `+${hiddenCount}`;
+                    return overflow.offsetWidth;
+                  };
+
+                  let visibleCount = 0;
+                  let used = 0;
+                  for (let i = 0; i < allBadges.length; i++) {
+                    const remainingAfter = allBadges.length - (i + 1);
+                    const reserveForOverflow = remainingAfter > 0
+                      ? measureOverflowWidth(remainingAfter) + gap
+                      : 0;
+                    const nextUsed = (visibleCount > 0 ? used + gap : used) + widths[i];
+                    if (nextUsed + reserveForOverflow <= available) {
+                      used = nextUsed;
+                      visibleCount++;
+                    } else {
+                      break;
+                    }
+                  }
+
+                  if (visibleCount === 0) {
+                    visibleCount = 1;
+                  }
+
+                  const hiddenCount = allBadges.length - visibleCount;
+                  if (hiddenCount <= 0) {
+                    overflow.style.display = 'none';
+                    overflow.style.visibility = 'visible';
+                    return;
+                  }
+
+                  allBadges.forEach((badge, index) => {
+                    badge.style.display = index < visibleCount ? 'inline-flex' : 'none';
+                  });
+
+                  if (visibleCount === 1) {
+                    const firstVisible = allBadges[0];
+                    firstVisible.style.flex = '1 1 auto';
+                    firstVisible.style.minWidth = '0';
+                  }
+
+                  overflow.style.display = 'inline-flex';
+                  overflow.style.visibility = 'visible';
+                  overflow.textContent = `+${hiddenCount}`;
+
+                  const hiddenBadges = allBadges.slice(visibleCount);
+                  const hiddenNames = hiddenBadges
+                    .map((badge) => badge.getAttribute('data-model-name') || '')
+                    .filter(Boolean);
+                  overflow.title = hiddenNames.join(', ');
+                };
+
+                if (container.__chapterModelsResizeObserver) {
+                  container.__chapterModelsResizeObserver.disconnect();
+                }
+                const observer = new ResizeObserver(() => relayout());
+                observer.observe(container);
+                container.__chapterModelsResizeObserver = observer;
+                requestAnimationFrame(relayout);
+                """);
 
             details.add(modelsRow);
         }
