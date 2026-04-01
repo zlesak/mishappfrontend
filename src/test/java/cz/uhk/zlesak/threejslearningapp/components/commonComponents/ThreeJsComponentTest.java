@@ -237,4 +237,56 @@ class ThreeJsComponentTest {
         context.refresh();
         SpringContextUtils.setContext(context);
     }
+
+    // --- Additional coverage tests ---
+
+    @Test
+    void onThumbnailReadyWithNullOrBlankRequestIdShouldReturnEarlyWithoutCallback() throws Exception {
+        // Line 440: early return when requestId is null or blank.
+        ThreeJsComponent component = attach(new ThreeJsComponent());
+        AtomicReference<String> thumb = new AtomicReference<>("not-called");
+
+        component.getThumbnailDataUrl("model-x", 64, 64, thumb::set);
+
+        invokeClientCallable(component, "onThumbnailReady",
+                new Class[]{String.class, String.class}, null, "url");
+        invokeClientCallable(component, "onThumbnailReady",
+                new Class[]{String.class, String.class}, "", "url");
+
+        // Callback must NOT have been called for null/blank requestId.
+        assertEquals("not-called", thumb.get());
+        // Real requestId still pending.
+        assertFalse(getCallbackMap(component, "thumbnailCallbacks").isEmpty());
+    }
+
+    @Test
+    void onBackgroundSpecReadyWithNullOrBlankRequestIdShouldReturnEarly() throws Exception {
+        // Line 495: early return when requestId is null or blank.
+        ThreeJsComponent component = attach(new ThreeJsComponent());
+        AtomicReference<String> spec = new AtomicReference<>("not-called");
+
+        component.getBackgroundSpecData(spec::set);
+
+        invokeClientCallable(component, "onBackgroundSpecReady",
+                new Class[]{String.class, String.class}, null, "{}");
+        invokeClientCallable(component, "onBackgroundSpecReady",
+                new Class[]{String.class, String.class}, "", "{}");
+
+        assertEquals("not-called", spec.get());
+        assertFalse(getCallbackMap(component, "backgroundSpecCallbacks").isEmpty());
+    }
+
+    @Test
+    void onColorPickedWithNonBlankQuestionIdShouldFireOnUi() {
+        // Line 518: else branch (questionId non-blank → fireEvent on UI).
+        ThreeJsComponent component = attach(new ThreeJsComponent());
+        AtomicReference<TextureClickedEvent> captured = new AtomicReference<>();
+        ComponentUtil.addListener(UI.getCurrent(), TextureClickedEvent.class, captured::set);
+
+        component.onColorPicked("model-1", "texture-1", "#AABBCC", "q-123");
+
+        assertNotNull(captured.get());
+        assertEquals("q-123", captured.get().getQuestionId());
+        assertEquals("#AABBCC", captured.get().getHexColor());
+    }
 }

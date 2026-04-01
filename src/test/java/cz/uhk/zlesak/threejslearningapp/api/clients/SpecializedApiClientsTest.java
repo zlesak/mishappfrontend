@@ -16,6 +16,10 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.web.client.HttpClientErrorException;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
+import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -267,4 +271,125 @@ class SpecializedApiClientsTest {
             return getQuicEntityClass();
         }
     }
+    // ---- ModelApiClient additional coverage tests ----
+
+    @Test
+    void addFilePart_byteArrayResourceGetFilenameShouldReturnOriginalFilename() throws Exception {
+        ModelApiClient apiClient = new ModelApiClient(mock(RestClient.class), objectMapper);
+        ModelEntity entity = modelEntity();
+        InputFileDesc fileDesc = (InputFileDesc) invoke(
+                apiClient, "buildInputFileDesc", new Class[]{ModelEntity.class}, entity);
+        MultiValueMap<String, Object> body = (MultiValueMap<String, Object>) invoke(
+                apiClient, "buildMultipartBody",
+                new Class[]{ModelEntity.class, InputFileDesc.class, Object.class},
+                entity, fileDesc,
+                new cz.uhk.zlesak.threejslearningapp.domain.model.ModelMetadata("", false));
+        HttpEntity<?> firstFileEntity = (HttpEntity<?>) body.get("files").getFirst();
+        ByteArrayResource resource = (ByteArrayResource) firstFileEntity.getBody();
+        assertNotNull(resource);
+        assertEquals("organ.glb", resource.getFilename());
+    }
+
+    @Test
+    void sendMultipartPost_shouldThrowApiCallExceptionOnHttpStatusError() throws Exception {
+        RestClient restClient = mock(RestClient.class);
+        RestClient.RequestBodyUriSpec postSpec = mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.post()).thenReturn(postSpec);
+        when(postSpec.uri(anyString())).thenReturn(postSpec);
+        when(postSpec.contentType(any(MediaType.class))).thenReturn(postSpec);
+        when(postSpec.body(any(Object.class))).thenReturn(postSpec);
+        when(postSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(String.class)).thenThrow(HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "bad request", HttpHeaders.EMPTY,
+                new byte[0], StandardCharsets.UTF_8));
+        ModelApiClient apiClient = new ModelApiClient(restClient, objectMapper) {
+            @Override public String getJwtToken() { return null; }
+        };
+        assertThrows(ApiCallException.class, () -> apiClient.create(modelEntity()));
+    }
+
+    @Test
+    void sendMultipartPost_shouldWrapGenericExceptionFromPost() {
+        RestClient restClient = mock(RestClient.class);
+        RestClient.RequestBodyUriSpec postSpec = mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.post()).thenReturn(postSpec);
+        when(postSpec.uri(anyString())).thenReturn(postSpec);
+        when(postSpec.contentType(any(MediaType.class))).thenReturn(postSpec);
+        when(postSpec.body(any(Object.class))).thenReturn(postSpec);
+        when(postSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(String.class)).thenThrow(new RuntimeException("unexpected failure"));
+        ModelApiClient apiClient = new ModelApiClient(restClient, objectMapper) {
+            @Override public String getJwtToken() { return null; }
+        };
+        Exception ex = assertThrows(Exception.class, () -> apiClient.create(modelEntity()));
+        assertTrue(ex.getMessage().contains("Neočekávaná chyba") || ex.getCause() != null);
+    }
+
+    @Test
+    void sendMultipartPut_shouldThrowApiCallExceptionOnHttpStatusError() throws Exception {
+        RestClient restClient = mock(RestClient.class);
+        RestClient.RequestBodyUriSpec putSpec = mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.put()).thenReturn(putSpec);
+        when(putSpec.uri(anyString())).thenReturn(putSpec);
+        when(putSpec.contentType(any(MediaType.class))).thenReturn(putSpec);
+        when(putSpec.body(any(Object.class))).thenReturn(putSpec);
+        when(putSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(String.class)).thenThrow(HttpClientErrorException.create(
+                HttpStatus.BAD_REQUEST, "bad request", HttpHeaders.EMPTY,
+                new byte[0], StandardCharsets.UTF_8));
+        ModelApiClient apiClient = new ModelApiClient(restClient, objectMapper) {
+            @Override public String getJwtToken() { return null; }
+        };
+        assertThrows(ApiCallException.class, () -> apiClient.update("meta-1", modelEntity()));
+    }
+
+    @Test
+    void sendMultipartPut_shouldWrapGenericExceptionFromPut() {
+        RestClient restClient = mock(RestClient.class);
+        RestClient.RequestBodyUriSpec putSpec = mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.put()).thenReturn(putSpec);
+        when(putSpec.uri(anyString())).thenReturn(putSpec);
+        when(putSpec.contentType(any(MediaType.class))).thenReturn(putSpec);
+        when(putSpec.body(any(Object.class))).thenReturn(putSpec);
+        when(putSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(String.class)).thenThrow(new RuntimeException("put failure"));
+        ModelApiClient apiClient = new ModelApiClient(restClient, objectMapper) {
+            @Override public String getJwtToken() { return null; }
+        };
+        Exception ex = assertThrows(Exception.class, () -> apiClient.update("meta-1", modelEntity()));
+        assertTrue(ex.getMessage().contains("Neočekávaná chyba") || ex.getCause() != null);
+    }
+
+    @Test
+    void executeWithUnauthorizedRetry_shouldRetryRequestWhenTokenContextIsSetAndResponseIs401() throws Exception {
+        RestClient restClient = mock(RestClient.class);
+        RestClient.RequestBodyUriSpec postSpec = mock(RestClient.RequestBodyUriSpec.class);
+        RestClient.ResponseSpec responseSpec = mock(RestClient.ResponseSpec.class);
+        when(restClient.post()).thenReturn(postSpec);
+        when(postSpec.uri(anyString())).thenReturn(postSpec);
+        when(postSpec.contentType(any(MediaType.class))).thenReturn(postSpec);
+        when(postSpec.body(any(Object.class))).thenReturn(postSpec);
+        when(postSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.body(String.class))
+                .thenThrow(HttpClientErrorException.create(
+                        HttpStatus.UNAUTHORIZED, "unauthorized", HttpHeaders.EMPTY,
+                        new byte[0], StandardCharsets.UTF_8))
+                .thenReturn("{\"id\":\"retry-ok\",\"metadataId\":\"meta-retry\",\"name\":\"T\",\"advanced\":false}");
+        ModelApiClient apiClient = new ModelApiClient(restClient, objectMapper) {
+            @Override public String getJwtToken() { return null; }
+        };
+        ApiTokenContext.set("bearer-token");
+        try {
+            QuickModelEntity result = apiClient.create(modelEntity());
+            assertEquals("retry-ok", result.getId());
+            assertNull(ApiTokenContext.get());
+        } finally {
+            ApiTokenContext.clear();
+        }
+    }
+
 }

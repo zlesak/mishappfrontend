@@ -6,6 +6,10 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.FileRejectedEvent;
 import com.vaadin.flow.component.upload.FileRemovedEvent;
+import com.vaadin.flow.server.streams.InMemoryUploadCallback;
+import com.vaadin.flow.server.streams.InMemoryUploadHandler;
+import com.vaadin.flow.server.streams.UploadHandler;
+import com.vaadin.flow.server.streams.UploadMetadata;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -13,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -121,6 +126,63 @@ class FileUploadTest {
         ComponentUtil.fireEvent(upload, new FileRejectedEvent(upload, "organ.obj", "invalid"));
 
         assertEquals(1, upload.getUploadedFiles().size());
+    }
+
+    // --- InMemoryUploadHandler callback coverage (lines 55-67) ---
+
+    @Test
+    void uploadHandlerCallbackWithListenerAndNamingShouldPopulateFilesAndLayout() throws Exception {
+        TestFileUpload upload = new TestFileUpload(List.of(".obj"), false, true);
+        AtomicReference<String> capturedName = new AtomicReference<>();
+        AtomicReference<InputStreamMultipartFile> capturedFile = new AtomicReference<>();
+        upload.setUploadListener((name, f) -> {
+            capturedName.set(name);
+            capturedFile.set(f);
+        });
+
+        InMemoryUploadCallback callback = extractCallback(upload.capturedHandler);
+        callback.complete(new UploadMetadata("test.obj", "application/octet-stream", 7L),
+                "content".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(1, upload.getUploadedFiles().size());
+        assertEquals("test.obj", capturedName.get());
+        assertNotNull(capturedFile.get());
+        assertEquals(1, upload.getFileListLayout().getChildren().count());
+    }
+
+    @Test
+    void uploadHandlerCallbackWithoutListenerOrNamingShouldOnlyAddToList() throws Exception {
+        TestFileUpload upload = new TestFileUpload(List.of(".obj"), false, false);
+
+        InMemoryUploadCallback callback = extractCallback(upload.capturedHandler);
+        callback.complete(new UploadMetadata("test.obj", "application/octet-stream", 7L),
+                "content".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals(1, upload.getUploadedFiles().size());
+        assertEquals(0, upload.getFileListLayout().getChildren().count());
+    }
+
+    private static InMemoryUploadCallback extractCallback(InMemoryUploadHandler handler) throws Exception {
+        Field field = InMemoryUploadHandler.class.getDeclaredField("successCallback");
+        field.setAccessible(true);
+        return (InMemoryUploadCallback) field.get(handler);
+    }
+
+    /** Subclass that captures the InMemoryUploadHandler before it is buried in Vaadin internals. */
+    private static class TestFileUpload extends FileUpload {
+        volatile InMemoryUploadHandler capturedHandler;
+
+        TestFileUpload(List<String> types, boolean maxOne, boolean canName) {
+            super(types, maxOne, canName);
+        }
+
+        @Override
+        public void setUploadHandler(UploadHandler handler) {
+            if (handler instanceof InMemoryUploadHandler) {
+                capturedHandler = (InMemoryUploadHandler) handler;
+            }
+            super.setUploadHandler(handler);
+        }
     }
 
     @SuppressWarnings("SameParameterValue")

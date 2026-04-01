@@ -134,8 +134,8 @@ class ModelCreateViewKaribuTest {
         form.getModelName().setValue("Lebka");
 
         invoke(view, "uploadModel");
-        invokeRendererCallback(view, "onBackgroundSpecReady", new Class[]{String.class}, (Object) null);
-        invokeRendererCallback(view, "onThumbnailReady", new Class[]{String.class}, "data:image/png;base64,abc");
+        triggerBackgroundSpecCallback(view, null);
+        triggerThumbnailCallback(view, "data:image/png;base64,abc");
 
         verify(modelService).saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
     }
@@ -152,9 +152,9 @@ class ModelCreateViewKaribuTest {
         form.getModelName().setValue("Lebka");
 
         invoke(view, "uploadModel");
-        invokeRendererCallback(view, "onBackgroundSpecReady", new Class[]{String.class}, (Object) null);
+        triggerBackgroundSpecCallback(view, null);
         assertDoesNotThrow(() ->
-                invokeRendererCallback(view, "onThumbnailReady", new Class[]{String.class}, "data:image/png;base64,abc")
+                triggerThumbnailCallback(view, "data:image/png;base64,abc")
         );
         verify(modelService).saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
     }
@@ -207,6 +207,62 @@ class ModelCreateViewKaribuTest {
                 Field field = current.getDeclaredField(name);
                 field.setAccessible(true);
                 return field.get(target);
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException(name);
+    }
+
+
+
+    @Test
+    void uploadModelShouldCallEndLoadingOverlayInCatchWhenModelDivIsNull() throws Exception {
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+        setField(view, "modelDiv", null);
+        assertDoesNotThrow(() -> invoke(view, "uploadModel"));
+        verify(modelService, never()).saveFromUpload(any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void triggerBackgroundSpecCallback(ModelCreateView view, String backgroundSpecJson) throws Exception {
+        Object modelDiv = getField(view, "modelDiv");
+        java.lang.reflect.Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
+        rendererField.setAccessible(true);
+        Object renderer = rendererField.get(modelDiv);
+        java.lang.reflect.Field callbacksField = renderer.getClass().getDeclaredField("backgroundSpecCallbacks");
+        callbacksField.setAccessible(true);
+        java.util.Map<String, ?> callbacks = (java.util.Map<String, ?>) callbacksField.get(renderer);
+        String requestId = callbacks.keySet().stream().findFirst().orElseThrow();
+        invokeRendererCallback(view, "onBackgroundSpecReady",
+                new Class[]{String.class, String.class}, requestId, backgroundSpecJson);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void triggerThumbnailCallback(ModelCreateView view, String dataUrl) throws Exception {
+        Object modelDiv = getField(view, "modelDiv");
+        java.lang.reflect.Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
+        rendererField.setAccessible(true);
+        Object renderer = rendererField.get(modelDiv);
+        java.lang.reflect.Field callbacksField = renderer.getClass().getDeclaredField("thumbnailCallbacks");
+        callbacksField.setAccessible(true);
+        java.util.Map<String, ?> callbacks = (java.util.Map<String, ?>) callbacksField.get(renderer);
+        String requestId = callbacks.keySet().stream().findFirst().orElseThrow();
+        invokeRendererCallback(view, "onThumbnailReady",
+                new Class[]{String.class, String.class}, requestId, dataUrl);
+    }
+
+
+    @SuppressWarnings("SameParameterValue")
+    private void setField(Object target, String name, Object value) throws Exception {
+        Class<?> current = target.getClass();
+        while (current != null) {
+            try {
+                java.lang.reflect.Field field = current.getDeclaredField(name);
+                field.setAccessible(true);
+                field.set(target, value);
+                return;
             } catch (NoSuchFieldException ignored) {
                 current = current.getSuperclass();
             }

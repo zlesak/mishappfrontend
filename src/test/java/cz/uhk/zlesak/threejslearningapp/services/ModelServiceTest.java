@@ -1,9 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
 import cz.uhk.zlesak.threejslearningapp.api.clients.ModelApiClient;
+import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
-import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -97,4 +96,31 @@ class ModelServiceTest {
                 .inputStream(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)))
                 .build();
     }
+    @Test
+    void encodeModelDescription_shouldReturnThumbnailWhenBackgroundJsonIsInvalidAndCannotBeParsed() {
+        String result = modelService.encodeModelDescription("thumb", "{invalid-json");
+        assertEquals("thumb", result);
+    }
+
+    @Test
+    void resolveBackgroundSpecJson_shouldReturnNullWhenRelatedFilesContainNoBackgroundImageEntry() {
+        ModelEntity entity = ModelEntity.builder()
+                .model(ModelFileEntity.builder()
+                        .id("model-file")
+                        .related(List.of(ModelFileEntity.builder()
+                                .id("other-1").senseType(FileSenseType.MODEL).build()))
+                        .build())
+                .description("legacy-thumb")
+                .build();
+        assertNull(modelService.resolveBackgroundSpecJson(entity));
+    }
+
+    @Test
+    void extractBackgroundType_shouldReturnEmptyStringForBlankInput() throws Exception {
+        java.lang.reflect.Method m = ModelService.class.getDeclaredMethod("extractBackgroundType", String.class);
+        m.setAccessible(true);
+        assertEquals("", m.invoke(modelService, "   "));
+        assertEquals("", m.invoke(modelService, (Object) null));
+    }
+
 }

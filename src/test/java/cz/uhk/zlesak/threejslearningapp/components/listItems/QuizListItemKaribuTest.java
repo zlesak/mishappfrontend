@@ -1,5 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
+import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Span;
@@ -32,31 +33,17 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("test")
 @Import(OAuthTestConfig.class)
 class QuizListItemKaribuTest {
-    @Autowired
-    private ApplicationContext applicationContext;
+    @Autowired private ApplicationContext applicationContext;
+    @MockitoBean private QuizService quizService;
 
-    @MockitoBean
-    private QuizService quizService;
-
-    @BeforeEach
-    void setUp() {
-        KaribuSpringTestSupport.setUp(applicationContext);
-    }
-
-    @AfterEach
-    void tearDown() {
-        KaribuSpringTestSupport.tearDown();
-    }
+    @BeforeEach void setUp() { KaribuSpringTestSupport.setUp(applicationContext); }
+    @AfterEach void tearDown() { KaribuSpringTestSupport.tearDown(); }
 
     @Test
     void shouldRenderTimeLimitAndChapterSnippet() {
         QuizListItem item = new QuizListItem(quiz(), true);
         UI.getCurrent().add(item);
-
-        List<String> texts = findAll(item, Span.class).stream()
-                .map(Span::getText)
-                .toList();
-
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
         assertTrue(texts.contains("Procviceni kosti"));
         assertTrue(texts.contains("3 minuty"));
         assertTrue(texts.contains("chapter-"));
@@ -65,30 +52,86 @@ class QuizListItemKaribuTest {
     @Test
     void deleteConfirmationShouldCallQuizService() {
         when(quizService.delete("quiz-1")).thenReturn(true);
-
         QuizListItem item = new QuizListItem(quiz(), true);
         UI.getCurrent().add(item);
-
-        findAll(item, Button.class).stream()
-                .filter(candidate -> "Smazat".equals(candidate.getText()))
-                .findFirst()
-                .orElseThrow()
-                .click();
+        smazat(item).click();
         ConfirmDialog dialog = _get(ConfirmDialog.class);
-
         _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
-
+        MockVaadin.clientRoundtrip(false);
         assertFalse(dialog.isOpened());
         verify(quizService).delete("quiz-1");
     }
 
+    @Test
+    void editButton_adminMode_shouldNavigateToEditView() {
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI.getCurrent().add(item);
+        findAll(item, Button.class).stream().filter(b -> "Upravit".equals(b.getText())).findFirst().orElseThrow().click();
+    }
+
+    @Test
+    void delete_whenServiceReturnsFalse_shouldShowErrorNotification() {
+        when(quizService.delete("quiz-1")).thenReturn(false);
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI.getCurrent().add(item);
+        smazat(item).click();
+        _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
+        MockVaadin.clientRoundtrip(false);
+        verify(quizService).delete("quiz-1");
+    }
+
+    @Test
+    void delete_whenServiceThrows_shouldHandleErrorGracefully() {
+        when(quizService.delete("quiz-1")).thenThrow(new RuntimeException("delete error"));
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI.getCurrent().add(item);
+        smazat(item).click();
+        _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
+        MockVaadin.clientRoundtrip(false);
+        verify(quizService).delete("quiz-1");
+    }
+
+    @Test
+    void delete_success_whenUiClosingBeforeCallbackExecutes_shouldSkipCallback() {
+        when(quizService.delete("quiz-1")).thenReturn(true);
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI ui = UI.getCurrent(); ui.add(item);
+        smazat(item).click();
+        _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
+        ui.close();
+        MockVaadin.clientRoundtrip(false);
+        verify(quizService).delete("quiz-1");
+    }
+
+    @Test
+    void delete_false_whenUiClosingBeforeCallbackExecutes_shouldSkipCallback() {
+        when(quizService.delete("quiz-1")).thenReturn(false);
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI ui = UI.getCurrent(); ui.add(item);
+        smazat(item).click();
+        _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
+        ui.close();
+        MockVaadin.clientRoundtrip(false);
+        verify(quizService).delete("quiz-1");
+    }
+
+    @Test
+    void delete_exception_whenUiClosingBeforeCallbackExecutes_shouldSkipCallback() {
+        when(quizService.delete("quiz-1")).thenThrow(new RuntimeException("timeout"));
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI ui = UI.getCurrent(); ui.add(item);
+        smazat(item).click();
+        _click(_get(Button.class, spec -> spec.withText("Smazat kvíz")));
+        ui.close();
+        MockVaadin.clientRoundtrip(false);
+        verify(quizService).delete("quiz-1");
+    }
+
+    private Button smazat(QuizListItem item) {
+        return findAll(item, Button.class).stream().filter(b -> "Smazat".equals(b.getText())).findFirst().orElseThrow();
+    }
 
     private QuickQuizEntity quiz() {
-        return QuickQuizEntity.builder()
-                .id("quiz-1")
-                .name("Procviceni kosti")
-                .timeLimit(3)
-                .chapterId("chapter-123456789")
-                .build();
+        return QuickQuizEntity.builder().id("quiz-1").name("Procviceni kosti").timeLimit(3).chapterId("chapter-123456789").build();
     }
 }

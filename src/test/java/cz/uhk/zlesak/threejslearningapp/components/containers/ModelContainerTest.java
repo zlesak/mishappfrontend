@@ -2,8 +2,10 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
@@ -13,10 +15,12 @@ import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,7 +80,7 @@ class ModelContainerTest {
         UI.getCurrent().add(container);
 
         List<?> registrations = (List<?>) getField(container, "registrations");
-        assertEquals(3, registrations.size());
+        assertEquals(4, registrations.size()); // resize listener + 3 event listeners
 
         Method onDetach = ModelContainer.class.getDeclaredMethod("onDetach", com.vaadin.flow.component.DetachEvent.class);
         onDetach.setAccessible(true);
@@ -85,9 +89,86 @@ class ModelContainerTest {
         assertTrue(registrations.isEmpty());
     }
 
+    @Test
+    @SuppressWarnings("deprecation")
+    void browserWindowResizeListenerShouldApplyWidthBasedMode() throws Exception {
+        // Line 188: the lambda inside addBrowserWindowResizeListener.
+        ModelContainer container = new ModelContainer();
+        UI.getCurrent().add(container);
+
+        // Page stores BrowserWindowResizeListeners in a private ArrayList. Invoke them
+        // directly to drive the ModelContainer lambda at line 188 without client debounce.
+        java.lang.reflect.Field resizeListenersField =
+                UI.getCurrent().getPage().getClass().getDeclaredField("resizeListeners");
+        resizeListenersField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.ArrayList<com.vaadin.flow.component.page.BrowserWindowResizeListener> listeners =
+                (java.util.ArrayList<com.vaadin.flow.component.page.BrowserWindowResizeListener>)
+                        resizeListenersField.get(UI.getCurrent().getPage());
+
+        assertFalse(listeners.isEmpty(), "Expected at least one resize listener");
+
+        com.vaadin.flow.component.page.BrowserWindowResizeEvent event =
+                new com.vaadin.flow.component.page.BrowserWindowResizeEvent(
+                        UI.getCurrent().getPage(), 1280, 900);
+        listeners.forEach(l -> l.browserWindowResized(event));
+
+        // Desktop width (≥1024) → toggle button hidden.
+        Button toggleButton = (Button) getField(container, "controlsToggleButton");
+        assertFalse(toggleButton.isVisible());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void setControlsExpandedWithPersistAndNonBlankKeyShoulExecuteJs() throws Exception {
+        // Lines 253-258: the persist block inside setControlsExpanded.
+        ModelContainer container = new ModelContainer();
+        UI.getCurrent().add(container);
+
+        // Complete the pathname JS call to populate controlsStateKey with a non-blank value.
+        drainInvocation("location.pathname")
+                .complete(JsonNodeFactory.instance.textNode("/chapter/1"));
+
+        // Click the toggle button (persist=true, controlsStateKey non-blank) → lines 253-258.
+        Button toggleButton = (Button) getField(container, "controlsToggleButton");
+        toggleButton.click();
+
+        assertFalse((Boolean) getField(container, "controlsExpanded"));
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void loadingProgressWithNullDescShouldNotUpdateActionText() throws Exception {
+        ModelContainer container = new ModelContainer();
+        UI.getCurrent().add(container);
+
+        ThreeJsComponent renderer = (ThreeJsComponent) getField(container, "renderer");
+        Span actionDescription = (Span) getField(container, "actionDescription");
+
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsDoingActions(renderer, "Initial"));
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsLoadingProgress(renderer, 50, null));
+        assertEquals("Initial", actionDescription.getText());
+
+        ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsLoadingProgress(renderer, 60, "  "));
+        assertEquals("Initial", actionDescription.getText());
+    }
+
+    private PendingJavaScriptInvocation drainInvocation(String expressionFragment) {
+        UI.getCurrent().getInternals().getStateTree().runExecutionsBeforeClientResponse();
+        List<PendingJavaScriptInvocation> invocations =
+                UI.getCurrent().getInternals().dumpPendingJavaScriptInvocations();
+        assertFalse(invocations.isEmpty(), "Expected pending JS invocations");
+        return invocations.stream()
+                .filter(inv -> inv.getInvocation().getExpression().contains(expressionFragment))
+                .reduce((first, second) -> second)
+                .orElseThrow(() -> new NoSuchElementException(
+                        "Missing invocation containing: " + expressionFragment));
+    }
+
     private Object getField(Object target, String name) throws Exception {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         return field.get(target);
     }
 }
+

@@ -141,4 +141,32 @@ class ModelUploadFormKaribuTest {
             throw new RuntimeException(e);
         }
     }
+    @Test
+    void csvUploadListener_shouldThrowRuntimeExceptionWhenGetInputStreamFails() throws Exception {
+        ModelUploadForm form = new ModelUploadForm();
+        UI.getCurrent().add(form);
+        InputStreamMultipartFile mockFile = org.mockito.Mockito.mock(InputStreamMultipartFile.class);
+        org.mockito.Mockito.when(mockFile.getInputStream()).thenReturn(new java.io.InputStream() {
+            @Override public int read() throws java.io.IOException { throw new java.io.IOException("io error"); }
+            @Override public byte[] readAllBytes() throws java.io.IOException { throw new java.io.IOException("io error"); }
+        });
+        org.mockito.Mockito.when(mockFile.getOriginalFilename()).thenReturn("fail.csv");
+        assertThrows(RuntimeException.class,
+                () -> form.getCsvFileUpload().getUploadListener().accept("fail.csv", mockFile));
+    }
+
+    @Test
+    void objUploadListener_shouldThrowRuntimeExceptionWhenInputStreamReadFails() {
+        ModelUploadForm form = new ModelUploadForm();
+        UI.getCurrent().add(form);
+        InputStreamMultipartFile mockFile = org.mockito.Mockito.mock(InputStreamMultipartFile.class);
+        org.mockito.Mockito.when(mockFile.getInputStream()).thenReturn(new java.io.InputStream() {
+            @Override public int read() throws java.io.IOException { throw new java.io.IOException("io error"); }
+            @Override public byte[] readAllBytes() throws java.io.IOException { throw new java.io.IOException("io error"); }
+        });
+        org.mockito.Mockito.when(mockFile.getOriginalFilename()).thenReturn("fail.glb");
+        assertThrows(RuntimeException.class,
+                () -> form.getObjFileUpload().getUploadListener().accept("fail.glb", mockFile));
+    }
+
 }
