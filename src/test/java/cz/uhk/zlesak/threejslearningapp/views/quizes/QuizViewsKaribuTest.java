@@ -12,11 +12,14 @@ import cz.uhk.zlesak.threejslearningapp.components.editors.question.TextureClick
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.quizComponents.QuizPlayerComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
+import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.*;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.OpenTextAnswerData;
+import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.TextureClickAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.OpenTextQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.AbstractSubmissionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.OpenTextSubmissionData;
@@ -34,6 +37,7 @@ import cz.uhk.zlesak.threejslearningapp.testsupport.OAuthTestConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -100,8 +104,8 @@ class QuizViewsKaribuTest {
     @Test
     void quizDetailViewShouldRenderQuizDetailAndHistoryListing() {
         when(quizService.readQuick("quiz-1")).thenReturn(quickQuiz());
-        when(quizResultService.readEntities(org.mockito.ArgumentMatchers.any())).thenReturn(
-                new cz.uhk.zlesak.threejslearningapp.domain.common.PageResult<>(List.of(result()), 1L, 0)
+        when(quizResultService.readEntities(any())).thenReturn(
+                new PageResult<>(List.of(result()), 1L, 0)
         );
 
         QuizDetailView view = new QuizDetailView(quizResultService);
@@ -109,7 +113,7 @@ class QuizViewsKaribuTest {
         view.beforeEnter(beforeEnterEvent("quiz-1"));
         view.afterNavigation(null);
         flushUi();
-        verify(quizService, org.mockito.Mockito.timeout(1000)).readQuick("quiz-1");
+        verify(quizService, timeout(1000)).readQuick("quiz-1");
     }
 
     @Test
@@ -135,8 +139,8 @@ class QuizViewsKaribuTest {
         view.beforeEnter(resultBeforeEnterEvent("result-1", "quiz-1"));
         view.afterNavigation(null);
         flushUi();
-        verify(quizResultService, org.mockito.Mockito.timeout(1000)).read("result-1");
-        verify(quizService, org.mockito.Mockito.timeout(1000)).getQuizForStudent("quiz-1");
+        verify(quizResultService, timeout(1000)).read("result-1");
+        verify(quizService, timeout(1000)).getQuizForStudent("quiz-1");
     }
 
     @Test
@@ -147,12 +151,12 @@ class QuizViewsKaribuTest {
         UI.getCurrent().add(view);
         view.afterNavigation(afterNavigationEvent("quiz-1"));
         flushUi();
-        verify(quizResultService, org.mockito.Mockito.timeout(1000).atLeastOnce()).readEntities(any());
+        verify(quizResultService, timeout(1000).atLeastOnce()).readEntities(any());
 
-        var captor = org.mockito.ArgumentCaptor.forClass(cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters.class);
-        verify(quizResultService, org.mockito.Mockito.atLeastOnce()).readEntities(captor.capture());
-        cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter filter =
-                (cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter) captor.getAllValues().getLast().getFilter();
+        var captor = ArgumentCaptor.forClass(FilterParameters.class);
+        verify(quizResultService, atLeastOnce()).readEntities(captor.capture());
+        QuizResultFilter filter =
+                (QuizResultFilter) captor.getAllValues().getLast().getFilter();
         assertEquals("quiz-1", filter.getQuizId());
     }
 
@@ -439,7 +443,7 @@ class QuizViewsKaribuTest {
                 .modelId("file-1")
                 .textureId("texture-1")
                 .build());
-        editor.setAnswerData(cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.TextureClickAnswerData.builder()
+        editor.setAnswerData(TextureClickAnswerData.builder()
                 .questionId("q-texture")
                 .type(QuestionTypeEnum.TEXTURE_CLICK)
                 .modelId("file-1")
@@ -568,8 +572,8 @@ class QuizViewsKaribuTest {
                 .build();
     }
 
-    private cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity modelEntity() {
-        return cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity.builder()
+    private ModelEntity modelEntity() {
+        return ModelEntity.builder()
                 .metadataId("model-meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Lebka").related(List.of()).build())
                 .otherTextures(List.of())

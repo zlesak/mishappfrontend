@@ -1,7 +1,11 @@
 package cz.uhk.zlesak.threejslearningapp.components.forms;
 
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.accordion.Accordion;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextField;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.listDialogs.ChapterListDialog;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.ChapterListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
@@ -119,16 +123,16 @@ class CreateQuizFormKaribuTest {
     void setAccordionOpenedChangeListener_shouldInvokeListenerWithFirstComponentOfOpenedPanel() {
         CreateQuizForm form = new CreateQuizForm();
         UI.getCurrent().add(form);
-        java.util.concurrent.atomic.AtomicReference<com.vaadin.flow.component.Component> received =
-                new java.util.concurrent.atomic.AtomicReference<>();
+        AtomicReference<Component> received =
+                new AtomicReference<>();
         form.setAccordionOpenedChangeListener(received::set);
-        com.vaadin.flow.component.orderedlayout.VerticalLayout panelContent =
-                new com.vaadin.flow.component.orderedlayout.VerticalLayout(
-                        new com.vaadin.flow.component.textfield.TextField("q"));
+        VerticalLayout panelContent =
+                new VerticalLayout(
+                        new TextField("q"));
         form.getQuestionsContainer().add("Q1", panelContent);
         ComponentUtil.fireEvent(
                 form.getQuestionsContainer(),
-                new com.vaadin.flow.component.accordion.Accordion.OpenedChangeEvent(
+                new Accordion.OpenedChangeEvent(
                         form.getQuestionsContainer(), false, 0));
         assertEquals(panelContent, received.get());
     }

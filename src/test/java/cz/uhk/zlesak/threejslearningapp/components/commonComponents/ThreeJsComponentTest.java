@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.components.commonComponents;
 
 import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
@@ -144,7 +145,7 @@ class ThreeJsComponentTest {
     void onDetachShouldClearRegistrationsAndExecutor() throws Exception {
         ThreeJsComponent component = attach(new ThreeJsComponent());
 
-        invokeOnDetach(component, new com.vaadin.flow.component.DetachEvent(component));
+        invokeOnDetach(component, new DetachEvent(component));
 
         assertTrue(getRegistrations(component).isEmpty());
         assertNull(getJsDispatchExecutor(component));
@@ -219,8 +220,8 @@ class ThreeJsComponentTest {
         method.invoke(component, args);
     }
 
-    private void invokeOnDetach(ThreeJsComponent component, com.vaadin.flow.component.DetachEvent arg) throws Exception {
-        Method method = ThreeJsComponent.class.getDeclaredMethod("onDetach", com.vaadin.flow.component.DetachEvent.class);
+    private void invokeOnDetach(ThreeJsComponent component, DetachEvent arg) throws Exception {
+        Method method = ThreeJsComponent.class.getDeclaredMethod("onDetach", DetachEvent.class);
         method.setAccessible(true);
         method.invoke(component, arg);
     }

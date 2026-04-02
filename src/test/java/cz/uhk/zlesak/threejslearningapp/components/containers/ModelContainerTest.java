@@ -1,11 +1,14 @@
 package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.ComponentUtil;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.internal.PendingJavaScriptInvocation;
+import com.vaadin.flow.component.page.BrowserWindowResizeEvent;
+import com.vaadin.flow.component.page.BrowserWindowResizeListener;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsDoingActions;
@@ -19,6 +22,7 @@ import tools.jackson.databind.node.JsonNodeFactory;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -82,9 +86,9 @@ class ModelContainerTest {
         List<?> registrations = (List<?>) getField(container, "registrations");
         assertEquals(4, registrations.size()); // resize listener + 3 event listeners
 
-        Method onDetach = ModelContainer.class.getDeclaredMethod("onDetach", com.vaadin.flow.component.DetachEvent.class);
+        Method onDetach = ModelContainer.class.getDeclaredMethod("onDetach", DetachEvent.class);
         onDetach.setAccessible(true);
-        onDetach.invoke(container, new com.vaadin.flow.component.DetachEvent(container));
+        onDetach.invoke(container, new DetachEvent(container));
 
         assertTrue(registrations.isEmpty());
     }
@@ -92,28 +96,24 @@ class ModelContainerTest {
     @Test
     @SuppressWarnings("deprecation")
     void browserWindowResizeListenerShouldApplyWidthBasedMode() throws Exception {
-        // Line 188: the lambda inside addBrowserWindowResizeListener.
         ModelContainer container = new ModelContainer();
         UI.getCurrent().add(container);
 
-        // Page stores BrowserWindowResizeListeners in a private ArrayList. Invoke them
-        // directly to drive the ModelContainer lambda at line 188 without client debounce.
-        java.lang.reflect.Field resizeListenersField =
+        Field resizeListenersField =
                 UI.getCurrent().getPage().getClass().getDeclaredField("resizeListeners");
         resizeListenersField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        java.util.ArrayList<com.vaadin.flow.component.page.BrowserWindowResizeListener> listeners =
-                (java.util.ArrayList<com.vaadin.flow.component.page.BrowserWindowResizeListener>)
+        ArrayList<BrowserWindowResizeListener> listeners =
+                (ArrayList<BrowserWindowResizeListener>)
                         resizeListenersField.get(UI.getCurrent().getPage());
 
         assertFalse(listeners.isEmpty(), "Expected at least one resize listener");
 
-        com.vaadin.flow.component.page.BrowserWindowResizeEvent event =
-                new com.vaadin.flow.component.page.BrowserWindowResizeEvent(
+        BrowserWindowResizeEvent event =
+                new BrowserWindowResizeEvent(
                         UI.getCurrent().getPage(), 1280, 900);
         listeners.forEach(l -> l.browserWindowResized(event));
 
-        // Desktop width (≥1024) → toggle button hidden.
         Button toggleButton = (Button) getField(container, "controlsToggleButton");
         assertFalse(toggleButton.isVisible());
     }
@@ -121,15 +121,12 @@ class ModelContainerTest {
     @Test
     @SuppressWarnings("deprecation")
     void setControlsExpandedWithPersistAndNonBlankKeyShoulExecuteJs() throws Exception {
-        // Lines 253-258: the persist block inside setControlsExpanded.
         ModelContainer container = new ModelContainer();
         UI.getCurrent().add(container);
 
-        // Complete the pathname JS call to populate controlsStateKey with a non-blank value.
         drainInvocation("location.pathname")
                 .complete(JsonNodeFactory.instance.textNode("/chapter/1"));
 
-        // Click the toggle button (persist=true, controlsStateKey non-blank) → lines 253-258.
         Button toggleButton = (Button) getField(container, "controlsToggleButton");
         toggleButton.click();
 

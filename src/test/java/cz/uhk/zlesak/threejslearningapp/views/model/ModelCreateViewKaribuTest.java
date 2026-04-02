@@ -26,6 +26,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -228,12 +229,12 @@ class ModelCreateViewKaribuTest {
     @SuppressWarnings("unchecked")
     private void triggerBackgroundSpecCallback(ModelCreateView view, String backgroundSpecJson) throws Exception {
         Object modelDiv = getField(view, "modelDiv");
-        java.lang.reflect.Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
+        Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
         rendererField.setAccessible(true);
         Object renderer = rendererField.get(modelDiv);
-        java.lang.reflect.Field callbacksField = renderer.getClass().getDeclaredField("backgroundSpecCallbacks");
+        Field callbacksField = renderer.getClass().getDeclaredField("backgroundSpecCallbacks");
         callbacksField.setAccessible(true);
-        java.util.Map<String, ?> callbacks = (java.util.Map<String, ?>) callbacksField.get(renderer);
+        Map<String, ?> callbacks = (Map<String, ?>) callbacksField.get(renderer);
         String requestId = callbacks.keySet().stream().findFirst().orElseThrow();
         invokeRendererCallback(view, "onBackgroundSpecReady",
                 new Class[]{String.class, String.class}, requestId, backgroundSpecJson);
@@ -242,12 +243,12 @@ class ModelCreateViewKaribuTest {
     @SuppressWarnings("unchecked")
     private void triggerThumbnailCallback(ModelCreateView view, String dataUrl) throws Exception {
         Object modelDiv = getField(view, "modelDiv");
-        java.lang.reflect.Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
+        Field rendererField = modelDiv.getClass().getDeclaredField("renderer");
         rendererField.setAccessible(true);
         Object renderer = rendererField.get(modelDiv);
-        java.lang.reflect.Field callbacksField = renderer.getClass().getDeclaredField("thumbnailCallbacks");
+        Field callbacksField = renderer.getClass().getDeclaredField("thumbnailCallbacks");
         callbacksField.setAccessible(true);
-        java.util.Map<String, ?> callbacks = (java.util.Map<String, ?>) callbacksField.get(renderer);
+        Map<String, ?> callbacks = (Map<String, ?>) callbacksField.get(renderer);
         String requestId = callbacks.keySet().stream().findFirst().orElseThrow();
         invokeRendererCallback(view, "onThumbnailReady",
                 new Class[]{String.class, String.class}, requestId, dataUrl);
@@ -259,7 +260,7 @@ class ModelCreateViewKaribuTest {
         Class<?> current = target.getClass();
         while (current != null) {
             try {
-                java.lang.reflect.Field field = current.getDeclaredField(name);
+                Field field = current.getDeclaredField(name);
                 field.setAccessible(true);
                 field.set(target, value);
                 return;

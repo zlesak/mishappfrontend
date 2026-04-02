@@ -19,7 +19,6 @@ import cz.uhk.zlesak.threejslearningapp.testsupport.OAuthTestConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
@@ -130,7 +129,7 @@ class ChapterViewsKaribuTest {
         assertNull(VaadinSession.getCurrent().getAttribute("chapterEntity"));
         verify(chapterService).getChapterContent("chapter-1");
         verify(chapterService).getChaptersModels("chapter-1");
-        verify(chapterService, org.mockito.Mockito.never()).read(ArgumentMatchers.anyString());
+        verify(chapterService, never()).read(anyString());
     }
 
     @Test

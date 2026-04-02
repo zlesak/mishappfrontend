@@ -17,11 +17,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @ActiveProfiles("test")
@@ -145,12 +149,12 @@ class ModelUploadFormKaribuTest {
     void csvUploadListener_shouldThrowRuntimeExceptionWhenGetInputStreamFails() throws Exception {
         ModelUploadForm form = new ModelUploadForm();
         UI.getCurrent().add(form);
-        InputStreamMultipartFile mockFile = org.mockito.Mockito.mock(InputStreamMultipartFile.class);
-        org.mockito.Mockito.when(mockFile.getInputStream()).thenReturn(new java.io.InputStream() {
-            @Override public int read() throws java.io.IOException { throw new java.io.IOException("io error"); }
-            @Override public byte[] readAllBytes() throws java.io.IOException { throw new java.io.IOException("io error"); }
+        InputStreamMultipartFile mockFile = mock(InputStreamMultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new InputStream() {
+            @Override public int read() throws IOException { throw new IOException("io error"); }
+            @Override public byte[] readAllBytes() throws IOException { throw new IOException("io error"); }
         });
-        org.mockito.Mockito.when(mockFile.getOriginalFilename()).thenReturn("fail.csv");
+        when(mockFile.getOriginalFilename()).thenReturn("fail.csv");
         assertThrows(RuntimeException.class,
                 () -> form.getCsvFileUpload().getUploadListener().accept("fail.csv", mockFile));
     }
@@ -159,12 +163,12 @@ class ModelUploadFormKaribuTest {
     void objUploadListener_shouldThrowRuntimeExceptionWhenInputStreamReadFails() {
         ModelUploadForm form = new ModelUploadForm();
         UI.getCurrent().add(form);
-        InputStreamMultipartFile mockFile = org.mockito.Mockito.mock(InputStreamMultipartFile.class);
-        org.mockito.Mockito.when(mockFile.getInputStream()).thenReturn(new java.io.InputStream() {
-            @Override public int read() throws java.io.IOException { throw new java.io.IOException("io error"); }
-            @Override public byte[] readAllBytes() throws java.io.IOException { throw new java.io.IOException("io error"); }
+        InputStreamMultipartFile mockFile = mock(InputStreamMultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new InputStream() {
+            @Override public int read() throws IOException { throw new IOException("io error"); }
+            @Override public byte[] readAllBytes() throws IOException { throw new IOException("io error"); }
         });
-        org.mockito.Mockito.when(mockFile.getOriginalFilename()).thenReturn("fail.glb");
+        when(mockFile.getOriginalFilename()).thenReturn("fail.glb");
         assertThrows(RuntimeException.class,
                 () -> form.getObjFileUpload().getUploadListener().accept("fail.glb", mockFile));
     }
