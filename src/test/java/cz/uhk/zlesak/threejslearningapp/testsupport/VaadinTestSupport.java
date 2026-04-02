@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.Router;
@@ -36,6 +37,7 @@ public final class VaadinTestSupport {
 
     @SafeVarargs
     private static UI setCurrentUiInternal(Map<Class<?>, Object> beans, Class<? extends Component>... routeTargets) {
+        CurrentInstance.clearAll();
         ensureI18nContext(beans);
         Map<Class<? extends Component>, String> routes = resolveRoutes(routeTargets);
         var routeRegistry = mock(RouteRegistry.class);
