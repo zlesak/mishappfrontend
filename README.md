@@ -70,49 +70,59 @@ src/
 ├── main/
 │   ├── java/cz/uhk/zlesak/threejslearningapp/
 │   │   ├── api/
-│   │   │   ├── clients/          # HTTP clients for backend API communication
-│   │   │   └── contracts/        # API request/response DTOs
-│   │   ├── application/          # Application layer (use cases, ports, feature modules)
-│   │   │   ├── chapter/          # Chapter-related application logic
-│   │   │   ├── model/            # Model-related application logic
-│   │   │   ├── quiz/             # Quiz-related application logic
-│   │   │   ├── threejs/          # Three.js integration and canvas management
-│   │   │   ├── common/           # Shared listing, UI helpers
-│   │   │   └── ports/            # Input/output port interfaces
-│   │   ├── components/           # Reusable Vaadin UI components
-│   │   │   ├── buttons/          # Action buttons (create, delete, open, …)
-│   │   │   ├── dialogs/          # Confirmation and list dialogs
-│   │   │   ├── editors/          # Rich-text and question editors
-│   │   │   ├── forms/            # Form components
-│   │   │   ├── inputs/           # Selects, file inputs, text fields
-│   │   │   ├── listItems/        # Entity card/list-item components
-│   │   │   └── quizComponents/   # Quiz renderers and question types
-│   │   ├── controllers/          # View controllers (presenter / mediator)
-│   │   ├── domain/               # Domain model (entities, value objects, parsers)
-│   │   │   ├── chapter/
-│   │   │   ├── model/
-│   │   │   ├── quiz/
-│   │   │   └── texture/
-│   │   ├── events/               # Application events (chapter, model, quiz, threejs)
-│   │   ├── exceptions/           # Custom exception classes
-│   │   ├── i18n/                 # Internationalisation support
-│   │   ├── infrastructure/       # Gateway implementations (REST adapters)
-│   │   ├── security/             # Keycloak / Spring Security configuration
-│   │   ├── services/             # Domain services
-│   │   └── views/                # Vaadin views (pages)
-│   │       ├── chapter/
-│   │       ├── model/
-│   │       ├── quizes/
-│   │       └── administration/
+│   │   │   ├── clients/              # REST API clients (chapter, model, quiz, quiz result, documentation)
+│   │   │   └── contracts/            # API definitions
+│   │   ├── common/                   # Shared utilities
+│   │   ├── components/               # Reusable Vaadin UI components
+│   │   │   ├── buttons/              # Action buttons
+│   │   │   ├── commonComponents/     # Shared commmon components
+│   │   │   ├── containers/           # Composite layout containers (model, quiz, chapter, upload, …)
+│   │   │   ├── dialogs/              # Confirmation and entity-list dialogs
+│   │   │   ├── editors/              # Text (editor.js) and quiz question editors
+│   │   │   ├── forms/                # Form components for create/edit flows
+│   │   │   ├── inputs/               # Selects, file inputs, filters and text fields
+│   │   │   ├── listItems/            # Entity card/list-item components for chapters, models and quizzes
+│   │   │   ├── notifications/        # Toast notifications (success, error, warning, info, cookies)
+│   │   │   ├── quizComponents/       # Quiz renderers and question-type UI components
+│   │   │   └── scrollers/            # Scrollable wrappers
+│   │   ├── controllers/              # View controllers (logout)
+│   │   ├── domain/                   # Domain model
+│   │   │   ├── common/               # Shared interfaces and base types
+│   │   │   ├── chapter/              # Chapter and sub-chapter entities and filters
+│   │   │   ├── documentation/        # Documentation entry entities and index
+│   │   │   ├── model/                # 3D model entities and value objects
+│   │   │   ├── parsers/              # Data parsers (model listing, texture listing)
+│   │   │   ├── quiz/                 # Quiz, question and answer entities
+│   │   │   └── texture/              # Texture and area value objects
+│   │   ├── events/                   # Application events
+│   │   │   ├── chapter/              # Chapter selection events
+│   │   │   ├── file/                 # File upload/remove events
+│   │   │   ├── model/                # Model selection events
+│   │   │   ├── quiz/                 # Quiz and answer events
+│   │   │   └── threejs/              # Three.js action events (show, remove, switch texture, …)
+│   │   ├── exceptions/               # Custom exception classes
+│   │   ├── i18n/                     # Internationalisation (CustomI18NProvider, I18nAware interface)
+│   │   ├── security/                 # Security configuration
+│   │   ├── services/                 # Domain services (chapter, model, quiz, quiz result, documentation)
+│   │   └── views/                    # Vaadin views
+│   │       ├── abstractViews/        # Abstract base views (listing, entity, chapter, model, quiz)
+│   │       ├── administration/       # Administration centre view
+│   │       ├── chapter/              # Chapter detail and create/edit views
+│   │       ├── documentation/        # Documentation view
+│   │       ├── error/                # Error pages
+│   │       ├── model/                # 3D model viewer and create/edit views
+│   │       └── quizes/               # Quiz list, detail, play and result views
 │   ├── frontend/
-│   │   ├── js/                   # Three.js renderer, editor.js and related scripts
-│   │   ├── themes/               # CSS themes and styles
-│   │   └── types/                # TypeScript type definitions for JS libraries
-│   ├── resources/                # Spring application configuration
-│   └── webapp/                   # Static web assets (icons, images)
-├── test/
-│   ├── java/                     # JUnit / Spring integration tests
-│   └── …
-└── e2e/                          # Playwright E2E and performance tests
+│   │   ├── js/
+│   │   │   ├── editorjs/             # Editor.js integration
+│   │   │   └── threejs/              # Three.js integration
+│   │   ├── themes/                   # CSS themes and styles
+│   │   └── types/                    # TypeScript type definitions for JS libraries
+│   ├── resources/                    # Spring application configuration, doc and i18n text files
+│   └── webapp/                       # Static web assets
+└── test/
+    ├── java/                         # JUnit / Karibu / Spring tests
+    └── resources/                    # Test fixtures and configuration
+e2e/                                  # Playwright E2E and performance tests
 ```
 
