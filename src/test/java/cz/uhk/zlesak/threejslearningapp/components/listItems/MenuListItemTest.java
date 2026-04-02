@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.UI;
 import com.vaadin.flow.function.DeploymentConfiguration;
 import com.vaadin.flow.router.RouteConfiguration;
 import com.vaadin.flow.server.VaadinService;
@@ -24,14 +23,10 @@ class MenuListItemTest {
     void setUp() {
         VaadinTestSupport.setCurrentUi();
 
-        // Make the mocked VaadinService provide a DeploymentConfiguration so that
-        // RouteUtil.checkForClientRouteCollisions does not throw NPE.
         DeploymentConfiguration deploymentConfig = mock(DeploymentConfiguration.class);
         when(deploymentConfig.isProductionMode()).thenReturn(false);
         when(VaadinService.getCurrent().getDeploymentConfiguration()).thenReturn(deploymentConfig);
 
-        // Make the mocked VaadinSession persist attributes so that
-        // SessionRouteRegistry (used by Router.getRegistry()) works properly.
         Map<Class<?>, Object> attrs = new HashMap<>();
         VaadinSession session = VaadinSession.getCurrent();
         when(session.getAttribute(any(Class.class)))
@@ -39,7 +34,6 @@ class MenuListItemTest {
         doAnswer(inv -> { attrs.put(inv.getArgument(0), inv.getArgument(1)); return null; })
                 .when(session).setAttribute(any(Class.class), any());
 
-        // Register the test view so RouterLink.setRoute succeeds.
         RouteConfiguration.forSessionScope().setRoute("dummy", DummyView.class);
     }
 
@@ -53,7 +47,7 @@ class MenuListItemTest {
         MenuListItem item = new MenuListItem("Test Menu", null, DummyView.class);
 
         assertNotNull(item);
-        // The list item must have children (the RouterLink).
+
         assertTrue(item.getChildren().findAny().isPresent());
     }
 
@@ -63,6 +57,6 @@ class MenuListItemTest {
         assertEquals(DummyView.class, item.getView());
     }
 
-    /** Minimal view component used only to satisfy the router registry in tests. */
     private static class DummyView extends Component {}
 }
+

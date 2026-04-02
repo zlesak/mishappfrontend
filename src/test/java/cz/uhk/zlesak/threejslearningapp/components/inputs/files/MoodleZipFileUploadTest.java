@@ -145,3 +145,4 @@ class MoodleZipFileUploadTest {
         return (String) method.invoke(null, fileName);
     }
 }
+

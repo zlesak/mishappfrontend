@@ -23,3 +23,4 @@ class ObservableMapTest {
         assertEquals(List.of("alpha:false", "alpha:true", "null:true"), changes);
     }
 }
+

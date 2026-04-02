@@ -124,3 +124,4 @@ class SelectComponentsTest {
         return mock(HasValue.ValueChangeEvent.class);
     }
 }
+

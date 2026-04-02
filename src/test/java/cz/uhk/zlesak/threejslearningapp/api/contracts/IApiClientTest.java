@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 
 class IApiClientTest {
 
-    /** Minimal concrete implementation used only to exercise default/static interface methods. */
     static class MinimalClient implements IApiClient<Object, Object, Object> {
         @Override public Object create(Object entity) { return null; }
         @Override public Object read(String id) { return null; }
@@ -95,3 +94,4 @@ class IApiClientTest {
         SpringContextUtils.setContext(context);
     }
 }
+

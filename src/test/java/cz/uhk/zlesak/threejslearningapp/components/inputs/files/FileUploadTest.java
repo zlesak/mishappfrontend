@@ -128,8 +128,6 @@ class FileUploadTest {
         assertEquals(1, upload.getUploadedFiles().size());
     }
 
-    // --- InMemoryUploadHandler callback coverage (lines 55-67) ---
-
     @Test
     void uploadHandlerCallbackWithListenerAndNamingShouldPopulateFilesAndLayout() throws Exception {
         TestFileUpload upload = new TestFileUpload(List.of(".obj"), false, true);
@@ -168,7 +166,6 @@ class FileUploadTest {
         return (InMemoryUploadCallback) field.get(handler);
     }
 
-    /** Subclass that captures the InMemoryUploadHandler before it is buried in Vaadin internals. */
     private static class TestFileUpload extends FileUpload {
         volatile InMemoryUploadHandler capturedHandler;
 
@@ -194,3 +191,4 @@ class FileUploadTest {
                 .build();
     }
 }
+

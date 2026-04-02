@@ -24,12 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/**
- * Tests for ChapterListDialog, ModelListDialog, and their parent AbstractListDialog.
- * Uses Objenesis to instantiate dialogs without triggering the Vaadin element-tree
- * operations that occur in the constructor, allowing us to test the event-firing
- * logic in fireEntitySelectedEvent() in isolation.
- */
 class ListDialogsTest {
 
     private static final Objenesis OBJENESIS = new ObjenesisStd();
@@ -149,15 +143,9 @@ class ListDialogsTest {
         assertEquals("via-setter", field.get(dialog));
     }
 
-    /**
-     * Test subclass that overrides setOpened/isOpened/close so that open() and
-     * onEntitySelected() can be tested without requiring Vaadin element infrastructure
-     * (used with Objenesis to bypass the Dialog constructor).
-     */
     private static final class SafeTestAbstractListDialog extends AbstractListDialog<QuickModelEntity> {
         boolean opened = false;
 
-        // Only here to satisfy the compiler; Objenesis bypasses this.
         @SuppressWarnings("unused")
         SafeTestAbstractListDialog(AbstractListingView<QuickModelEntity, ?, ?, ?> listView) {            super(listView);
         }
@@ -194,3 +182,4 @@ class ListDialogsTest {
         method.invoke(target, arg);
     }
 }
+

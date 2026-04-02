@@ -65,3 +65,4 @@ class ConfirmDialogKaribuTest {
         assertFalse(dialog.isOpened());
     }
 }
+

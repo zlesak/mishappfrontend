@@ -40,3 +40,4 @@ class ModelListingDataParserTest {
         assertTrue(ModelListingDataParser.modelForSelectDataParser(Map.of()).isEmpty());
     }
 }
+

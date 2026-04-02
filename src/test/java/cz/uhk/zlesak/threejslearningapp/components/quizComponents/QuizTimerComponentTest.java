@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -122,6 +123,49 @@ class QuizTimerComponentTest {
         timer.stopTimer();
     }
 
+    @Test
+    void negativeTimeLimit_shouldBehaveLikeNoTimeLimit() {
+        QuizTimerComponent timer = new QuizTimerComponent(-1);
+        UI.getCurrent().add(timer);
+
+        assertFalse(timer.getTimerContainer().isVisible());
+    }
+
+    @Test
+    void updateTimerDisplay_withLessThan60Seconds_shouldApplyErrorColor() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(5);
+        UI.getCurrent().add(timer);
+        setField(timer, "remainingTimeSeconds", 30);
+
+        invoke(timer, "updateTimerDisplay");
+
+        Span display = getTimerDisplay(timer);
+        assertTrue(display.getClassNames().contains(LumoUtility.TextColor.ERROR));
+        timer.stopTimer();
+    }
+
+    @Test
+    void handleTimeExpired_whenAlreadyExpired_shouldBeIdempotent() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(1);
+        UI.getCurrent().add(timer);
+        AtomicInteger callCount = new AtomicInteger(0);
+        timer.setOnTimeExpired(callCount::incrementAndGet);
+
+        invoke(timer, "handleTimeExpired");
+        invoke(timer, "handleTimeExpired");
+
+        assertEquals(1, callCount.get());
+    }
+
+    @Test
+    void handleTimeExpired_withNullOnTimeExpired_shouldNotThrow() {
+        QuizTimerComponent timer = new QuizTimerComponent(1);
+        UI.getCurrent().add(timer);
+
+        assertDoesNotThrow(() -> invoke(timer, "handleTimeExpired"));
+        timer.stopTimer();
+    }
+
     private void invoke(QuizTimerComponent timer, String methodName) throws Exception {
         Method method = QuizTimerComponent.class.getDeclaredMethod(methodName);
         method.setAccessible(true);
@@ -152,3 +196,4 @@ class QuizTimerComponentTest {
         return (Span) field.get(timer);
     }
 }
+

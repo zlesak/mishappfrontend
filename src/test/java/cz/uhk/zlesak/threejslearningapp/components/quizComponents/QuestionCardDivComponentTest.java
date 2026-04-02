@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QuestionCardDivComponentTest {
 
@@ -41,7 +41,7 @@ class QuestionCardDivComponentTest {
         QuestionCardDivComponent card = new QuestionCardDivComponent(question, 1, answers);
 
         assertTrue("100%".equals(card.getWidth()), "Expected width to be 100% (widthFull)");
-        // The layout wraps children (title, text, points, renderer).
+
         assertFalse(card.getChildren().findAny().isEmpty());
     }
 
@@ -57,8 +57,8 @@ class QuestionCardDivComponentTest {
 
         Map<String, AbstractSubmissionData> answers = new HashMap<>();
         new QuestionCardDivComponent(question, 3, answers);
-        // The listener wiring is tested by the renderer components test; here we just
-        // ensure construction does not throw and the component is fully initialised.
+
         assertTrue(answers.isEmpty(), "No selection made yet");
     }
 }
+

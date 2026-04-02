@@ -160,10 +160,6 @@ class QuizResultsHistoryPanelTest {
         assertEquals(2, findAll(panel, QuizResultListItem.class).size());
     }
 
-    /**
-     * Configures the mocked VaadinSession so that ui.access() executes its command synchronously.
-     * VaadinSession.access(Command) takes a com.vaadin.flow.server.Command with an execute() method.
-     */
     private void makeSynchronousSessionAccess() {
         VaadinSession session = VaadinSession.getCurrent();
         doAnswer(invocation -> {
@@ -196,3 +192,4 @@ class QuizResultsHistoryPanelTest {
         }
     }
 }
+

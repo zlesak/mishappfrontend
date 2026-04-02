@@ -84,7 +84,7 @@ class ModelContainerTest {
         UI.getCurrent().add(container);
 
         List<?> registrations = (List<?>) getField(container, "registrations");
-        assertEquals(4, registrations.size()); // resize listener + 3 event listeners
+        assertEquals(4, registrations.size());
 
         Method onDetach = ModelContainer.class.getDeclaredMethod("onDetach", DetachEvent.class);
         onDetach.setAccessible(true);

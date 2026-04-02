@@ -55,3 +55,4 @@ class ConfirmDialogTest {
         assertTrue(confirmButton.getThemeNames().contains("error"));
     }
 }
+

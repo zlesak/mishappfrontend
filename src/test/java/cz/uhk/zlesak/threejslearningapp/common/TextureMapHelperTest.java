@@ -44,3 +44,4 @@ class TextureMapHelperTest {
         assertEquals("Invalid CSV format for TextureAreaForComboBoxRecord: invalid-row", ex.getMessage());
     }
 }
+

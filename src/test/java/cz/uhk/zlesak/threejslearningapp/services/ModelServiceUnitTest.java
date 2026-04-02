@@ -28,8 +28,8 @@ class ModelServiceUnitTest {
 
     @Test
     void readShouldExitForLoopWhenOtherTextureHasOnlyNonCsvRelatedFiles() throws Exception {
-        // Texture with a related file that is NOT CSV_FILE → the for loop in buildQuickTexture
-        // iterates but the if condition is false → loop exits at line 585 without break
+        
+        
         VaadinTestSupport.setCurrentUi();
         try {
             FileEntityRecursive nonCsvChild = FileEntityRecursive.builder()
@@ -56,8 +56,8 @@ class ModelServiceUnitTest {
 
     @Test
     void parseModelDescriptionShouldHandleTextualBackgroundNodeWithInvalidJsonContent() {
-        // background value is a textual string starting with '{' but not valid JSON
-        // → normalizeBackgroundNodeToJson catches the JsonParseException (lines 501-505)
+        
+        
         String description = "{\"thumbnailDataUrl\":\"thumb\",\"background\":\"{invalid-json\"}";
         ModelService.ModelDescriptionData result = modelService.parseModelDescription(description);
         assertEquals("thumb", result.thumbnailDataUrl());
@@ -66,7 +66,7 @@ class ModelServiceUnitTest {
 
     @Test
     void extensionForMimeTypeShouldReturnJpgForNullMimeType() throws Exception {
-        // Line 420: extensionForMimeType(null) returns "jpg"
+        
         java.lang.reflect.Method m = ModelService.class.getDeclaredMethod("extensionForMimeType", String.class);
         m.setAccessible(true);
         assertEquals("jpg", m.invoke(modelService, (Object) null));
@@ -74,7 +74,7 @@ class ModelServiceUnitTest {
 
     @Test
     void extractModelDownloadFileIdShouldReturnNullForBlankUrl() throws Exception {
-        // Line 432: extractModelDownloadFileId with blank/null input returns null
+        
         java.lang.reflect.Method m = ModelService.class.getDeclaredMethod("extractModelDownloadFileId", String.class);
         m.setAccessible(true);
         assertNull(m.invoke(modelService, "   "));

@@ -436,4 +436,89 @@ class DocumentationServiceTest {
         assertTrue(allForSave.stream().anyMatch(e -> "byr-1".equals(e.getId())));
         assertTrue(allForSave.stream().anyMatch(e -> "byr-2".equals(e.getId())));
     }
+
+    @Test
+    void normalizeRoles_withROLE_prefixedUserRole_shouldMatchEntryWithUnprefixedRole() throws Exception {
+        String json = """
+                [{"id":"nr-1","type":"nr-type","title":"Teacher","content":"{}","roles":["teacher"]}]
+                """;
+        Files.writeString(tempDir.resolve("documentation_nr.json"), json, StandardCharsets.UTF_8);
+
+        List<DocumentationEntry> result = documentationService.getEntriesForRoles(List.of("ROLE_TEACHER"));
+
+        assertEquals(1, result.stream().filter(e -> "nr-1".equals(e.getId())).count());
+    }
+
+    @Test
+    void getEntriesByTypeForRoles_withNullType_shouldReturnEmptyList() {
+        assertTrue(documentationService.getEntriesByTypeForRoles(null, List.of()).isEmpty());
+    }
+
+    @Test
+    void loadFromExternalStorage_whenDirectoryDoesNotExist_shouldCreateDirectory() {
+        Path nonExistentDir = tempDir.resolve("new-docs-dir");
+        ReflectionTestUtils.setField(documentationService, "storagePath", nonExistentDir.toString());
+
+        documentationService.getEntries();
+
+        assertTrue(Files.exists(nonExistentDir));
+        assertTrue(Files.isDirectory(nonExistentDir));
+    }
+
+    @Test
+    void allowedForRoles_withNullRolesOnEntry_shouldBeAccessibleToUserWithRoles() throws Exception {
+        String json = """
+                [{"id":"nullr-1","type":"nullr-type","title":"NullRoles","content":"{}","roles":null}]
+                """;
+        Files.writeString(tempDir.resolve("documentation_nullr.json"), json, StandardCharsets.UTF_8);
+
+        List<DocumentationEntry> result = documentationService.getEntriesForRoles(List.of("ROLE_STUDENT"));
+
+        assertTrue(result.stream().anyMatch(e -> "nullr-1".equals(e.getId())));
+    }
+
+    @Test
+    void allowedForRoles_withEmptyRolesOnEntry_shouldBeAccessibleToUnauthenticatedUser() throws Exception {
+        String json = """
+                [{"id":"emptyr-1","type":"emptyr-type","title":"EmptyRoles","content":"{}","roles":[]}]
+                """;
+        Files.writeString(tempDir.resolve("documentation_emptyr.json"), json, StandardCharsets.UTF_8);
+
+        List<DocumentationEntry> result = documentationService.getEntriesForRoles(List.of());
+
+        assertTrue(result.stream().anyMatch(e -> "emptyr-1".equals(e.getId())));
+    }
+
+    @Test
+    void refresh_shouldInvalidateCacheAndReloadEntries() throws Exception {
+        String initialJson = """
+                [{"id":"cref-1","type":"cref-type","title":"Initial","content":"{}","roles":[]}]
+                """;
+        Files.writeString(tempDir.resolve("documentation_cref.json"), initialJson, StandardCharsets.UTF_8);
+        assertEquals(1, documentationService.getEntriesByType("cref-type").size());
+        assertNotNull(ReflectionTestUtils.getField(documentationService, "cachedEntries"));
+
+        Files.writeString(tempDir.resolve("documentation_cref.json"),
+                """
+                [{"id":"cref-2","type":"cref-type","title":"Updated","content":"{}","roles":[]}]
+                """, StandardCharsets.UTF_8);
+        documentationService.refresh();
+
+        assertEquals("cref-2", documentationService.getEntriesByType("cref-type").getFirst().getId());
+    }
+
+    @Test
+    void normalizeRoles_withAdministratorRole_shouldAliasToAdmin() throws Exception {
+        String json = """
+                [{"id":"alias-1","type":"alias-type","title":"Admin","content":"{}","roles":["ROLE_ADMIN"]}]
+                """;
+        Files.writeString(tempDir.resolve("documentation_alias.json"), json, StandardCharsets.UTF_8);
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken("admin", "pass", "ROLE_ADMINISTRATOR"));
+
+        List<DocumentationEntry> result = documentationService.getEntriesByType("alias-type");
+
+        assertEquals(1, result.size());
+        assertEquals("alias-1", result.getFirst().getId());
+    }
 }

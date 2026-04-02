@@ -1,14 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.api.clients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.*;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureEntity;
+import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import cz.uhk.zlesak.threejslearningapp.testsupport.TestFixtures;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.io.ByteArrayInputStream;
@@ -16,10 +20,6 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.web.client.HttpClientErrorException;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
-import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -271,7 +271,6 @@ class SpecializedApiClientsTest {
             return getQuicEntityClass();
         }
     }
-    // ---- ModelApiClient additional coverage tests ----
 
     @Test
     void addFilePart_byteArrayResourceGetFilenameShouldReturnOriginalFilename() throws Exception {

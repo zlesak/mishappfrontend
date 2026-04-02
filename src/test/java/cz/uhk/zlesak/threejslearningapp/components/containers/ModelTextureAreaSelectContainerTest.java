@@ -170,3 +170,4 @@ class ModelTextureAreaSelectContainerTest {
         return (List<Registration>) field.get(container);
     }
 }
+

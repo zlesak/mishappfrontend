@@ -63,3 +63,4 @@ class QuickModelSelectTest {
         return (ItemLabelGenerator<QuickModelEntity>) field.get(select);
     }
 }
+

@@ -44,3 +44,4 @@ class PaginationComponentTest {
         assertTrue(divs.stream().anyMatch(div -> "...".equals(div.getText())));
     }
 }
+

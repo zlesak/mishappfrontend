@@ -80,3 +80,4 @@ class QuickModelEntityTest {
         assertEquals("other2", result.get(2).getId());
     }
 }
+

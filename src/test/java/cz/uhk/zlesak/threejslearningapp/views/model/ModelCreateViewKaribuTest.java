@@ -304,8 +304,6 @@ class ModelCreateViewKaribuTest {
         throw new NoSuchFieldException(name);
     }
 
-
-
     @Test
     void uploadModelShouldCallEndLoadingOverlayInCatchWhenModelDivIsNull() throws Exception {
         ModelCreateView view = new ModelCreateView(modelService);
@@ -342,7 +340,6 @@ class ModelCreateViewKaribuTest {
         invokeRendererCallback(view, "onThumbnailReady",
                 new Class[]{String.class, String.class}, requestId, dataUrl);
     }
-
 
     @SuppressWarnings("SameParameterValue")
     private void setField(Object target, String name, Object value) throws Exception {

@@ -123,3 +123,4 @@ class QuizDetailTableComponentTest {
                 .build();
     }
 }
+

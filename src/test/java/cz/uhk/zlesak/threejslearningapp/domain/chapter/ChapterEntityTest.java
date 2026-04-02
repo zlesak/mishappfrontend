@@ -56,3 +56,4 @@ class ChapterEntityTest {
         assertTrue(result.getFirst().getModel().getRelated().isEmpty());
     }
 }
+

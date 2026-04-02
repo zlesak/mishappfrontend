@@ -41,3 +41,4 @@ class FilterParametersTest {
         assertEquals("name", parameters.getPageRequest().getSort().iterator().next().getProperty());
     }
 }
+

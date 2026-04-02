@@ -239,11 +239,9 @@ class ThreeJsComponentTest {
         SpringContextUtils.setContext(context);
     }
 
-    // --- Additional coverage tests ---
-
     @Test
     void onThumbnailReadyWithNullOrBlankRequestIdShouldReturnEarlyWithoutCallback() throws Exception {
-        // Line 440: early return when requestId is null or blank.
+
         ThreeJsComponent component = attach(new ThreeJsComponent());
         AtomicReference<String> thumb = new AtomicReference<>("not-called");
 
@@ -254,15 +252,14 @@ class ThreeJsComponentTest {
         invokeClientCallable(component, "onThumbnailReady",
                 new Class[]{String.class, String.class}, "", "url");
 
-        // Callback must NOT have been called for null/blank requestId.
         assertEquals("not-called", thumb.get());
-        // Real requestId still pending.
+
         assertFalse(getCallbackMap(component, "thumbnailCallbacks").isEmpty());
     }
 
     @Test
     void onBackgroundSpecReadyWithNullOrBlankRequestIdShouldReturnEarly() throws Exception {
-        // Line 495: early return when requestId is null or blank.
+
         ThreeJsComponent component = attach(new ThreeJsComponent());
         AtomicReference<String> spec = new AtomicReference<>("not-called");
 
@@ -279,7 +276,7 @@ class ThreeJsComponentTest {
 
     @Test
     void onColorPickedWithNonBlankQuestionIdShouldFireOnUi() {
-        // Line 518: else branch (questionId non-blank → fireEvent on UI).
+
         ThreeJsComponent component = attach(new ThreeJsComponent());
         AtomicReference<TextureClickedEvent> captured = new AtomicReference<>();
         ComponentUtil.addListener(UI.getCurrent(), TextureClickedEvent.class, captured::set);
@@ -291,3 +288,4 @@ class ThreeJsComponentTest {
         assertEquals("#AABBCC", captured.get().getHexColor());
     }
 }
+

@@ -207,3 +207,4 @@ class QuizListItemKaribuTest {
         return QuickQuizEntity.builder().id("quiz-1").name("Procviceni kosti").timeLimit(3).chapterId("chapter-123456789").build();
     }
 }
+

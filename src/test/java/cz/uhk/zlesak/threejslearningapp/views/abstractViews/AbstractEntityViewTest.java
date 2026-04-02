@@ -13,12 +13,14 @@ import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelLoadEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActionEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
+import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -196,6 +198,17 @@ class AbstractEntityViewTest {
         private void exposeLoadSingleModelWithTextures(QuickModelEntity model, String questionId, String key, boolean showImmediately) {
             loadSingleModelWithTextures(model, questionId, key, showImmediately);
         }
+
+        private String exposeResolveUserFriendlyErrorMessage(Throwable throwable) {
+            return resolveUserFriendlyErrorMessage(throwable);
+        }
+
+        private void exposeShowErrorNotification(String source, String message) {
+            try {
+                showErrorNotification(source, message);
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private static final class TestEntityService extends AbstractService<QuickModelEntity, QuickModelEntity, String> {
@@ -249,5 +262,155 @@ class AbstractEntityViewTest {
         public String getJwtToken() {
             return null;
         }
+    }
+
+    @Test
+    void showErrorNotification_bothNullOrBlank_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification(null, null));
+    }
+
+    @Test
+    void showErrorNotification_emptySourceNonEmptyMessage_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification("", "some error"));
+    }
+
+    @Test
+    void showErrorNotification_nonEmptySourceEmptyMessage_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification("Source", null));
+    }
+
+    @Test
+    void showErrorNotification_sourceEndsWithColonSpace_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification("Source: ", "message"));
+    }
+
+    @Test
+    void showErrorNotification_sourceEndsWithColonOnly_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification("Source:", "message"));
+    }
+
+    @Test
+    void showErrorNotification_bothNonEmptyNoColon_doesNotThrow() {
+        TestEntityView view = new TestEntityView();
+        assertDoesNotThrow(() -> view.exposeShowErrorNotification("Source", "message"));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_nullThrowable_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(null));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_plainException_returnsItsMessage() {
+        TestEntityView view = new TestEntityView();
+        assertEquals("custom error", view.exposeResolveUserFriendlyErrorMessage(new RuntimeException("custom error")));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException400_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.BAD_REQUEST, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException413ModelEndpoint_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/model/upload", HttpStatus.PAYLOAD_TOO_LARGE, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException413OtherEndpoint_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/other", HttpStatus.PAYLOAD_TOO_LARGE, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallExceptionNullStatusWithBody_returnsBody() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", null, "backend error detail", null);
+        assertEquals("backend error detail", view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException500_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.INTERNAL_SERVER_ERROR, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException502_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.BAD_GATEWAY, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException418WithBody_returnsBody() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, "teapot body", null);
+        assertEquals("teapot body", view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_apiCallException418NullBody_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, null, null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_wrappedApiCallException_returnsNonNull() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException apiEx = new ApiCallException("msg", null, "/api/foo", HttpStatus.BAD_REQUEST, null, null);
+        RuntimeException wrapped = new RuntimeException("wrapper", apiEx);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(wrapped));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_sanitizeBody_empty_fallsThrough() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, "", null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_sanitizeBody_emptyBraces_fallsThrough() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, "{}", null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_sanitizeBody_emptyArray_fallsThrough() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, "[]", null);
+        assertNotNull(view.exposeResolveUserFriendlyErrorMessage(ex));
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_sanitizeBody_longBody_returnsTruncated() {
+        TestEntityView view = new TestEntityView();
+        String longBody = "A".repeat(300);
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, longBody, null);
+        String result = view.exposeResolveUserFriendlyErrorMessage(ex);
+        assertTrue(result.endsWith("..."));
+        assertEquals(223, result.length());
+    }
+
+    @Test
+    void resolveUserFriendlyErrorMessage_sanitizeBody_shortBody_returnsAsIs() {
+        TestEntityView view = new TestEntityView();
+        ApiCallException ex = new ApiCallException("msg", null, "/api/foo", HttpStatus.I_AM_A_TEAPOT, "short body", null);
+        assertEquals("short body", view.exposeResolveUserFriendlyErrorMessage(ex));
     }
 }

@@ -98,10 +98,10 @@ public final class VaadinTestSupport {
         Map<Class<?>, Object> resolvedBeans = new HashMap<>();
         resolvedBeans.put(ModelService.class, mock(ModelService.class));
         resolvedBeans.put(Executor.class, (Executor) Runnable::run);
-        // Explicit test beans override defaults.
+        
         resolvedBeans.putAll(beans);
 
-        // Register ad-hoc beans used by lightweight component tests.
+        
         resolvedBeans.forEach((type, bean) -> registerBean(context, type, bean));
         context.refresh();
 

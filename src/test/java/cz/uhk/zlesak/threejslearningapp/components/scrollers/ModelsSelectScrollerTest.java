@@ -212,3 +212,4 @@ class ModelsSelectScrollerTest {
         return (Select<QuickModelEntity>) getField(target, name);
     }
 }
+

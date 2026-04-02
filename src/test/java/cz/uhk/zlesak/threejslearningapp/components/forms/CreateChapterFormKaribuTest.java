@@ -48,3 +48,4 @@ class CreateChapterFormKaribuTest {
         assertEquals(FlexComponent.Alignment.STRETCH, form.getAlignItems());
     }
 }
+

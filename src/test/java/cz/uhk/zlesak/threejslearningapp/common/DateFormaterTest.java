@@ -25,3 +25,4 @@ class DateFormaterTest {
         assertEquals("02.01.2024 03:04", formatted);
     }
 }
+

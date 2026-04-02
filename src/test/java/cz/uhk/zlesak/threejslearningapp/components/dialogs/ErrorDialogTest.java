@@ -64,3 +64,4 @@ class ErrorDialogTest {
         assertTrue(paragraphs.stream().noneMatch(p -> "Initial message".equals(p.getText())));
     }
 }
+

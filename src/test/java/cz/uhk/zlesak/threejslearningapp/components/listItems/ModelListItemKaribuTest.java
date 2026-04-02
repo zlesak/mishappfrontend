@@ -147,3 +147,4 @@ class ModelListItemKaribuTest {
                 .model(ModelFileEntity.builder().id("model-file-1").name("Lebka").build()).build();
     }
 }
+

@@ -2,7 +2,6 @@ package cz.uhk.zlesak.threejslearningapp.components.inputs.selects;
 
 import com.vaadin.flow.component.UI;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelForSelect;
-import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
 import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
@@ -95,9 +94,9 @@ class GenericSelectTest {
 
     @Test
     void textureAreaSelectShouldHaveColorRendererInConstructor() {
-        // Exercises the TextureAreaForSelect.class branch in GenericSelect constructor
-        // (the ComponentRenderer with colour support).
+
         TextureAreaSelect select = new TextureAreaSelect();
         assertFalse(select.isEnabled());
     }
 }
+

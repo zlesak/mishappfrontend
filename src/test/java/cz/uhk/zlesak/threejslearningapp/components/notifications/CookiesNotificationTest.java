@@ -35,3 +35,4 @@ class CookiesNotificationTest {
         assertFalse(notification.isOpened());
     }
 }
+

@@ -43,3 +43,4 @@ class DocumentationEntryTest {
         assertTrue(index.getRoles().isEmpty());
     }
 }
+

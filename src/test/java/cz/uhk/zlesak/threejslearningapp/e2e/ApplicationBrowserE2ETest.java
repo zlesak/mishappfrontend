@@ -157,3 +157,4 @@ public class ApplicationBrowserE2ETest {
         page.getByText("Kvíz byl úspěšně smazán").waitFor();
     }
 }
+

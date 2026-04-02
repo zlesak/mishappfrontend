@@ -99,7 +99,7 @@ class QuizPlayerComponentTest {
     void constructorWithTimeLimitShouldExposeTimerContainer() {
         QuizPlayerComponent player = new QuizPlayerComponent(singleQuestion(), 1);
         assertNotNull(player.getTimerContainer());
-        player.disable(); // stops timer to avoid background thread leakage
+        player.disable();
     }
 
     private Button getSubmitButton(QuizPlayerComponent player) throws Exception {
@@ -108,3 +108,4 @@ class QuizPlayerComponentTest {
         return (Button) field.get(player);
     }
 }
+

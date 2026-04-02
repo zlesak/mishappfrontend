@@ -305,3 +305,4 @@ class ChapterListItemKaribuTest {
                 .model(ModelFileEntity.builder().id("model-1").name("Lebka 3D").build()).build();
     }
 }
+

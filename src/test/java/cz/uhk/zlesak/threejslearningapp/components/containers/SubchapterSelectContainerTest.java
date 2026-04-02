@@ -2,7 +2,6 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.ShowSubchapterContentEvent;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.SubchapterInitEvent;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
@@ -47,7 +46,6 @@ class SubchapterSelectContainerTest {
         List<?> registrations = getField(container, "registrations");
         assertEquals(2, registrations.size());
 
-        // Detach clears registrations.
         container.getElement().removeFromParent();
         assertTrue(registrations.isEmpty());
     }
@@ -62,7 +60,6 @@ class SubchapterSelectContainerTest {
                 Map.of(Triple.of("sub-1", "sub-1", "Chapter 1"), List.<Tuple<String, String>>of()),
                 false);
 
-        // Should not throw – both handleItemAdditionIngoingChangeEventAction calls are exercised.
         assertDoesNotThrow(() -> ComponentUtil.fireEvent(UI.getCurrent(), event));
     }
 
@@ -84,3 +81,4 @@ class SubchapterSelectContainerTest {
         return (T) field.get(target);
     }
 }
+

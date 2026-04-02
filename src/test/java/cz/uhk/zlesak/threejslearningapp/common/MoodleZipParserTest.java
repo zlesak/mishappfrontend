@@ -435,3 +435,4 @@ class MoodleZipParserTest {
         return output.toByteArray();
     }
 }
+

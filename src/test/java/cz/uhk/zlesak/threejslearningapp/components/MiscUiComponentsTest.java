@@ -60,3 +60,4 @@ class MiscUiComponentsTest {
         assertEquals("quiz.option 4", option.getOptionField().getLabel());
     }
 }
+

@@ -46,8 +46,6 @@ class QuestionEditorsTest {
         ));
     }
 
-    // ─── OpenTextQuestionEditor ──────────────────────────────────────────────────
-
     @Test
     void openTextEditorHasNonNullQuestionTextField() {
         OpenTextQuestionEditor editor = new OpenTextQuestionEditor();
@@ -203,8 +201,6 @@ class QuestionEditorsTest {
         assertEquals(3, editor.getOptions().size());
     }
 
-    // ─── SingleChoiceQuestionEditor ──────────────────────────────────────────────
-
     @Test
     void singleChoiceEditorHasNonNullQuestionTextField() {
         SingleChoiceQuestionEditor editor = new SingleChoiceQuestionEditor();
@@ -341,8 +337,6 @@ class QuestionEditorsTest {
         assertEquals("My question", editor.getQuestionData().getQuestionText());
     }
 
-    // ─── MultipleChoiceQuestionEditor ─────────────────────────────────────────────
-
     @Test
     void multipleChoiceEditorHasNonNullQuestionTextField() {
         MultipleChoiceQuestionEditor editor = new MultipleChoiceQuestionEditor();
@@ -464,8 +458,6 @@ class QuestionEditorsTest {
         assertDoesNotThrow(() -> editor.setAnswerData(answerData));
     }
 
-    // ─── OrderingQuestionEditor ───────────────────────────────────────────────────
-
     @Test
     void orderingEditorHasNonNullQuestionTextField() {
         OrderingQuestionEditor editor = new OrderingQuestionEditor();
@@ -580,8 +572,6 @@ class QuestionEditorsTest {
         editor.addOption("Second");
         assertTrue(editor.validate());
     }
-
-    // ─── MatchingQuestionEditor ───────────────────────────────────────────────────
 
     @Test
     void matchingEditorHasNonNullQuestionTextField() {
@@ -716,8 +706,6 @@ class QuestionEditorsTest {
         assertDoesNotThrow(() -> editor.setAnswerData(answerData));
     }
 
-    // ─── TextureClickQuestionEditor ───────────────────────────────────────────────
-
     @Test
     void textureClickEditorHasNonNullQuestionTextField() {
         TextureClickQuestionEditor editor = new TextureClickQuestionEditor(
@@ -833,3 +821,4 @@ class QuestionEditorsTest {
         assertThrows(NotImplementedException.class, () -> editor.removeOption("test-id"));
     }
 }
+
