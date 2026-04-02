@@ -24,6 +24,8 @@ import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unused")
 public final class VaadinTestSupport {
+    private static UI strongUiRef;
+
     private VaadinTestSupport() {
     }
 
@@ -62,6 +64,7 @@ public final class VaadinTestSupport {
         ui.setLocale(Locale.forLanguageTag("cs"));
         ui.getInternals().setSession(session);
         UI.setCurrent(ui);
+        strongUiRef = ui;
         return ui;
     }
 
@@ -69,6 +72,7 @@ public final class VaadinTestSupport {
         UI.setCurrent(null);
         VaadinSession.setCurrent(null);
         VaadinService.setCurrent(null);
+        strongUiRef = null;
     }
 
     public static <T extends Component> List<T> findAll(Component root, Class<T> type) {

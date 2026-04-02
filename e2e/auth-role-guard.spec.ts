@@ -17,11 +17,11 @@ test('login, route guards, cookies and theme toggle work by role', async ({page}
   await cookieConsentButton.click();
   await expect(cookieConsentButton).toHaveCount(0);
 
-  await page.locator('.theme-mode-toggle').click();
+  await page.locator('vaadin-menu-bar.app-user-menu').click();
+  await page.getByRole('menuitem', {name: /Režim:/}).click();
   await expectCookie(page, 'themeMode', 'dark');
   await expect.poll(async () => page.evaluate(() => document.body.getAttribute('theme'))).toBe('dark');
 
   await page.reload();
-  await expect(page.locator('.theme-mode-toggle')).toBeVisible();
   await expect.poll(async () => page.evaluate(() => document.body.getAttribute('theme'))).toBe('dark');
 });
