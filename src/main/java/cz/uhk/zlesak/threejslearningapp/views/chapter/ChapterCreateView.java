@@ -49,6 +49,7 @@ public class ChapterCreateView extends AbstractChapterView {
     @Autowired
     public ChapterCreateView(ChapterService chapterService, ModelService modelService) {
         super("page.title.createChapterView", true, false, chapterService, modelService);
+        setCompactSplitterPosition(70);
         this.modelService = modelService;
         configureVisibility();
         setupChapterForm();

@@ -3,8 +3,11 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
@@ -22,11 +25,16 @@ import java.util.List;
  * @see ThreeJsComponent
  */
 public class ModelContainer extends Div {
+    private static final int DESKTOP_BREAKPOINT = 1024;
+    private final Button controlsToggleButton;
     private final ProgressBar overlayProgressBar;
     private final Div overlayBackground;
     private final Span actionDescription;
     public final ThreeJsComponent renderer;
     public final ModelTextureAreaSelectContainer modelTextureAreaSelectContainer;
+    private boolean controlsExpanded = true;
+    private boolean compactControlsExpanded = true;
+    private String controlsStateKey = "";
     protected final List<Registration> registrations = new ArrayList<>();
 
     /**
@@ -36,18 +44,22 @@ public class ModelContainer extends Div {
         super();
         getStyle().set("display", "flex");
         getStyle().set("flex-direction", "column");
-        getStyle().set("height", "100vh");
+        getStyle().set("height", "100%");
         getStyle().set("width", "100%");
         getStyle().set("overflow", "hidden");
 
         renderer = new ThreeJsComponent();
+        controlsToggleButton = new Button("3D filtry", VaadinIcon.ANGLE_DOWN.create());
+        controlsToggleButton.addClassName("model-controls-toggle");
+        controlsToggleButton.setWidthFull();
+        controlsToggleButton.addClickListener(e -> setControlsExpanded(!controlsExpanded, true));
         modelTextureAreaSelectContainer = new ModelTextureAreaSelectContainer();
         overlayBackground = getOverlayBackgroundDiv();
         overlayProgressBar = getOverlayProgressBar();
         actionDescription = getActionDescriptionSpan();
         Div rendererContainer = getRendererContainer();
 
-        add(modelTextureAreaSelectContainer, rendererContainer);
+        add(controlsToggleButton, modelTextureAreaSelectContainer, rendererContainer);
     }
 
     /**
@@ -86,7 +98,7 @@ public class ModelContainer extends Div {
         progressBar.getStyle().set("left", "50%");
         progressBar.getStyle().set("transform", "translate(-50%, -50%)");
         progressBar.getStyle().set("z-index", "11");
-        progressBar.setWidth("300px");
+        progressBar.setWidth("min(300px, 90vw)");
         return progressBar;
     }
 
@@ -103,7 +115,7 @@ public class ModelContainer extends Div {
         actionDescriptionSpan.getStyle().set("left", "50%");
         actionDescriptionSpan.getStyle().set("transform", "translate(-50%, -50%)");
         actionDescriptionSpan.getStyle().set("z-index", "11");
-        actionDescriptionSpan.setWidth("300px");
+        actionDescriptionSpan.setWidth("min(300px, 90vw)");
         return actionDescriptionSpan;
     }
 
@@ -149,23 +161,62 @@ public class ModelContainer extends Div {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+        attachEvent.getUI().getPage().executeJs("return window.location.pathname;")
+                .then(String.class, path -> {
+                    controlsStateKey = "model.controls." + path;
+                    attachEvent.getUI().getPage()
+                            .executeJs("return window.innerWidth;")
+                            .then(Integer.class, width -> {
+                                int viewportWidth = width == null ? DESKTOP_BREAKPOINT : width;
+                                if (viewportWidth >= DESKTOP_BREAKPOINT) {
+                                    applyControlsModeForWidth(viewportWidth);
+                                    return;
+                                }
+                                attachEvent.getUI().getPage()
+                                        .executeJs("const raw = sessionStorage.getItem($0); return raw === null ? '' : raw;", controlsStateKey)
+                                        .then(String.class, stored -> {
+                                            if (stored != null && !stored.isBlank()) {
+                                                compactControlsExpanded = Boolean.parseBoolean(stored);
+                                            } else {
+                                                compactControlsExpanded = viewportWidth > 599;
+                                            }
+                                            applyControlsModeForWidth(viewportWidth);
+                                        });
+                            });
+                });
+        registrations.add(attachEvent.getUI().getPage().addBrowserWindowResizeListener(
+                event -> applyControlsModeForWidth(event.getWidth())
+        ));
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsDoingActions.class,
-                event -> showOverlayProgressBar(event.getDescription())
+                event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
+                    showOverlayProgressBar(event.getDescription());
+                }
         ));
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsFinishedActions.class,
-                event -> hideOverlayProgressBar()
+                event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
+                    hideOverlayProgressBar();
+                }
         ));
 
         registrations.add(ComponentUtil.addListener(
                 attachEvent.getUI(),
                 ThreeJsLoadingProgress.class,
                 event -> {
+                    if (event.getSource() != renderer) {
+                        return;
+                    }
                     int percent = event.getPercent();
                     String desc = event.getDescription();
                     if (percent < 0) {
@@ -188,5 +239,31 @@ public class ModelContainer extends Div {
         super.onDetach(detachEvent);
         registrations.forEach(Registration::remove);
         registrations.clear();
+    }
+
+    private void setControlsExpanded(boolean expanded, boolean persist) {
+        controlsExpanded = expanded;
+        modelTextureAreaSelectContainer.setVisible(expanded);
+        controlsToggleButton.setIcon(expanded ? VaadinIcon.ANGLE_UP.create() : VaadinIcon.ANGLE_DOWN.create());
+        controlsToggleButton.setText(expanded ? "3D filtry (skrýt)" : "3D filtry (zobrazit)");
+
+        if (!persist || controlsStateKey == null || controlsStateKey.isBlank()) {
+            return;
+        }
+        UI currentUi = UI.getCurrent();
+        if (currentUi != null) {
+            compactControlsExpanded = expanded;
+            currentUi.getPage().executeJs("sessionStorage.setItem($0, $1);", controlsStateKey, String.valueOf(expanded));
+        }
+    }
+
+    private void applyControlsModeForWidth(int viewportWidth) {
+        boolean desktop = viewportWidth >= DESKTOP_BREAKPOINT;
+        controlsToggleButton.setVisible(!desktop);
+        if (desktop) {
+            setControlsExpanded(true, false);
+        } else {
+            setControlsExpanded(compactControlsExpanded, false);
+        }
     }
 }

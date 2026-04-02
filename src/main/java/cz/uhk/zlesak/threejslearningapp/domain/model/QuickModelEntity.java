@@ -26,6 +26,9 @@ public class QuickModelEntity extends AbstractEntity {
     boolean isAdvanced;
     QuickTextureEntity mainTexture;
     List<QuickTextureEntity> otherTextures;
+    /**
+     * @return Combined list of all textures, with the main texture first.
+     */
     public List<QuickTextureEntity> getAllTextures(){
         List<QuickTextureEntity> allTextures = new ArrayList<>();
         if(otherTextures != null && !otherTextures.isEmpty()){

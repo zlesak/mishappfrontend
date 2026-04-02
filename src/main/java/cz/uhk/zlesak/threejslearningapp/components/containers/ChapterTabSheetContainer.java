@@ -5,9 +5,9 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextField;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ChapterContentScroller;
 import cz.uhk.zlesak.threejslearningapp.components.scrollers.ModelsSelectScroller;
-import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextField;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +34,7 @@ public class ChapterTabSheetContainer extends TabSheet implements I18nAware {
         Tab tabContent = new Tab(VaadinIcon.FILE_TEXT.create(), new Span(text("tab.content.label")));
         add(tabContent, chapterContentScroller);
         add(tabModels, modelsScroller);
+        addClassName("chapter-secondary-tabs");
         setPrefixComponent(nameTextField);
         setSizeFull();
 

@@ -48,6 +48,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
      */
     public CreateQuizForm() {
         super();
+        addClassName("create-quiz-form");
         setSpacing(true);
         setPadding(false);
 
@@ -62,16 +63,16 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         descriptionField.setMaxLength(500);
 
         timeLimitField = new IntegerField();
-        timeLimitField.setHelperText(text("quiz.timeLimit.label"));
+        timeLimitField.setHelperText(text("quiz.timeLimit.helper"));
         timeLimitField.setStepButtonsVisible(true);
         timeLimitField.setValue(0);
         timeLimitField.setMin(0);
         timeLimitField.setStep(1);
 
         chapterSelect = new Select<>();
+        chapterSelect.addClassName("create-quiz-chapter-select");
         chapterSelect.setHelperText(text("quiz.chapterId.label"));
         chapterSelect.setItemLabelGenerator(ch -> ch == null ? "" : ch.getName());
-        chapterSelect.setWidth("260px");
         chapterSelect.setReadOnly(true);
         chapterSelect.setWidthFull();
 
@@ -80,6 +81,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         chooseChapterButton.addClickListener(e -> openChapterSelectionDialog());
 
         questionTypeSelect = new Select<>();
+        questionTypeSelect.addClassName("create-quiz-question-type-select");
         questionTypeSelect.setHelperText(text("quiz.questionType.label"));
         questionTypeSelect.setItems(QuestionTypeEnum.values());
         questionTypeSelect.setItemLabelGenerator(this::getQuestionTypeLabel);
@@ -95,15 +97,28 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
 
         HorizontalLayout horizontalLayout = new HorizontalLayout(timeLimitField, chapterSelect, chooseChapterButton);
         HorizontalLayout horizontalLayout2 = new HorizontalLayout(questionTypeSelect, addQuestionButton, saveQuizButton);
+        horizontalLayout.addClassName("create-quiz-meta-row");
+        horizontalLayout2.addClassName("create-quiz-actions-row");
+        horizontalLayout.setWrap(true);
+        horizontalLayout2.setWrap(true);
         horizontalLayout.setWidthFull();
         horizontalLayout2.setWidthFull();
 
         VerticalLayout verticalLayout = new VerticalLayout(nameField, descriptionField, horizontalLayout, questionsContainer);
+        verticalLayout.setWidthFull();
+        verticalLayout.setPadding(false);
+        verticalLayout.setSpacing(true);
 
         scroller = new Scroller(verticalLayout, Scroller.ScrollDirection.VERTICAL);
         scroller.setWidthFull();
+        scroller.setHeightFull();
+        scroller.getStyle().set("min-height", "0");
 
         add(scroller, horizontalLayout2);
+        setFlexGrow(1, scroller);
+        setWidthFull();
+        getStyle().set("min-width", "0");
+        getStyle().set("min-height", "0");
         setHeightFull();
     }
 
@@ -194,6 +209,14 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         return chapterSelect.getValue() != null ? chapterSelect.getValue().getId() : null;
     }
 
+    /**
+     * Pre-fills the form fields with existing quiz data for edit mode.
+     *
+     * @param name        existing quiz name
+     * @param description existing quiz description
+     * @param timeLimit   existing time limit in minutes
+     * @param chapter     the chapter currently linked to the quiz
+     */
     public void setQuizData(String name, String description, Integer timeLimit, ChapterEntity chapter) {
         nameField.setValue(name != null ? name : "");
         descriptionField.setValue(description != null ? description : "");
@@ -205,4 +228,3 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
     }
 
 }
-

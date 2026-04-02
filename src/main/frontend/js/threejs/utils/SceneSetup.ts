@@ -100,8 +100,8 @@ export class SceneSetup {
     ): OrbitControls {
         const controls = new OrbitControls(camera, domElement);
         controls.enabled = true;
-        controls.minDistance = 0.01;
-        controls.maxDistance = Infinity;
+        controls.minDistance = 2;
+        controls.maxDistance = 10;
         controls.autoRotate = true;
         controls.enableZoom = true;
         controls.zoomToCursor = true;

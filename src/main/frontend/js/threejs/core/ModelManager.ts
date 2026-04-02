@@ -68,6 +68,7 @@ export class ModelManager {
             existingModel.addQuestion(questionId);
         } else {
             existingModel.model = modelUrl;
+            existingModel.clearBaseMaterials();
             this.clearModelSourceCache(modelId);
         }
     }
@@ -109,6 +110,12 @@ export class ModelManager {
                     console.error('Error removing model from scene:', e);
                 }
             }
+            model.modelLoader = null;
+            model.clearBaseMaterials();
+        }
+
+        if (this.currentModel && this.currentModel.id === modelId) {
+            this.currentModel = null;
         }
     }
 

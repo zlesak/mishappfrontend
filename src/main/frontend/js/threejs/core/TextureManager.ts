@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Model } from '../models/Model';
-import type { IAuthHeaders, IMaskResult, IModelSwitchResult, IRGB } from '../types/interfaces';
+import {Model} from '../models/Model';
+import type {IAuthHeaders, IMaskResult, IModelSwitchResult, IRGB} from '../types/interfaces';
 
 /**
  * Manages texture operations for 3D models
@@ -113,6 +113,7 @@ export class TextureManager {
      */
     async removeMainTexture(model: Model): Promise<string | null> {
         model.clearMainTexture();
+        model.restoreBaseMaterials();
         return null;
     }
 
@@ -189,6 +190,7 @@ export class TextureManager {
      */
     async switchToMainTexture(model: Model): Promise<IModelSwitchResult> {
         if (!model.loadedMainTexture) {
+            model.restoreBaseMaterials();
             return { model, lastSelectedTextureId: null };
         }
         

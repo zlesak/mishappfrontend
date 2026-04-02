@@ -13,6 +13,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.HasPrimarySecondaryMain;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.TextureAreaForSelect;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 
 import java.util.LinkedHashMap;
@@ -27,11 +28,13 @@ import java.util.Map;
  * @param <T> the type of items in the select, extending HasPrimarySecondary
  * @param <E> the type of component event for item addition
  */
+@Slf4j
 @Scope("prototype")
 public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends ComponentEvent<UI>> extends Select<T> implements I18nAware {
     @Setter
     protected String questionId;
     protected ObservableMap<String, T> items;
+    private final ItemLabelGenerator<T> itemLabelGenerator;
 
     /**
      * Constructor for GenericSelect.
@@ -43,6 +46,7 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
      */
     public GenericSelect(String label, ItemLabelGenerator<T> itemLabelGenerator, Class<T> itemType, boolean allowEmptySelection) {
         super();
+        this.itemLabelGenerator = itemLabelGenerator;
 
         setEmptySelectionCaption(text(label));
         setWidthFull();
@@ -58,11 +62,13 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
             }));
         }
         items = new ObservableMap<>((value, fromClient) -> {
-            if (fromClient)
+            if (fromClient) {
                 showRelevantItemsBasedOnContext(value != null ? value.primary() : null, value != null ? value.secondary() : null);
+            }
         }
         );
         addValueChangeListener(e -> {
+                    getElement().setProperty("title", e.getValue() != null ? itemLabelGenerator.apply(e.getValue()) : "");
                     if (e.isFromClient()) {
                         ComponentUtil.fireEvent(UI.getCurrent(), createChangeEvent(e));
                     }
@@ -121,5 +127,25 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
             item = itemsToShow.values().stream().filter(HasPrimarySecondaryMain::mainItem).findFirst().orElse(null);
         }
         setValue(item);
+        getElement().setProperty("title", item != null ? itemLabelGenerator.apply(item) : "");
+    }
+
+    /**
+     * Returns whether the internal items map contains any entries.
+     *
+     * @return {@code true} if at least one item is present
+     */
+    public boolean hasAvailableItems() {
+        return !items.isEmpty();
+    }
+
+    /**
+     * Returns the item marked as main, or the first available item if none is marked as main.
+     *
+     * @return the main item, the first item, or {@code null} if the map is empty
+     */
+    public T gatMainOrFirst() {
+        T main = items.get("main");
+        return main != null ? main : items.values().stream().findFirst().orElse(null);
     }
 }

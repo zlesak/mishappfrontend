@@ -67,6 +67,7 @@ public class ChapterEntity extends QuickChapterEntity {
         return f;
     }
 
+    /** Pair of a model metadata ID and its primary file descriptor. */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -75,6 +76,7 @@ public class ChapterEntity extends QuickChapterEntity {
         FileIdWithName model;
     }
 
+    /** Minimal file descriptor carrying ID, name, sense-type, and optional related files. */
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

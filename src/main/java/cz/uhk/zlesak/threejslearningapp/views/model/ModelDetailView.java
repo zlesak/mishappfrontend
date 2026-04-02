@@ -5,7 +5,6 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
-import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.PermitAll;
 import lombok.extern.slf4j.Slf4j;
@@ -58,11 +57,16 @@ public class ModelDetailView extends AbstractModelView {
      */
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        ModelEntity model = service.read(event.getRouteParameters().get("modelId").orElse(null));
-        loadSingleModelWithTextures(model, null, null, true);
-        String backgroundSpecJson = service.resolveBackgroundSpecJson(model);
-        if (backgroundSpecJson != null && !backgroundSpecJson.isBlank()) {
-            modelDiv.renderer.setBackgroundSpec(backgroundSpecJson);
-        }
+        String modelId = event.getRouteParameters().get("modelId").orElse(null);
+        runAsync(() -> service.read(modelId), model -> {
+            loadSingleModelWithTextures(model, null, null, true);
+            String backgroundSpecJson = service.resolveBackgroundSpecJson(model);
+            if (backgroundSpecJson != null && !backgroundSpecJson.isBlank()) {
+                modelDiv.renderer.setBackgroundSpec(backgroundSpecJson);
+            }
+        }, error -> {
+            log.error("Error loading model detail for id: {}", modelId, error);
+            showErrorNotification(text("notification.loadError"), error);
+        });
     }
 }

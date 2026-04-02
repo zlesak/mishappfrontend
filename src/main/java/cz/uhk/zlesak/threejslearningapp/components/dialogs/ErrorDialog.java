@@ -8,9 +8,20 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 
+/**
+ * Dialog for displaying error states with an icon, title, message, and a back button.
+ */
 public class ErrorDialog extends Div {
     private final Paragraph detailsParagraph = new Paragraph();
 
+    /**
+     * Constructs the error dialog.
+     *
+     * @param icon    icon to display
+     * @param title   main heading text
+     * @param message primary message shown below the heading
+     * @param details additional detail text shown below the message
+     */
     public ErrorDialog(VaadinIcon icon, String title, String message, String details) {
         getStyle().set("display", "flex");
         getStyle().set("flex-direction", "column");
@@ -31,6 +42,11 @@ public class ErrorDialog extends Div {
         add(errorIcon, new H1(title), detailsParagraph, new Paragraph(details), backButton);
     }
 
+    /**
+     * Updates the primary message displayed in the dialog.
+     *
+     * @param message the new message text
+     */
     public void setMessage(String message) {
         detailsParagraph.setText(message);
     }

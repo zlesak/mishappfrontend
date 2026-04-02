@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.shared.Registration;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.selects.ModelListingSelect;
@@ -40,10 +41,20 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
     String questionId;
 
     public ModelTextureAreaSelectContainer() {
+        addClassName("model-texture-select-row");
+        modelListingSelect.addClassName("model-texture-model-select");
+        textureListingSelect.addClassName("model-texture-texture-select");
+        textureAreaSelect.addClassName("model-texture-area-select");
         add(modelListingSelect, textureListingSelect, textureAreaSelect);
         setWidthFull();
+        setWrap(true);
     }
 
+    /**
+     * Sets the question ID scoped to this container and propagates it to all child selects.
+     *
+     * @param questionId the question ID to associate with this container
+     */
     public void setQuestionId(String questionId) {
         this.questionId = questionId;
         modelListingSelect.setQuestionId(questionId);
@@ -82,16 +93,20 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
                         return;
                     switch (e.getFileType()) {
                         case MODEL -> {
-                            modelListingSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
-                            textureListingSelect.showRelevantItemsBasedOnContext(modelListingSelect.getValue() != null ? modelListingSelect.getValue().id() : "", "main"); //TODO MAIN
+                            String oldValue = modelListingSelect.getValue() != null ? modelListingSelect.getValue().id() : "";
+                            modelListingSelect.handleItemRemoveIngoingChangeEventAction(e.getModelId(), e.isFromClient());
+                            if (modelListingSelect.hasAvailableItems()) {
+                                modelListingSelect.showRelevantItemsBasedOnContext(Objects.equals(e.getModelId(), oldValue) ? modelListingSelect.gatMainOrFirst().id() : oldValue, "");
+                                ComponentUtil.fireEvent(UI.getCurrent(), new ThreeJsActionEvent(UI.getCurrent(), modelListingSelect.getValue().id(), modelListingSelect.getValue().mainTextureId(), ThreeJsActions.SHOW_MODEL, e.isFromClient(), questionId));
+                            }
                         }
                         case MAIN, OTHER ->
                                 textureListingSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
                         case CSV ->
                                 textureAreaSelect.handleItemRemoveIngoingChangeEventAction(e.getEntityId(), e.isFromClient());
                     }
-                    textureListingSelect.showRelevantItemsBasedOnContext(e.getModelId(), "main");
-                    textureAreaSelect.showRelevantItemsBasedOnContext(textureListingSelect.getValue() != null ? textureListingSelect.getValue().textureId() : "", "");
+                    textureListingSelect.showRelevantItemsBasedOnContext(modelListingSelect.getValue() != null ? modelListingSelect.getValue().id() : null, "main");
+                    textureAreaSelect.showRelevantItemsBasedOnContext(textureListingSelect.getValue() != null ? textureListingSelect.getValue().textureId() : null, "");
                 }
 
         ));

@@ -17,10 +17,21 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelCreateView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * List item component representing a 3D model in listing and administration views.
+ * Displays an optional thumbnail image extracted from the model description.
+ */
 @Slf4j
 @Tag("div")
 public class ModelListItem extends AbstractListItem {
 
+    /**
+     * Constructs the model list item.
+     *
+     * @param model              the model entity to display
+     * @param listView           whether to render in list (read) mode
+     * @param administrationView whether to show edit and delete controls
+     */
     public ModelListItem(QuickModelEntity model, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.CUBES);
 
@@ -71,18 +82,33 @@ public class ModelListItem extends AbstractListItem {
     }
 
     private void deleteModel(String modelId) {
-        try {
-            ModelService modelService = SpringContextUtils.getBean(ModelService.class);
-            boolean deleted = modelService.delete(modelId);
+        UI sourceUi = UI.getCurrent();
+        runBackendCallWithOverlay(() -> {
+                    ModelService modelService = SpringContextUtils.getBean(ModelService.class);
+                    return modelService.delete(modelId);
+                }, deleted -> {
             if (deleted) {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new SuccessNotification(text("model.delete.success"));
-                UI.getCurrent().getPage().reload();
+                refreshParentListingFromBackend();
             } else {
+                if (isUiInActive(sourceUi)) {
+                    return;
+                }
                 new ErrorNotification(text("model.delete.failed"));
             }
-        } catch (Exception ex) {
+        }, ex -> {
             log.error("Error deleting model: {}", ex.getMessage(), ex);
+            if (isUiInActive(sourceUi)) {
+                return;
+            }
             new ErrorNotification(text("model.delete.error") + ": " + ex.getMessage());
-        }
+        });
+    }
+
+    private boolean isUiInActive(UI ui) {
+        return ui == null || ui.getSession() == null || !ui.isAttached() || ui.isClosing();
     }
 }

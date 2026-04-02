@@ -1,4 +1,5 @@
 @import url('./main-layout.css');
+@import url('./responsive.css');
 @import url('./components/logo-theme-switcher.css');
 @import url('./views/domovskástránka-view.css');
 @import url('./views/kapitoly-view.css');

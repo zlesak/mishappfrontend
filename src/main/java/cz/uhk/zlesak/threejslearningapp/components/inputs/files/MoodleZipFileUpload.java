@@ -3,11 +3,11 @@ package cz.uhk.zlesak.threejslearningapp.components.inputs.files;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import cz.uhk.zlesak.threejslearningapp.common.MoodleZipParser;
 import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.InfoNotification;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
-import cz.uhk.zlesak.threejslearningapp.common.MoodleZipParser;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,7 +80,11 @@ public class MoodleZipFileUpload extends FileUpload implements I18nAware {
 
             } catch (Exception ex) {
                 log.error("Error parsing Moodle ZIP file: {}", ex.getMessage(), ex);
-                new ErrorNotification(text("moodleZipUpload.error") + ": " + ex.getMessage());
+                try {
+                    new ErrorNotification(text("moodleZipUpload.error") + ": " + ex.getMessage());
+                } catch (Exception notificationEx) {
+                    log.warn("Could not display error notification: {}", notificationEx.getMessage());
+                }
             }
         });
 
@@ -88,7 +92,10 @@ public class MoodleZipFileUpload extends FileUpload implements I18nAware {
     }
 
     /**
-     * Get MIME type based on file extension
+     * Resolves the MIME type for the given filename based on its extension.
+     *
+     * @param filename the file name including extension
+     * @return the corresponding MIME type string, defaulting to {@code "image/jpeg"}
      */
     private static String getMimeType(String filename) {
         String lower = filename.toLowerCase();

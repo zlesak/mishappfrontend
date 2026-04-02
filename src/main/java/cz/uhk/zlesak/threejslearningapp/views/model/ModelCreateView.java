@@ -38,6 +38,7 @@ public class ModelCreateView extends AbstractModelView {
     @Autowired
     public ModelCreateView(ModelService modelService) {
         super("page.title.createModelView", false, modelService);
+        setCompactSplitterPosition(68);
     }
 
     /**
@@ -116,15 +117,19 @@ public class ModelCreateView extends AbstractModelView {
      * Textures are optional for both GLB and OBJ models.
      */
     private void uploadModel() {
+        UI ui = UI.getCurrent();
+        boolean overlayStarted = false;
         try {
             if (modelId != null && !editDataLoaded) {
                 showErrorNotification(text("notification.uploadError"), "Data modelu se stále načítají. Zkus to prosím za chvíli.");
                 return;
             }
-            UI ui = UI.getCurrent();
             if (ui == null) {
                 throw new IllegalStateException("UI is not available");
             }
+            beginLoadingOverlay(ui);
+            overlayStarted = true;
+
             String modelName = modelUploadForm.getModelName().getValue();
             InputStreamMultipartFile modelFile = modelUploadForm.getObjFileUpload().getUploadedFiles().isEmpty()
                     ? null
@@ -142,29 +147,46 @@ public class ModelCreateView extends AbstractModelView {
                     log.info("ModelCreateView(upload): renderer returned backgroundSpecJson={}", backgroundSpecJson);
                     modelDiv.renderer.getThumbnailDataUrl(thumbnailModelId, 320, 320, dataUrl -> {
                         try {
-                            String savedEntityId = service.saveFromUpload(
-                                    modelEntity != null ? modelEntity.getMetadataId() : null,
-                                    modelName,
-                                    modelFile,
-                                    mainTexture,
-                                    modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
-                                    modelUploadForm.getCsvFileUpload().getUploadedFiles(),
-                                    dataUrl,
-                                    backgroundSpecJson
-                            );
-                            ui.access(() -> {
-                                showSuccessNotification();
-                                navigateToModelDetailView(savedEntityId);
-                            });
+                            endLoadingOverlay(ui);
+                            saveModelAsync(modelName, modelFile, mainTexture, backgroundSpecJson, dataUrl);
                         } catch (Exception e) {
-                            log.error("Unexpected error while saving model", e);
+                            log.error("Unexpected error while preparing model save", e);
+                            endLoadingOverlay(ui);
                             ui.access(() -> showErrorNotification(text("notification.uploadError"), e));
                         }
                     });
             });
         } catch (Exception e) {
+            if (overlayStarted) {
+                endLoadingOverlay(ui);
+            }
             showErrorNotification(text("notification.uploadError"), e);
         }
+    }
+
+    private void saveModelAsync(String modelName,
+                                InputStreamMultipartFile modelFile,
+                                InputStreamMultipartFile mainTexture,
+                                String backgroundSpecJson,
+                                String dataUrl) {
+        runAsync(() -> service.saveFromUpload(
+                        modelEntity != null ? modelEntity.getMetadataId() : null,
+                        modelName,
+                        modelFile,
+                        mainTexture,
+                        modelUploadForm.getOtherTexturesFileUpload().getUploadedFiles(),
+                        modelUploadForm.getCsvFileUpload().getUploadedFiles(),
+                        dataUrl,
+                        backgroundSpecJson
+                ),
+                savedEntityId -> {
+                                showSuccessNotification();
+                                navigateToModelDetailView(savedEntityId);
+                },
+                error -> {
+                    log.error("Unexpected error while saving model", error);
+                    showErrorNotification(text("notification.uploadError"), error);
+                });
     }
 
     private void navigateToModelDetailView(String id) {

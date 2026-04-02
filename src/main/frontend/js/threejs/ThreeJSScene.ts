@@ -63,6 +63,14 @@ export class ThreeJSScene {
     private currentBackgroundTexture: THREE.Texture | null = null;
     private currentBackgroundSpec: { type: string; value: any } | null = null;
     private pendingBackgroundSpec: { type: string; value: any } | null = null;
+    private defaultBackgroundTexture: THREE.Texture | null = null;
+    private readonly defaultBackgroundSpec = {
+        type: 'cube',
+        value: {
+            path: 'skybox/',
+            files: ['px.bmp', 'nx.bmp', 'py.bmp', 'ny.bmp', 'pz.bmp', 'nz.bmp']
+        }
+    };
 
     /**
      * Constructor for ThreeJSScene
@@ -98,10 +106,12 @@ export class ThreeJSScene {
             // Create scene components
             this.camera = SceneSetup.createCamera();
             this.scene = SceneSetup.createScene();
+            this.defaultBackgroundTexture = this.scene.background as THREE.Texture | null;
             this.renderer = SceneSetup.createRenderer(this.element as HTMLCanvasElement);
             this.ambientLight = SceneSetup.createAmbientLight();
             this.scene.add(this.ambientLight);
             this.controls = SceneSetup.createControls(this.camera, this.renderer.domElement);
+            this.currentBackgroundSpec = this.cloneBackgroundSpec(this.defaultBackgroundSpec);
 
             // Set scene in model manager (it may have been used before init)
             this.modelManager.setScene(this.scene);
@@ -408,8 +418,13 @@ export class ThreeJSScene {
      */
     async showModelById(modelId: string): Promise<IModelSwitchResult> {
         const currentModel = this.modelManager.getCurrentModel();
+        const currentModelAttachedToScene = !!(
+            currentModel?.modelLoader
+            && this.scene
+            && this.scene.children.includes(currentModel.modelLoader)
+        );
 
-        if (currentModel != null && currentModel.id === modelId) {
+        if (currentModel != null && currentModel.id === modelId && currentModelAttachedToScene) {
             await this.textureManager.switchToMainTexture(currentModel);
             await this.fitCameraToModel(currentModel.id);
             return {
@@ -844,14 +859,7 @@ export class ThreeJSScene {
             return;
         }
 
-        if (this.currentBackgroundTexture) {
-            try {
-                this.currentBackgroundTexture.dispose();
-            } catch (e) {
-                // ignore
-            }
-            this.currentBackgroundTexture = null;
-        }
+        this.disposeCurrentBackgroundTexture();
 
         switch (normalized.type) {
             case 'color':
@@ -888,8 +896,48 @@ export class ThreeJSScene {
         window.dispatchEvent(new CustomEvent('threejs-background-updated', {detail: this.cloneBackgroundSpec(normalized)}));
     }
 
+    async restoreDefaultBackground(): Promise<void> {
+        const normalizedDefault = this.cloneBackgroundSpec(this.defaultBackgroundSpec);
+        this.currentBackgroundSpec = normalizedDefault;
+
+        if (!this.scene) {
+            this.pendingBackgroundSpec = normalizedDefault;
+            return;
+        }
+
+        this.disposeCurrentBackgroundTexture(false);
+
+        if (this.defaultBackgroundTexture) {
+            this.scene.background = this.defaultBackgroundTexture;
+        } else {
+            await this.setBackground(this.defaultBackgroundSpec);
+            return;
+        }
+
+        this.pendingBackgroundSpec = null;
+        this.render();
+        window.dispatchEvent(new CustomEvent('threejs-background-updated', {detail: this.cloneBackgroundSpec(normalizedDefault)}));
+    }
+
     getBackgroundSpec(): { type: string; value: any } | null {
         return this.cloneBackgroundSpec(this.currentBackgroundSpec);
+    }
+
+    private disposeCurrentBackgroundTexture(keepDefaultTexture: boolean = true): void {
+        if (!this.currentBackgroundTexture) {
+            return;
+        }
+
+        const shouldDispose = !keepDefaultTexture || this.currentBackgroundTexture !== this.defaultBackgroundTexture;
+        if (shouldDispose) {
+            try {
+                this.currentBackgroundTexture.dispose();
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        this.currentBackgroundTexture = null;
     }
 
     private normalizeBackgroundSpec(bgSpec: any): { type: string; value: any } | null {
@@ -937,7 +985,7 @@ export class ThreeJSScene {
             return {type: 'cube', value: {path, files}};
         }
 
-        return null;
+        return { type: bgSpec.type, value: bgSpec.value };
     }
 
     private cloneBackgroundSpec(bgSpec: { type: string; value: any } | null): { type: string; value: any } | null {

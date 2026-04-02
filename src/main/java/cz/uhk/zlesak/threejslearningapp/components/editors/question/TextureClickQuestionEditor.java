@@ -241,14 +241,29 @@ public class TextureClickQuestionEditor extends QuestionEditorBase<TextureQuesti
         return !isBlank(resolveHexColorForSave());
     }
 
+    /**
+     * Returns the currently selected model ID.
+     *
+     * @return selected model ID, or {@code null} if none is selected
+     */
     public String getSelectedModelId() {
         return resolveModelIdForSave();
     }
 
+    /**
+     * Returns the currently selected texture ID.
+     *
+     * @return selected texture ID, or {@code null} if none is selected
+     */
     public String getSelectedTextureId() {
         return resolveTextureIdForSave();
     }
 
+    /**
+     * Returns the currently selected texture area hex color.
+     *
+     * @return selected hex color, or {@code null} if none is selected
+     */
     public String getSelectedAreaId() {
         return resolveHexColorForSave();
     }

@@ -4,8 +4,16 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 
+/**
+ * Component for displaying a centered informational message when no items are available.
+ */
 public class NoItemInfoComponent extends Div implements I18nAware {
 
+    /**
+     * Constructs the component with the given i18n message key.
+     *
+     * @param infoTextKey i18n key for the displayed message
+     */
     public NoItemInfoComponent(String infoTextKey) {
         super();
         getStyle().set("width", "100%");

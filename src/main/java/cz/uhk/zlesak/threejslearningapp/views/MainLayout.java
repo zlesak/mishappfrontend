@@ -30,7 +30,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -45,6 +44,7 @@ public class MainLayout extends AppLayout {
      * Constructor for MainLayout.
      */
     public MainLayout() {
+        addClassName("app-shell");
         addToNavbar(createHeaderContent());
     }
 
@@ -57,28 +57,38 @@ public class MainLayout extends AppLayout {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         /// Header item component wrapper
         Header header = new Header();
+        header.addClassName("app-shell-header");
         header.addClassNames(BoxSizing.BORDER, Display.FLEX, FlexDirection.COLUMN, Width.FULL);
 
         /// Layout item in form of div component
         Div layout = new Div();
+        layout.addClassName("app-shell-topbar");
         layout.addClassNames(Display.FLEX, AlignItems.CENTER, Padding.Horizontal.LARGE);
 
-        /// Navigation item component
-        Nav nav = new Nav();
-        nav.addClassNames(Display.FLEX, Overflow.AUTO, Padding.Horizontal.MEDIUM, Padding.Vertical.XSMALL, Margin.End.AUTO, AlignItems.START);
-        /// UL for items of the navigation
-        UnorderedList list = new UnorderedList();
-        list.addClassNames(Display.FLEX, Gap.XSMALL, ListStyleType.NONE, Margin.NONE, Padding.NONE);
-        nav.add(list);
-        layout.add(nav);
-        /// For loop for inserting the menu items into the UL wrapper
-        for (MenuListItem menuItem : commonMenuItemsForLoggedUsers()) {
-            list.add(menuItem);
-        }
+        ThemeModeToggleButton.applyThemeFromCookie(UI.getCurrent());
 
-        /// Light or dark mode toggle switch with default of light mode
-        ThemeModeToggleButton buttonPrimary = new ThemeModeToggleButton();
-        layout.add(buttonPrimary);
+        layout.add(createMobileNavigationMenu());
+        Image brandIcon = new Image("/icons/MISH_icon.ico", "MISH");
+        brandIcon.setHeight("28px");
+        brandIcon.setWidth("28px");
+        brandIcon.getStyle().set("object-fit", "contain");
+        Span brand = new Span(brandIcon, new Span("MISH"));
+        brand.addClassNames(
+                LumoUtility.FontWeight.SEMIBOLD,
+                LumoUtility.FontSize.LARGE,
+                LumoUtility.Margin.Start.XSMALL
+        );
+        brand.addClassName("app-shell-brand");
+        brand.getStyle().set("display", "flex").set("align-items", "center").set("gap", "6px");
+        layout.add(brand);
+        layout.add(createDesktopNavigation());
+        layout.getStyle().set("flex-wrap", "nowrap");
+        layout.getStyle().set("min-width", "0");
+        brand.getStyle().set("white-space", "nowrap");
+
+        Div spacer = new Div();
+        spacer.getStyle().set("flex", "1 1 auto");
+        layout.add(spacer);
 
 
         UI.getCurrent().getPage().executeJs(
@@ -91,13 +101,54 @@ public class MainLayout extends AppLayout {
 
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getName())) {
             String username = authentication.getPrincipal() instanceof OidcUser oidcUser ? (oidcUser.getFullName() != null ? oidcUser.getFullName() : oidcUser.getPreferredUsername()) : authentication.getName();
-            layout.add(createUserMenu(authentication, username));
+            Component userMenu = createUserMenu(authentication, username);
+            userMenu.getElement().getClassList().add("app-shell-right-item");
+            layout.add(userMenu);
         } else {
             LoginButton loginButton = new LoginButton();
+            loginButton.addClassName("app-login-button");
+            loginButton.getElement().getClassList().add("app-shell-right-item");
             layout.add(loginButton);
         }
         header.add(layout);
         return header;
+    }
+
+    private Component createMobileNavigationMenu() {
+        MenuBar navMenuBar = new MenuBar();
+        navMenuBar.addClassName("app-nav-menu");
+        Icon menuIcon = VaadinIcon.MENU.create();
+        menuIcon.setSize("1.1rem");
+
+        MenuItem root = navMenuBar.addItem(menuIcon);
+        root.getElement().setProperty("title", "Navigace");
+        var subMenu = root.getSubMenu();
+        for (NavigationTarget target : commonNavigationTargets()) {
+            HorizontalLayout row = new HorizontalLayout(target.icon().create(), new Span(target.label()));
+            row.setAlignItems(FlexComponent.Alignment.CENTER);
+            row.setSpacing(true);
+            subMenu.addItem(row, e -> UI.getCurrent().navigate(target.view()));
+        }
+        return navMenuBar;
+    }
+
+    private Component createDesktopNavigation() {
+        Nav nav = new Nav();
+        nav.addClassNames(
+                "desktop-nav",
+                Display.FLEX,
+                Overflow.AUTO,
+                Padding.Horizontal.MEDIUM,
+                Padding.Vertical.XSMALL,
+                AlignItems.START
+        );
+        UnorderedList list = new UnorderedList();
+        list.addClassNames(Display.FLEX, Gap.XSMALL, ListStyleType.NONE, Margin.NONE, Padding.NONE);
+        for (NavigationTarget target : commonNavigationTargets()) {
+            list.add(new MenuListItem(target.label(), target.icon().create(), target.view()));
+        }
+        nav.add(list);
+        return nav;
     }
 
     /**
@@ -105,16 +156,13 @@ public class MainLayout extends AppLayout {
      *
      * @return the list of common menu items
      */
-    private List<MenuListItem> commonMenuItemsForLoggedUsers() {
-        Image logo = new Image("/icons/MISH_icon.ico", "MISH icon");
-        logo.setWidth("24px");
-        logo.setHeight("24px");
-        return new ArrayList<>(List.of(
-                new MenuListItem("MISH - Úvod", logo, MainPageView.class),
-                new MenuListItem("Kapitoly", VaadinIcon.OPEN_BOOK.create(), ChapterListingView.class),
-                new MenuListItem("Modely", VaadinIcon.CUBES.create(), ModelListingView.class),
-                new MenuListItem("Kvízy", VaadinIcon.LIGHTBULB.create(), QuizListingView.class)
-        ));
+    private List<NavigationTarget> commonNavigationTargets() {
+        return List.of(
+                new NavigationTarget("Úvod", VaadinIcon.HOME, MainPageView.class),
+                new NavigationTarget("Kapitoly", VaadinIcon.OPEN_BOOK, ChapterListingView.class),
+                new NavigationTarget("Modely", VaadinIcon.CUBES, ModelListingView.class),
+                new NavigationTarget("Kvízy", VaadinIcon.LIGHTBULB, QuizListingView.class)
+        );
     }
 
     /**
@@ -129,10 +177,16 @@ public class MainLayout extends AppLayout {
     private Component createUserMenu(Authentication authentication, String username) {
 
         MenuBar menuBar = new MenuBar();
+        menuBar.addClassName("app-user-menu");
 
 
         HorizontalLayout avatarLayout = new HorizontalLayout();
+        avatarLayout.addClassName("app-user-trigger");
+        avatarLayout.setSpacing(false);
+        avatarLayout.setPadding(false);
+        avatarLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         avatarLayout.getStyle().set("cursor", "pointer");
+        avatarLayout.getStyle().set("min-width", "0");
 
         AvatarListItem avatar = new AvatarListItem(username);
 
@@ -141,7 +195,6 @@ public class MainLayout extends AppLayout {
         dropdownIcon.setSize("1rem");
 
         avatarLayout.add(avatar, dropdownIcon);
-        avatarLayout.setAlignItems(FlexComponent.Alignment.CENTER);
 
         MenuItem userItem = menuBar.addItem(avatarLayout);
 
@@ -157,9 +210,23 @@ public class MainLayout extends AppLayout {
                     e -> UI.getCurrent().navigate(AdministrationView.class));
         }
 
+        Span themeLabel = new Span(currentThemeLabel());
+        MenuItem themeItem = subMenu.addItem(new HorizontalLayout(VaadinIcon.MOON.create(), themeLabel), e -> {
+            ThemeModeToggleButton.toggleTheme(UI.getCurrent());
+            themeLabel.setText(currentThemeLabel());
+        });
+        themeItem.getElement().setProperty("title", "Přepnout režim");
+
         subMenu.addItem(new HorizontalLayout(VaadinIcon.SIGN_OUT.create(), new Span("Odhlásit se")),
                 e -> UI.getCurrent().getPage().setLocation("/custom-logout"));
 
         return menuBar;
+    }
+
+    private record NavigationTarget(String label, VaadinIcon icon, Class<? extends Component> view) {
+    }
+
+    private String currentThemeLabel() {
+        return ThemeModeToggleButton.isDarkMode(UI.getCurrent()) ? "Režim: tmavý" : "Režim: světlý";
     }
 }

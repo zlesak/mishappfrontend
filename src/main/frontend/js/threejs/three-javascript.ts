@@ -1,9 +1,10 @@
-import { ThreeJSScene } from './ThreeJSScene';
-import type { IVaadinElement } from './types/interfaces';
+import {ThreeJSScene} from './ThreeJSScene';
+import type {IVaadinElement} from './types/interfaces';
 
 // Multi-instance management
 const instances = new WeakMap<IVaadinElement, any>();
 const pendingBackgroundSpecs = new WeakMap<IVaadinElement, { type: string; value: any }>();
+const operationQueues = new WeakMap<IVaadinElement, Promise<unknown>>();
 
 /**
  * Get Three.js scene instance for element
@@ -23,6 +24,15 @@ function getInstance(element: IVaadinElement): any {
  */
 function setInstance(element: IVaadinElement, inst: any): void {
     instances.set(element, inst);
+}
+
+function enqueueForElement<T>(element: IVaadinElement, operation: () => Promise<T>): Promise<T> {
+    const previous = operationQueues.get(element) ?? Promise.resolve();
+    const next = previous
+        .catch(() => undefined)
+        .then(() => operation());
+    operationQueues.set(element, next.catch(() => undefined));
+    return next;
 }
 
 /**
@@ -60,7 +70,7 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     }
     const inst = new ThreeJSScene();
     setInstance(element, inst);
-    void inst.init(element)
+    void Promise.resolve(inst.init(element))
         .then(() => applyPendingBackgroundIfAny(element))
         .catch((e: unknown) => {
             console.error('Error in initThree:', e);
@@ -107,10 +117,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     mainModel: boolean,
     questionId: string | null
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.loadModel(modelUrl, modelId, mainModel, questionId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.loadModel(modelUrl, modelId, mainModel, questionId);
+        }
+    });
 };
 
 /**
@@ -123,10 +135,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     element: IVaadinElement,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.removeModel(modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.removeModel(modelId);
+        }
+    });
 };
 
 /**
@@ -143,10 +157,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     questionId: string,
     force: boolean
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.clearModel(modelId, questionId, force);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.clearModel(modelId, questionId, force);
+        }
+    });
 };
 
 /**
@@ -163,10 +179,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     textureId: string,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.addOtherTexture(textureUrl, textureId, modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.addOtherTexture(textureUrl, textureId, modelId);
+        }
+    });
 };
 
 /**
@@ -181,10 +199,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     modelId: string,
     textureId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.removeOtherTexture(modelId, textureId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.removeOtherTexture(modelId, textureId);
+        }
+    });
 };
 
 /**
@@ -199,10 +219,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     texture: string,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.addMainTexture(texture, modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.addMainTexture(texture, modelId);
+        }
+    });
 };
 
 /**
@@ -215,10 +237,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     element: IVaadinElement,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.removeMainTexture(modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.removeMainTexture(modelId);
+        }
+    });
 };
 
 /**
@@ -231,10 +255,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     element: IVaadinElement,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.switchToMainTexture(modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.switchToMainTexture(modelId);
+        }
+    });
 };
 
 /**
@@ -249,10 +275,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     modelId: string,
     textureId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.switchOtherTexture(modelId, textureId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.switchOtherTexture(modelId, textureId);
+        }
+    });
 };
 
 /**
@@ -265,10 +293,12 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     element: IVaadinElement,
     modelId: string
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        await inst.showModelById(modelId);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            await inst.showModelById(modelId);
+        }
+    });
 };
 
 /**
@@ -287,11 +317,13 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     maskColor: string,
     opacity?: number
 ): Promise<void> {
-    const inst = getInstance(element);
-    if (inst) {
-        const op = typeof opacity === 'number' ? opacity : (window as any).THREEJS_MASK_OPACITY ?? 0.5;
-        await inst.applyMaskToMainTexture(modelId, textureId, maskColor, op);
-    }
+    await enqueueForElement(element, async () => {
+        const inst = getInstance(element);
+        if (inst) {
+            const op = typeof opacity === 'number' ? opacity : (window as any).THREEJS_MASK_OPACITY ?? 0.5;
+            await inst.applyMaskToMainTexture(modelId, textureId, maskColor, op);
+        }
+    });
 };
 
 /**
@@ -353,6 +385,45 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     } catch (e) {
         console.error('Invalid background spec JSON', e);
     }
+};
+
+(window as any).restoreDefaultBackground = async function(
+    element: IVaadinElement
+): Promise<void> {
+    const inst = getInstance(element);
+    if (!inst) {
+        pendingBackgroundSpecs.set(element, { type: 'cube', value: { path: 'skybox/', files: ['px.bmp', 'nx.bmp', 'py.bmp', 'ny.bmp', 'pz.bmp', 'nz.bmp'] } });
+        return;
+    }
+
+    await inst.restoreDefaultBackground();
+};
+
+/**
+ * Returns internal Three.js state useful for E2E diagnostics.
+ * For tests only.
+ */
+(window as any).getThreeDebugState = function(
+    element: IVaadinElement
+): any {
+    const inst = getInstance(element);
+    if (!inst) {
+        return {hasInstance: false};
+    }
+
+    const modelManager = (inst as any).modelManager;
+    const scene = (inst as any).scene;
+    const currentModel = modelManager?.getCurrentModel?.() ?? null;
+    const currentModelLoader = currentModel?.modelLoader ?? null;
+    const sceneChildren: any[] = Array.isArray(scene?.children) ? scene.children : [];
+
+    return {
+        hasInstance: true,
+        currentModelId: currentModel?.id ?? null,
+        hasCurrentModelLoader: !!currentModelLoader,
+        sceneChildrenCount: sceneChildren.length,
+        sceneContainsCurrentModelLoader: !!currentModelLoader && sceneChildren.includes(currentModelLoader)
+    };
 };
 
 // Cleanup on page unload

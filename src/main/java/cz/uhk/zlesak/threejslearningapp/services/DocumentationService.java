@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.api.clients.DocumentationApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationEntry;
+import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationEntryIndex;
 import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
@@ -23,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Service layer for managing application documentation.
@@ -83,16 +85,18 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         try {
             Path dir = Paths.get(storagePath);
             if (Files.exists(dir) && Files.isDirectory(dir)) {
-                Files.list(dir)
-                        .filter(p -> p.getFileName().toString().toLowerCase().endsWith(".json"))
-                        .forEach(p -> {
-                            try {
-                                String json = Files.readString(p, StandardCharsets.UTF_8);
-                                readAndMergeJsonString(json, target, p.getFileName().toString());
-                            } catch (Exception ex) {
-                                log.warn("Failed to read external file {}: {}", p, ex.getMessage());
-                            }
-                        });
+                try (Stream<Path> files = Files.list(dir)) {
+                    files
+                            .filter(p -> p.getFileName().toString().toLowerCase().endsWith(".json"))
+                            .forEach(p -> {
+                                try {
+                                    String json = Files.readString(p, StandardCharsets.UTF_8);
+                                    readAndMergeJsonString(json, target, p.getFileName().toString());
+                                } catch (Exception ex) {
+                                    log.warn("Failed to read external file {}: {}", p, ex.getMessage());
+                                }
+                            });
+                }
             } else {
                 Files.createDirectories(dir);
             }
@@ -164,26 +168,56 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         try {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated()) return List.of();
-            return auth.getAuthorities().stream()
+            List<String> roles = auth.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
+            return new ArrayList<>(normalizeRoles(roles));
         } catch (Exception e) {
             return List.of();
         }
     }
 
-    /**
-     * Determines if the current user has permission to view a specific entry.
-     *
-     * @param entry the entry to check.
-     * @return true if access is granted or no roles are required.
-     */
-    private boolean allowedForCurrentUser(DocumentationEntry entry) {
-        if (entry == null) return false;
-        if (entry.getRoles() == null || entry.getRoles().isEmpty()) return true;
+    private Set<String> normalizeRoles(List<String> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return Set.of();
+        }
 
-        List<String> userRoles = currentUserRoles();
-        return entry.getRoles().stream().anyMatch(userRoles::contains);
+        Set<String> normalized = new HashSet<>();
+        for (String role : roles) {
+            if (role == null || role.isBlank()) {
+                continue;
+            }
+            String trimmed = role.trim();
+            normalized.add(trimmed);
+
+            if (!trimmed.startsWith("ROLE_")) {
+                normalized.add("ROLE_" + trimmed.toUpperCase(Locale.ROOT));
+            }
+
+            if ("ROLE_ADMINISTRATOR".equals(trimmed)) {
+                normalized.add("ROLE_ADMIN");
+            }
+            if ("ROLE_ADMIN".equals(trimmed)) {
+                normalized.add("ROLE_ADMINISTRATOR");
+            }
+        }
+        return normalized;
+    }
+
+    private boolean allowedForRoles(DocumentationEntry entry, List<String> roles) {
+        if (entry == null) {
+            return false;
+        }
+        if (entry.getRoles() == null || entry.getRoles().isEmpty()) {
+            return true;
+        }
+        Set<String> normalizedUserRoles = normalizeRoles(roles);
+        if (normalizedUserRoles.isEmpty()) {
+            return false;
+        }
+
+        Set<String> normalizedEntryRoles = normalizeRoles(entry.getRoles());
+        return normalizedEntryRoles.stream().anyMatch(normalizedUserRoles::contains);
     }
 
     /**
@@ -192,8 +226,46 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
      * @return a filtered list of documentation entries.
      */
     public List<DocumentationEntry> getEntries() {
+        return getEntriesForRoles(currentUserRoles());
+    }
+
+    /**
+     * Returns documentation entries accessible to the specified roles.
+     *
+     * @param roles list of role strings to filter by.
+     * @return filtered list of documentation entries.
+     */
+    public List<DocumentationEntry> getEntriesForRoles(List<String> roles) {
         return loadEntries().stream()
-                .filter(this::allowedForCurrentUser)
+                .filter(entry -> allowedForRoles(entry, roles))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns all documentation entries without role filtering.
+     * Intended for admin edit/save flows to avoid destructive overwrites.
+     */
+    public List<DocumentationEntry> getAllEntriesForSave() {
+        return new ArrayList<>(loadEntries());
+    }
+
+    /**
+     * Returns lightweight index entries for list rendering (without content payload).
+     */
+    public List<DocumentationEntryIndex> getEntryIndexes() {
+        return getEntryIndexesForRoles(currentUserRoles());
+    }
+
+    /**
+     * Returns lightweight index entries accessible to the specified roles.
+     *
+     * @param roles list of role strings to filter by.
+     * @return filtered list of index entries.
+     */
+    public List<DocumentationEntryIndex> getEntryIndexesForRoles(List<String> roles) {
+        return loadEntries().stream()
+                .filter(entry -> allowedForRoles(entry, roles))
+                .map(DocumentationEntry::toIndex)
                 .collect(Collectors.toList());
     }
 
@@ -204,10 +276,83 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
      * @return a list of matching entries.
      */
     public List<DocumentationEntry> getEntriesByType(String type) {
+        return getEntriesByTypeForRoles(type, currentUserRoles());
+    }
+
+    /**
+     * Returns documentation entries of a given type accessible to the specified roles.
+     *
+     * @param type  entry type to filter by.
+     * @param roles list of role strings to filter by.
+     * @return filtered list of documentation entries.
+     */
+    public List<DocumentationEntry> getEntriesByTypeForRoles(String type, List<String> roles) {
         if (type == null) return List.of();
-        return getEntries().stream()
+        return getEntriesForRoles(roles).stream()
                 .filter(e -> type.equalsIgnoreCase(e.getType()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns all entries of a given type without role filtering.
+     */
+    public List<DocumentationEntry> getAllEntriesByTypeForSave(String type) {
+        if (type == null) {
+            return List.of();
+        }
+        return loadEntries().stream()
+                .filter(e -> type.equalsIgnoreCase(e.getType()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns filtered lightweight index entries by type.
+     */
+    public List<DocumentationEntryIndex> getEntryIndexesByType(String type) {
+        return getEntryIndexesByTypeForRoles(type, currentUserRoles());
+    }
+
+    /**
+     * Returns lightweight index entries of a given type accessible to the specified roles.
+     *
+     * @param type  entry type to filter by.
+     * @param roles list of role strings to filter by.
+     * @return filtered list of index entries.
+     */
+    public List<DocumentationEntryIndex> getEntryIndexesByTypeForRoles(String type, List<String> roles) {
+        if (type == null) {
+            return List.of();
+        }
+
+        return getEntryIndexesForRoles(roles).stream()
+                .filter(e -> type.equalsIgnoreCase(e.getType()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Resolves a full documentation entry by ID for the current user.
+     */
+    public DocumentationEntry getEntryDetail(String id) {
+        return getEntryDetailForRoles(id, currentUserRoles());
+    }
+
+    /**
+     * Returns a documentation entry by ID accessible to the specified roles.
+     *
+     * @param id    entry ID to look up.
+     * @param roles list of role strings to filter by.
+     * @return matching entry, or {@code null} if not found or not accessible.
+     */
+    public DocumentationEntry getEntryDetailForRoles(String id, List<String> roles) {
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+
+        return loadEntries().stream()
+                .filter(entry -> id.equals(entry.getId()))
+                .filter(entry -> allowedForRoles(entry, roles))
+                .findFirst()
+                .orElse(null);
     }
 
     /**

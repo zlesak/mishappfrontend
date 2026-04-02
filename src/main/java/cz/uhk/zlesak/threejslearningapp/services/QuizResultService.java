@@ -18,6 +18,11 @@ import org.springframework.stereotype.Service;
 @Scope("prototype")
 public class QuizResultService extends AbstractService<QuizValidationResult, QuickQuizResult, QuizResultFilter> {
 
+    /**
+     * Constructor for QuizResultService.
+     *
+     * @param quizApiClient API client for quiz result operations.
+     */
     @Autowired
     public QuizResultService(QuizResultApiClient quizApiClient) {
         super(quizApiClient);

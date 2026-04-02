@@ -47,6 +47,14 @@ public class FileUpload extends Upload implements I18nAware {
         this(acceptedFileTypes, maxOneFile, canNameFiles, true);
     }
 
+    /**
+     * Constructs the upload component with drag-and-drop support controlled by a flag.
+     *
+     * @param acceptedFileTypes  list of accepted file extensions or MIME types
+     * @param maxOneFile         if {@code true}, restricts the upload to one file at a time
+     * @param canNameFiles       if {@code true}, shows a display-name field for each uploaded file
+     * @param dragAndDropEnabled if {@code true}, enables the drag-and-drop drop zone
+     */
     public FileUpload(List<String> acceptedFileTypes, boolean maxOneFile, boolean canNameFiles, boolean dragAndDropEnabled) {
         super();
         this.canNameFiles = canNameFiles;

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { IModelData, ITextureData } from '../types/interfaces';
+import type {IModelData, ITextureData} from '../types/interfaces';
 
 /**
  * Domain model representing a 3D object with textures and educational metadata
@@ -39,6 +39,7 @@ export class Model implements IModelData {
     textureLoader: THREE.Texture | null;
     loadedMainTexture: THREE.Texture | null;
     main: boolean;
+    private readonly baseMaterialsByMeshId: Map<string, THREE.Material | THREE.Material[]> = new Map();
 
     constructor(
         id: string,
@@ -208,6 +209,7 @@ export class Model implements IModelData {
     applyTexture(texture: THREE.Texture): void {
         if (!this.modelLoader) return;
 
+        this.captureBaseMaterialsIfMissing();
         this.alignTextureToModelMaterial(texture);
 
         this.modelLoader.traverse((child) => {
@@ -215,15 +217,50 @@ export class Model implements IModelData {
                 const mesh = child as THREE.Mesh;
                 const oldMaterial = mesh.material;
                 if (Array.isArray(oldMaterial)) {
-                    mesh.material = oldMaterial.map((material) => this.applyTextureToMaterial(material, texture));
+                    const newMaterials = oldMaterial.map((material) => this.applyTextureToMaterial(material, texture));
+                    newMaterials.forEach((m, i) => { if (m !== oldMaterial[i]) oldMaterial[i].dispose(); });
+                    mesh.material = newMaterials;
                 } else if (oldMaterial) {
-                    mesh.material = this.applyTextureToMaterial(oldMaterial, texture);
+                    const newMaterial = this.applyTextureToMaterial(oldMaterial, texture);
+                    if (newMaterial !== oldMaterial) {
+                        oldMaterial.dispose();
+                    }
+                    mesh.material = newMaterial;
                 } else {
                     mesh.material = new THREE.MeshStandardMaterial({ map: texture });
                 }
                 (mesh.material as THREE.Material).needsUpdate = true;
             }
         });
+    }
+
+    /**
+     * Restores original materials from the loaded model file (GLB/OBJ),
+     * i.e. removes any runtime-applied main/other texture override.
+     */
+    restoreBaseMaterials(): void {
+        if (!this.modelLoader) return;
+
+        this.modelLoader.traverse((child) => {
+            if (!(child as THREE.Mesh).isMesh) return;
+            const mesh = child as THREE.Mesh;
+            const baseMaterial = this.baseMaterialsByMeshId.get(mesh.uuid);
+            if (!baseMaterial) return;
+
+            this.disposeMaterial(mesh.material);
+            mesh.material = this.cloneMaterial(baseMaterial);
+            if (Array.isArray(mesh.material)) {
+                mesh.material.forEach((m) => {
+                    m.needsUpdate = true;
+                });
+            } else {
+                mesh.material.needsUpdate = true;
+            }
+        });
+    }
+
+    clearBaseMaterials(): void {
+        this.baseMaterialsByMeshId.clear();
     }
 
     private alignTextureToModelMaterial(texture: THREE.Texture): void {
@@ -254,6 +291,20 @@ export class Model implements IModelData {
         texture.colorSpace = THREE.SRGBColorSpace;
         if (referenceMap) {
             texture.flipY = referenceMap.flipY;
+            texture.wrapS = referenceMap.wrapS;
+            texture.wrapT = referenceMap.wrapT;
+            texture.repeat.copy(referenceMap.repeat);
+            texture.offset.copy(referenceMap.offset);
+            texture.rotation = referenceMap.rotation;
+            texture.center.copy(referenceMap.center);
+        } else {
+            texture.flipY = true;
+            texture.wrapS = THREE.ClampToEdgeWrapping;
+            texture.wrapT = THREE.ClampToEdgeWrapping;
+            texture.repeat.set(1, 1);
+            texture.offset.set(0, 0);
+            texture.rotation = 0;
+            texture.center.set(0, 0);
         }
         texture.needsUpdate = true;
     }
@@ -267,7 +318,7 @@ export class Model implements IModelData {
             roughness?: number;
         };
 
-        if ('map' in mappedMaterial) {
+        if (mappedMaterial instanceof THREE.MeshStandardMaterial && 'map' in mappedMaterial) {
             mappedMaterial.map = texture;
 
             if (mappedMaterial.color) {
@@ -290,6 +341,33 @@ export class Model implements IModelData {
         return new THREE.MeshStandardMaterial({ map: texture, color: 0xffffff, metalness: 0, roughness: 1 });
     }
 
+    private captureBaseMaterialsIfMissing(): void {
+        if (!this.modelLoader) return;
+
+        this.modelLoader.traverse((child) => {
+            if (!(child as THREE.Mesh).isMesh) return;
+            const mesh = child as THREE.Mesh;
+            if (this.baseMaterialsByMeshId.has(mesh.uuid)) return;
+            this.baseMaterialsByMeshId.set(mesh.uuid, this.cloneMaterial(mesh.material));
+        });
+    }
+
+    private cloneMaterial(material: THREE.Material | THREE.Material[]): THREE.Material | THREE.Material[] {
+        if (Array.isArray(material)) {
+            return material.map((m) => m.clone());
+        }
+        return material.clone();
+    }
+
+    private disposeMaterial(material: THREE.Material | THREE.Material[] | null | undefined): void {
+        if (!material) return;
+        if (Array.isArray(material)) {
+            material.forEach((m) => m.dispose());
+            return;
+        }
+        material.dispose();
+    }
+
     /**
      * Dispose model resources
      *
@@ -304,6 +382,7 @@ export class Model implements IModelData {
     dispose(): void {
         this.clearMainTexture();
         this.clearOtherTextures();
+        this.clearBaseMaterials();
         
         if (this.modelLoader) {
             this.modelLoader = null;

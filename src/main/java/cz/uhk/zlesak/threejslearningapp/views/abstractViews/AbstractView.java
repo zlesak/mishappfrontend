@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.views.abstractViews;
 
 import com.vaadin.flow.component.Composite;
 import com.vaadin.flow.component.DetachEvent;
+import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -21,11 +22,7 @@ import org.springframework.http.HttpStatusCode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -66,7 +63,7 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
         asyncLoadingOverlay.setVisible(false);
         asyncLoadingOverlay.getElement().setProperty("aria-label", "Načítání");
         asyncLoadingOverlay.getStyle()
-                .set("position", "absolute")
+                .set("position", "fixed")
                 .set("inset", "0")
                 .set("display", "flex")
                 .set("flex-direction", "column")
@@ -74,7 +71,7 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
                 .set("justify-content", "center")
                 .set("background", "rgba(255,255,255,0.55)")
                 .set("backdrop-filter", "blur(1px)")
-                .set("z-index", "1000")
+                .set("z-index", "100000")
                 .set("pointer-events", "all");
 
         Div spinner = new Div();
@@ -305,6 +302,98 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
             onAsyncWorkFinished(ui);
             onError.accept(t);
         }
+    }
+
+    /**
+     * Public wrapper so non-view components can still execute backend calls with the same overlay semantics.
+     */
+    public <T> void executeAsyncWithOverlay(Supplier<T> supplier, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        runAsync(supplier, onSuccess, onError);
+    }
+
+    /**
+     * Convenience wrapper for asynchronous work without a return value.
+     */
+    protected void runAsyncVoid(Runnable runnable, Runnable onSuccess, Consumer<Throwable> onError) {
+        runAsync(() -> {
+            runnable.run();
+            return null;
+        }, ignored -> onSuccess.run(), onError);
+    }
+
+    /**
+     * Tracks external async work (e.g. client callback/future) with the same loading overlay semantics.
+     */
+    protected <T> void runFutureWithOverlay(CompletableFuture<T> future, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            onError.accept(new IllegalStateException("UI is not available"));
+            return;
+        }
+
+        onAsyncWorkStarted(ui);
+        future.whenComplete((result, error) -> {
+            onAsyncWorkFinished(ui);
+            if (ui.isClosing()) {
+                return;
+            }
+            ui.access(() -> {
+                if (error != null) {
+                    onError.accept(unwrapAsyncError(error));
+                    return;
+                }
+                onSuccess.accept(result);
+            });
+        });
+    }
+
+    /**
+     * Returns a future that mirrors the source one and keeps loading overlay visible while it is running.
+     */
+    protected <T> CompletableFuture<T> futureWithLoadingOverlay(CompletableFuture<T> future) {
+        UI ui = UI.getCurrent();
+        if (ui == null) {
+            return future;
+        }
+
+        onAsyncWorkStarted(ui);
+        CompletableFuture<T> wrapped = new CompletableFuture<>();
+        future.whenComplete((result, error) -> {
+            onAsyncWorkFinished(ui);
+            if (error != null) {
+                wrapped.completeExceptionally(unwrapAsyncError(error));
+                return;
+            }
+            wrapped.complete(result);
+        });
+        return wrapped;
+    }
+
+    public static AbstractView<?> findCurrentAbstractView(UI ui) {
+        if (ui == null) {
+            return null;
+        }
+
+        for (HasElement target : ui.getInternals().getActiveRouterTargetsChain()) {
+            if (target instanceof AbstractView<?> abstractView) {
+                return abstractView;
+            }
+        }
+        return null;
+    }
+
+    protected void beginLoadingOverlay(UI ui) {
+        if (ui == null || ui.isClosing()) {
+            return;
+        }
+        onAsyncWorkStarted(ui);
+    }
+
+    protected void endLoadingOverlay(UI ui) {
+        if (ui == null || ui.isClosing()) {
+            return;
+        }
+        onAsyncWorkFinished(ui);
     }
 
     private void onAsyncWorkStarted(UI ui) {

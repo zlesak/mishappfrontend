@@ -26,35 +26,54 @@ public class ThemeModeToggleButton extends Button {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
-        // Initialize from cookie
-        UI.getCurrent().getPage().executeJs(
-                "const match = document.cookie.match('(^|;) ?themeMode=([^;]*)(;|$)'); return match ? match[2] : null;"
-        ).then(String.class, value -> {
-            ThemeList themeList = UI.getCurrent().getElement().getThemeList();
-            if ("dark".equals(value)) {
-                themeList.add(Lumo.DARK);
-                setIcon(VaadinIcon.SUN_O.create());
-            } else {
-                themeList.remove(Lumo.DARK);
-                setIcon(VaadinIcon.MOON.create());
-            }
-        });
+        applyThemeFromCookie(UI.getCurrent());
+        setIcon(isDarkMode(UI.getCurrent()) ? VaadinIcon.SUN_O.create() : VaadinIcon.MOON.create());
     }
 
     private void toggleTheme() {
-        ThemeList themeList = UI.getCurrent().getElement().getThemeList();
-        String mode;
+        boolean dark = toggleTheme(UI.getCurrent());
+        setIcon(dark ? VaadinIcon.SUN_O.create() : VaadinIcon.MOON.create());
+    }
+
+    public static boolean isDarkMode(UI ui) {
+        if (ui == null) {
+            return false;
+        }
+        return ui.getElement().getThemeList().contains(Lumo.DARK);
+    }
+
+    public static boolean toggleTheme(UI ui) {
+        if (ui == null) {
+            return false;
+        }
+        ThemeList themeList = ui.getElement().getThemeList();
+        boolean dark;
         if (themeList.contains(Lumo.DARK)) {
             themeList.remove(Lumo.DARK);
-            setIcon(VaadinIcon.MOON.create());
-            mode = "light";
+            dark = false;
         } else {
             themeList.add(Lumo.DARK);
-            setIcon(VaadinIcon.SUN_O.create());
-            mode = "dark";
+            dark = true;
         }
-        UI.getCurrent().getPage().executeJs(
+        String mode = dark ? "dark" : "light";
+        ui.getPage().executeJs(
                 "document.cookie = 'themeMode=' + $0 + '; path=/; max-age=31536000';", mode);
+        return dark;
+    }
+
+    public static void applyThemeFromCookie(UI ui) {
+        if (ui == null) {
+            return;
+        }
+        ui.getPage().executeJs(
+                "const match = document.cookie.match('(^|;) ?themeMode=([^;]*)(;|$)'); return match ? match[2] : null;"
+        ).then(String.class, value -> {
+            ThemeList themeList = ui.getElement().getThemeList();
+            if ("dark".equals(value)) {
+                themeList.add(Lumo.DARK);
+            } else {
+                themeList.remove(Lumo.DARK);
+            }
+        });
     }
 }
-

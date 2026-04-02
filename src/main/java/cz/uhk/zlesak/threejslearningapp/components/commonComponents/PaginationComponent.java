@@ -10,6 +10,10 @@ import lombok.Getter;
 
 import java.util.function.Consumer;
 
+/**
+ * Pagination component for navigating between pages of a result set.
+ * Renders previous/next buttons and numbered page buttons with ellipsis for large page counts.
+ */
 public class PaginationComponent extends Div {
     private int currentPage;
     @Getter
@@ -20,6 +24,14 @@ public class PaginationComponent extends Div {
     private final Button nextButton = new Button(new Icon(VaadinIcon.CHEVRON_RIGHT));
     private final HorizontalLayout layout = new HorizontalLayout();
 
+    /**
+     * Constructs the pagination component.
+     *
+     * @param page         zero-based current page index
+     * @param limit        number of items per page
+     * @param totalItems   total number of items in the result set
+     * @param onPageChange callback invoked with the new zero-based page index on navigation
+     */
     public PaginationComponent(int page, int limit, long totalItems, Consumer<Integer> onPageChange) {
         this.currentPage = page+1;
         this.onPageChange = onPageChange;

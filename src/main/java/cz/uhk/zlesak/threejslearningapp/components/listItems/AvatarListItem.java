@@ -20,7 +20,11 @@ public class AvatarListItem extends Div {
     public AvatarListItem(String name) {
         HorizontalLayout userInfo = new HorizontalLayout();
         userInfo.addClassName("userMenuHeader");
+        userInfo.addClassName("user-menu-header");
         userInfo.setSpacing(false);
+        userInfo.setPadding(false);
+        userInfo.setWidth(null);
+        userInfo.getStyle().set("min-width", "0");
 
         Avatar userAvatar = new Avatar(name);
         userAvatar.getElement().setAttribute("tabindex", "-1");
@@ -28,10 +32,16 @@ public class AvatarListItem extends Div {
         userAvatar.addClassNames(LumoUtility.Margin.XSMALL);
 
         VerticalLayout nameLayout = new VerticalLayout();
+        nameLayout.addClassName("user-name-layout");
         nameLayout.setSpacing(false);
+        nameLayout.setPadding(false);
+        nameLayout.setWidth(null);
+        nameLayout.getStyle().set("min-width", "0");
 
         Div fullName = new Div(name);
         fullName.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.FontWeight.BOLD, LumoUtility.TextColor.SECONDARY);
+        fullName.addClassName("user-full-name");
+        fullName.getStyle().set("min-width", "0");
 
         nameLayout.addClassName(LumoUtility.Padding.SMALL);
 
@@ -39,6 +49,9 @@ public class AvatarListItem extends Div {
 
         userInfo.add(userAvatar, nameLayout);
         userInfo.setAlignItems(FlexComponent.Alignment.CENTER);
+        userInfo.setFlexGrow(1, nameLayout);
+        setWidth(null);
+        getStyle().set("min-width", "0");
         add(userInfo);
     }
 }

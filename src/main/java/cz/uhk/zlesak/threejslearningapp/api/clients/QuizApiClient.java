@@ -40,6 +40,13 @@ public class QuizApiClient extends AbstractApiClient<QuizEntity, QuickQuizEntity
         return sendGetRequest(baseUrl + quizId + "/questions", getEntityClass(), "Chyba při získávání entity dle ID", quizId, "startQuiz", "true");
     }
 
+    /**
+     * Reads all quiz data including correct answers for admin/teacher view.
+     *
+     * @param quizId Quiz ID.
+     * @return Quiz entity with all answers.
+     * @throws Exception if the API call fails.
+     */
     @Override
     public QuizEntity readAll(String quizId) throws Exception {
         return sendGetRequest(baseUrl + quizId + "/all", getEntityClass(), "Chyba při získávání entity dle ID", quizId, "startQuiz", "true");
