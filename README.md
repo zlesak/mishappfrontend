@@ -2,8 +2,8 @@
 
 ![MISH_LOGO](src/main/webapp/icons/MISH_icon.ico "MISH APP Logo")
 
-[![Java Tests](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml/badge.svg)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml)
-[![Vitest](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml/badge.svg)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml)
+[![Java Tests](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml/badge.svg?branch=main)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml)
+[![Vitest](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml/badge.svg?branch=main)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml)
 
 ## Description
 
