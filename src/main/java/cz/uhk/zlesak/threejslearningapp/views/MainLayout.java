@@ -68,13 +68,18 @@ public class MainLayout extends AppLayout {
         ThemeModeToggleButton.applyThemeFromCookie(UI.getCurrent());
 
         layout.add(createMobileNavigationMenu());
-        Span brand = new Span("MISH");
+        Image brandIcon = new Image("/icons/MISH_icon.ico", "MISH");
+        brandIcon.setHeight("28px");
+        brandIcon.setWidth("28px");
+        brandIcon.getStyle().set("object-fit", "contain");
+        Span brand = new Span(brandIcon, new Span("MISH"));
         brand.addClassNames(
                 LumoUtility.FontWeight.SEMIBOLD,
                 LumoUtility.FontSize.LARGE,
                 LumoUtility.Margin.Start.XSMALL
         );
         brand.addClassName("app-shell-brand");
+        brand.getStyle().set("display", "flex").set("align-items", "center").set("gap", "6px");
         layout.add(brand);
         layout.add(createDesktopNavigation());
         layout.getStyle().set("flex-wrap", "nowrap");
@@ -153,7 +158,7 @@ public class MainLayout extends AppLayout {
      */
     private List<NavigationTarget> commonNavigationTargets() {
         return List.of(
-                new NavigationTarget("MISH - Úvod", VaadinIcon.HOME, MainPageView.class),
+                new NavigationTarget("Úvod", VaadinIcon.HOME, MainPageView.class),
                 new NavigationTarget("Kapitoly", VaadinIcon.OPEN_BOOK, ChapterListingView.class),
                 new NavigationTarget("Modely", VaadinIcon.CUBES, ModelListingView.class),
                 new NavigationTarget("Kvízy", VaadinIcon.LIGHTBULB, QuizListingView.class)

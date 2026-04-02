@@ -18,7 +18,6 @@ public class QuizResultListItem extends AbstractListItem {
      */
     public QuizResultListItem(QuickQuizResult result, boolean administrationView, String redirect) {
         super(true, administrationView, VaadinIcon.CHECK_SQUARE);
-        HorizontalLayout quizName = new HorizontalLayout();
         Span maxScoreLabel = new Span(text("quiz.result.maxScore.label") + ": ");
         Span maxScore = new Span(String.valueOf(result.getMaxScore()));
         Span totalScoreLabel = new Span(text("quiz.result.totalScore.label") + ": ");
@@ -26,12 +25,18 @@ public class QuizResultListItem extends AbstractListItem {
         Span percentageLabel = new Span(text("quiz.result.percentage.label") + ": ");
         Span percentage = new Span(String.format("%.2f%%", result.getPercentage()));
 
-
         maxScore.getStyle().set("font-weight", "600");
         totalScore.getStyle().set("font-weight", "600");
         percentage.getStyle().set("font-weight", "600");
 
-        quizName.add(maxScoreLabel, maxScore, totalScoreLabel, totalScore, percentageLabel, percentage);
+        HorizontalLayout maxScorePair = new HorizontalLayout(maxScoreLabel, maxScore);
+        HorizontalLayout totalScorePair = new HorizontalLayout(totalScoreLabel, totalScore);
+        HorizontalLayout percentagePair = new HorizontalLayout(percentageLabel, percentage);
+
+        HorizontalLayout quizName = new HorizontalLayout(maxScorePair, totalScorePair, percentagePair);
+        quizName.getStyle().set("flex-wrap", "wrap");
+        quizName.setWidthFull();
+
         details.add(quizName);
 
 

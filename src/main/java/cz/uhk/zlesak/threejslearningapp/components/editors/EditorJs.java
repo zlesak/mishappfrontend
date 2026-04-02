@@ -80,6 +80,11 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                 .thenApply(ignore -> null);
     }
 
+    /**
+     * Filters the editor content to show only blocks belonging to the given level-1 header.
+     *
+     * @param headerIdOrText the header ID or text used to identify the section to display
+     */
     public void filterContentByLevel1Header(String headerIdOrText) {
         getElement().callJsFunction("filterContentByLevel1Header", headerIdOrText, false)
                 .toCompletableFuture()
@@ -89,6 +94,11 @@ public class EditorJs extends Component implements HasSize, HasStyle, I18nAware 
                 .thenApply(ignore -> null);
     }
 
+    /**
+     * Scrolls the editor view to the element identified by the given heading ID or text.
+     *
+     * @param headerIdOrText the heading ID or text to scroll to
+     */
     public void scrollToHeading(String headerIdOrText) {
         getElement().callJsFunction("scrollToDataId", headerIdOrText)
                 .toCompletableFuture()

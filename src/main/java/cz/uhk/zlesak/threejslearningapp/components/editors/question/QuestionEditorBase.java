@@ -138,6 +138,11 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
         });
     }
 
+    /**
+     * Populates editor fields from the given question data.
+     *
+     * @param questionData the question data to load into the editor
+     */
     public void initialize(AbstractQuestionData questionData) {
         questionId = questionData.getQuestionId();
         questionTextField.setValue(questionData.getQuestionText());

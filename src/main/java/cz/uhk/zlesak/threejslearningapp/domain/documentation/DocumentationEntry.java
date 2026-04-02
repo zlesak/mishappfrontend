@@ -22,6 +22,9 @@ public class DocumentationEntry extends AbstractEntity {
     private String content;
     private List<String> roles;
 
+    /**
+     * @return Lightweight index projection of this entry, without content payload.
+     */
     public DocumentationEntryIndex toIndex() {
         return new DocumentationEntryIndex(id, type, title, roles == null ? List.of() : List.copyOf(roles));
     }

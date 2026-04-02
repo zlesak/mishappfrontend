@@ -50,6 +50,11 @@ public class ModelTextureAreaSelectContainer extends HorizontalLayout {
         setWrap(true);
     }
 
+    /**
+     * Sets the question ID scoped to this container and propagates it to all child selects.
+     *
+     * @param questionId the question ID to associate with this container
+     */
     public void setQuestionId(String questionId) {
         this.questionId = questionId;
         modelListingSelect.setQuestionId(questionId);

@@ -29,6 +29,12 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
     private final List<AbstractQuestionData> questions = new ArrayList<>();
     private final List<AbstractAnswerData> answers = new ArrayList<>();
 
+    /**
+     * Constructor for QuizService.
+     *
+     * @param quizApiClient       API client for quiz operations.
+     * @param quizResultApiClient API client for quiz result operations.
+     */
     @Autowired
     public QuizService(QuizApiClient quizApiClient, QuizResultApiClient quizResultApiClient) {
         super(quizApiClient);

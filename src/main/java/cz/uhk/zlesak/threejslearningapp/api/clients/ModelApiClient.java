@@ -29,6 +29,12 @@ import java.util.concurrent.Callable;
 @Component
 public class ModelApiClient extends AbstractApiClient<ModelEntity, QuickModelEntity, ModelFilter> {
 
+    /**
+     * Constructor for ModelApiClient.
+     *
+     * @param restClient   RestClient for making HTTP requests.
+     * @param objectMapper ObjectMapper for JSON serialization/deserialization.
+     */
     @Autowired
     public ModelApiClient(RestClient restClient, ObjectMapper objectMapper) {
         super(restClient, objectMapper, "model/");

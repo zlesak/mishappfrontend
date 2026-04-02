@@ -17,6 +17,15 @@ public class ThreeJsActionEvent extends ComponentEvent<UI> {
     private final ThreeJsActions action;
     private final boolean forceClient;
 
+    /**
+     * @param source     The UI component firing the event.
+     * @param modelId    ID of the target 3D model.
+     * @param textureId  ID of the target texture.
+     * @param action     Action to perform on the model or texture.
+     * @param fromClient Whether the event originated on the client side.
+     * @param questionId ID of the associated quiz question, if any.
+     * @param maskColor  Optional hex mask color; when two values are passed the second signals forced client execution.
+     */
     public ThreeJsActionEvent(UI source, String modelId, String textureId, ThreeJsActions action, boolean fromClient, String questionId, String... maskColor) {
         super(source, fromClient);
         this.modelId = modelId;

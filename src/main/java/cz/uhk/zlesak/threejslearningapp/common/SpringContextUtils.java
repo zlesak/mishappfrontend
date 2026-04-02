@@ -25,6 +25,11 @@ public class SpringContextUtils implements ApplicationContextAware {
         context = applicationContext;
     }
 
+    /**
+     * Manually sets the ApplicationContext. Intended for test environments.
+     *
+     * @param applicationContext the ApplicationContext to set.
+     */
     public static void setContext(@NotNull ApplicationContext applicationContext) {
         context = applicationContext;
     }

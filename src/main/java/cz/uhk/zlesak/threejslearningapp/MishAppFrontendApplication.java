@@ -55,6 +55,12 @@ public class MishAppFrontendApplication implements AppShellConfigurator {
         return RestClient.builder().requestFactory(requestFactory).build();
     }
 
+    /**
+     * Thread pool executor for background model I/O operations.
+     * Propagates the Spring Security context to spawned threads.
+     *
+     * @return configured DelegatingSecurityContextAsyncTaskExecutor.
+     */
     @Bean(name = "modelIoExecutor")
     @Primary
     @ConditionalOnMissingBean(name = "modelIoExecutor")

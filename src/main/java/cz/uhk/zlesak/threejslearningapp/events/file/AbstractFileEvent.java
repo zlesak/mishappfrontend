@@ -15,6 +15,14 @@ public abstract class AbstractFileEvent extends ComponentEvent<UI> {
     private final String entityId;
     private final String questionId;
 
+    /**
+     * @param source     The UI component firing the event.
+     * @param modelId    ID of the model associated with the file.
+     * @param fileType   Type of the file being handled.
+     * @param entityId   ID of the entity the file belongs to.
+     * @param fromClient Whether the event originated on the client side.
+     * @param questionId ID of the quiz question associated with the file, if any.
+     */
     public AbstractFileEvent(UI source, String modelId, FileType fileType, String entityId, boolean fromClient, String questionId) {
         super(source, fromClient);
         this.modelId = modelId;

@@ -1,5 +1,9 @@
 package cz.uhk.zlesak.threejslearningapp.components.inputs.quizes;
 
+/**
+ * Quiz option component used in texture-click questions.
+ * Inherits standard option layout from {@link QuestionOption}.
+ */
 public class TextureQuestionOption extends QuestionOption {
 
     /**

@@ -76,6 +76,14 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         return createModelEntity;
     }
 
+    /**
+     * Reads a model entity by its metadata ID.
+     * Fetches the file entity tree from the backend and maps it to a {@link ModelEntity}.
+     *
+     * @param entityId metadata ID of the model.
+     * @return ModelEntity with populated file references and textures.
+     * @throws RuntimeException if the API call fails.
+     */
     @Override
     public ModelEntity read(String entityId) throws RuntimeException {
         try {
@@ -103,6 +111,13 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         return ((ModelApiClient) apiClient).downloadFile(fileId);
     }
 
+    /**
+     * Downloads all files associated with a model entity and packages them for form pre-filling.
+     *
+     * @param modelEntity model entity whose files should be downloaded.
+     * @return ModelPrefillData containing the model file, textures, and CSV files.
+     * @throws Exception if any file download fails.
+     */
     public ModelPrefillData buildPrefillData(ModelEntity modelEntity) throws Exception {
         InputStreamMultipartFile modelFile = downloadFile(modelEntity.getModel().getId());
 
@@ -143,6 +158,20 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         );
     }
 
+    /**
+     * Creates or updates a model from uploaded files.
+     * Determines create vs update based on whether {@code existingMetadataId} is present.
+     *
+     * @param existingMetadataId existing model metadata ID for update, or {@code null} for create.
+     * @param name               model display name.
+     * @param modelFile          uploaded 3D model file.
+     * @param mainTextureFile    optional main texture file.
+     * @param otherTextureFiles  optional list of additional texture files.
+     * @param csvFiles           optional list of CSV annotation files.
+     * @param thumbnailDataUrl   base64-encoded thumbnail data URL.
+     * @param backgroundSpecJson JSON describing the background spec.
+     * @return saved model metadata ID.
+     */
     public String saveFromUpload(
             String existingMetadataId,
             String name,
@@ -303,14 +332,33 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         }
     }
 
+    /**
+     * Extracts the thumbnail data URL from a model description string.
+     *
+     * @param description encoded model description.
+     * @return thumbnail data URL, or empty string if absent.
+     */
     public String extractThumbnailDataUrl(String description) {
         return parseModelDescription(description).thumbnailDataUrl();
     }
 
+    /**
+     * Extracts the background spec JSON from a model description string.
+     *
+     * @param description encoded model description.
+     * @return background spec JSON, or {@code null} if absent.
+     */
     public String extractBackgroundSpecJson(String description) {
         return parseModelDescription(description).backgroundSpecJson();
     }
 
+    /**
+     * Resolves the effective background spec JSON for a model entity.
+     * Prefers a background image stored as a GridFS file; falls back to description metadata.
+     *
+     * @param entity model entity to resolve background for.
+     * @return background spec JSON, or {@code null} if none is available.
+     */
     public String resolveBackgroundSpecJson(ModelEntity entity) {
         if (entity == null) {
             return null;

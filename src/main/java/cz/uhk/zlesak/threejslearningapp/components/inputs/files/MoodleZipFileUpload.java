@@ -92,7 +92,10 @@ public class MoodleZipFileUpload extends FileUpload implements I18nAware {
     }
 
     /**
-     * Get MIME type based on file extension
+     * Resolves the MIME type for the given filename based on its extension.
+     *
+     * @param filename the file name including extension
+     * @return the corresponding MIME type string, defaulting to {@code "image/jpeg"}
      */
     private static String getMimeType(String filename) {
         String lower = filename.toLowerCase();

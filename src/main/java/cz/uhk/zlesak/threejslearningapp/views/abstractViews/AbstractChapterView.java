@@ -210,6 +210,12 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
         }
     }
 
+    /**
+     * Stores the resolved background specification JSON for a given model entity,
+     * so it can be applied when that model is shown in the 3D viewer.
+     *
+     * @param modelEntity the model entity whose background spec should be cached
+     */
     protected void rememberModelBackgroundSpec(QuickModelEntity modelEntity) {
         if (modelEntity == null || modelEntity.getModel() == null || modelEntity.getModel().getId() == null) {
             return;

@@ -229,6 +229,12 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         return getEntriesForRoles(currentUserRoles());
     }
 
+    /**
+     * Returns documentation entries accessible to the specified roles.
+     *
+     * @param roles list of role strings to filter by.
+     * @return filtered list of documentation entries.
+     */
     public List<DocumentationEntry> getEntriesForRoles(List<String> roles) {
         return loadEntries().stream()
                 .filter(entry -> allowedForRoles(entry, roles))
@@ -250,6 +256,12 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         return getEntryIndexesForRoles(currentUserRoles());
     }
 
+    /**
+     * Returns lightweight index entries accessible to the specified roles.
+     *
+     * @param roles list of role strings to filter by.
+     * @return filtered list of index entries.
+     */
     public List<DocumentationEntryIndex> getEntryIndexesForRoles(List<String> roles) {
         return loadEntries().stream()
                 .filter(entry -> allowedForRoles(entry, roles))
@@ -267,6 +279,13 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         return getEntriesByTypeForRoles(type, currentUserRoles());
     }
 
+    /**
+     * Returns documentation entries of a given type accessible to the specified roles.
+     *
+     * @param type  entry type to filter by.
+     * @param roles list of role strings to filter by.
+     * @return filtered list of documentation entries.
+     */
     public List<DocumentationEntry> getEntriesByTypeForRoles(String type, List<String> roles) {
         if (type == null) return List.of();
         return getEntriesForRoles(roles).stream()
@@ -293,6 +312,13 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         return getEntryIndexesByTypeForRoles(type, currentUserRoles());
     }
 
+    /**
+     * Returns lightweight index entries of a given type accessible to the specified roles.
+     *
+     * @param type  entry type to filter by.
+     * @param roles list of role strings to filter by.
+     * @return filtered list of index entries.
+     */
     public List<DocumentationEntryIndex> getEntryIndexesByTypeForRoles(String type, List<String> roles) {
         if (type == null) {
             return List.of();
@@ -310,6 +336,13 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
         return getEntryDetailForRoles(id, currentUserRoles());
     }
 
+    /**
+     * Returns a documentation entry by ID accessible to the specified roles.
+     *
+     * @param id    entry ID to look up.
+     * @param roles list of role strings to filter by.
+     * @return matching entry, or {@code null} if not found or not accessible.
+     */
     public DocumentationEntry getEntryDetailForRoles(String id, List<String> roles) {
         if (id == null || id.isBlank()) {
             return null;

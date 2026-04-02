@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
@@ -58,6 +59,7 @@ public class QuizResultsHistoryPanel extends VerticalLayout implements I18nAware
         paginationLayout.setWidthFull();
         paginationLayout.setPadding(false);
         paginationLayout.setSpacing(false);
+        paginationLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         paginationLayout.addClassName("quiz-results-history-pagination");
 
         add(heading, itemsLayout, paginationLayout);

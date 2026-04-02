@@ -8,6 +8,9 @@ import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import lombok.Getter;
 
+/**
+ * Container combining a model select dropdown and an existing-model button for a single block.
+ */
 @Getter
 public class ModelSelectContainer extends HorizontalLayout implements I18nAware {
     private final Select<QuickModelEntity> select;

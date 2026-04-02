@@ -130,10 +130,20 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
         getElement().setProperty("title", item != null ? itemLabelGenerator.apply(item) : "");
     }
 
+    /**
+     * Returns whether the internal items map contains any entries.
+     *
+     * @return {@code true} if at least one item is present
+     */
     public boolean hasAvailableItems() {
         return !items.isEmpty();
     }
 
+    /**
+     * Returns the item marked as main, or the first available item if none is marked as main.
+     *
+     * @return the main item, the first item, or {@code null} if the map is empty
+     */
     public T gatMainOrFirst() {
         T main = items.get("main");
         return main != null ? main : items.values().stream().findFirst().orElse(null);

@@ -9,6 +9,9 @@ import lombok.Getter;
  */
 @Getter
 public class CreateChapterEvent extends ComponentEvent<UI> {
+    /**
+     * @param source The UI component firing the event.
+     */
     public CreateChapterEvent(UI source) {
         super(source, true);
     }

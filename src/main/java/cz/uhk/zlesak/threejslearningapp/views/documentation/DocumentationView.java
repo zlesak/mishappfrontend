@@ -73,6 +73,11 @@ public class DocumentationView extends AbstractView<DocumentationService>  {
     private final AtomicInteger listLoadSequence = new AtomicInteger(0);
     private boolean initialListLoaded = false;
 
+    /**
+     * Constructor for DocumentationView.
+     *
+     * @param documentationService the service used for loading and saving documentation entries
+     */
     @Autowired
     public DocumentationView(DocumentationService documentationService) {
         super("page.title.documentation", documentationService);

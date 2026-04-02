@@ -209,6 +209,14 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         return chapterSelect.getValue() != null ? chapterSelect.getValue().getId() : null;
     }
 
+    /**
+     * Pre-fills the form fields with existing quiz data for edit mode.
+     *
+     * @param name        existing quiz name
+     * @param description existing quiz description
+     * @param timeLimit   existing time limit in minutes
+     * @param chapter     the chapter currently linked to the quiz
+     */
     public void setQuizData(String name, String description, Integer timeLimit, ChapterEntity chapter) {
         nameField.setValue(name != null ? name : "");
         descriptionField.setValue(description != null ? description : "");

@@ -446,6 +446,11 @@ public class ThreeJsComponent extends Component {
         }
     }
 
+    /**
+     * Retrieves the current background specification as a JSON string via a callback.
+     *
+     * @param callback consumer invoked with the JSON string, or {@code null} if unavailable
+     */
     public void getBackgroundSpecData(java.util.function.Consumer<String> callback) {
         String requestId = String.valueOf(callbackRequestSequence.incrementAndGet());
         backgroundSpecCallbacks.put(requestId, callback);
@@ -465,6 +470,11 @@ public class ThreeJsComponent extends Component {
                 """, getElement(), this, requestId);
     }
 
+    /**
+     * Applies a background specification to the Three.js scene.
+     *
+     * @param backgroundSpecJson JSON string describing the background configuration
+     */
     public void setBackgroundSpec(String backgroundSpecJson) {
         dispatchJsAsync("""
                 try {
@@ -477,6 +487,9 @@ public class ThreeJsComponent extends Component {
                 """, getElement(), backgroundSpecJson);
     }
 
+    /**
+     * Restores the default background in the Three.js scene, discarding any custom background specification.
+     */
     public void restoreDefaultBackground() {
         dispatchJsAsync("""
                 try {

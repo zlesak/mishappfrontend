@@ -17,10 +17,21 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelCreateView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelDetailView;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * List item component representing a 3D model in listing and administration views.
+ * Displays an optional thumbnail image extracted from the model description.
+ */
 @Slf4j
 @Tag("div")
 public class ModelListItem extends AbstractListItem {
 
+    /**
+     * Constructs the model list item.
+     *
+     * @param model              the model entity to display
+     * @param listView           whether to render in list (read) mode
+     * @param administrationView whether to show edit and delete controls
+     */
     public ModelListItem(QuickModelEntity model, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.CUBES);
 

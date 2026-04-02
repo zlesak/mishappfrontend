@@ -26,9 +26,19 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 
+/**
+ * List item component representing a chapter in listing and administration views.
+ */
 @Slf4j
 @Tag("div")
 public class ChapterListItem extends AbstractListItem {
+    /**
+     * Constructs the chapter list item.
+     *
+     * @param chapter           the chapter entity to display
+     * @param listView          whether to render in list (read) mode
+     * @param administrationView whether to show edit and delete controls
+     */
     public ChapterListItem(ChapterEntity chapter, boolean listView, boolean administrationView) {
         super(listView, administrationView, VaadinIcon.OPEN_BOOK);
 

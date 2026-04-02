@@ -14,6 +14,12 @@ import org.springframework.web.client.RestClient;
 @Component
 public class DocumentationApiClient extends AbstractApiClient<DocumentationEntry, DocumentationEntry, DocumentationFilter> {
 
+    /**
+     * Constructor for DocumentationApiClient.
+     *
+     * @param restClient   RestClient for making HTTP requests.
+     * @param objectMapper ObjectMapper for JSON serialization/deserialization.
+     */
     @Autowired
     public DocumentationApiClient(RestClient restClient, ObjectMapper objectMapper) {
         super(restClient, objectMapper, "documentation/");

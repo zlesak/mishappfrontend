@@ -34,6 +34,18 @@ body {
 
 .app-nav-menu [part='menu-bar-button'] {
   min-width: 2.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-nav-menu vaadin-menu-bar-button {
+  min-width: 2.25rem !important;
+  width: 2.25rem !important;
+  padding-inline: 0 !important;
 }
 
 .app-shell-brand {
