@@ -37,7 +37,7 @@ Link to MISH SCRIPTS repository: https://github.com/zlesak/MISH_SCRIPTS
 
 ## Testing
 
-### Unit and component tests (Vitest)
+### JS and TS app part tests (Vitest)
 
 ```bash
 npm run test
@@ -57,7 +57,7 @@ npx playwright test e2e/threejs-canvas-perf.spec.ts
 
 Results are written to `test-results/threejs-perf-results.json` after each run.
 
-### Java backend tests (Maven)
+### Java unit and component tests (Maven)
 
 ```bash
 ./mvnw test
