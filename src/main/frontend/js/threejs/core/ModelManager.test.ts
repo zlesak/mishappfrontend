@@ -86,12 +86,13 @@ describe('ModelManager', () => {
     const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     (manager as any).modelSourceCache.set('model-1', { src: model.model, objectUrl: 'blob:model-1', isGltf: false });
     const disposeObject = vi.fn();
+    const loader = model.modelLoader;
 
     await manager.removeModel('model-1', disposeObject);
     manager.removeFromList('model-1');
 
-    expect(disposeObject).toHaveBeenCalledWith(model.modelLoader);
-    expect(scene.remove).toHaveBeenCalledWith(model.modelLoader);
+    expect(disposeObject).toHaveBeenCalledWith(loader);
+    expect(scene.remove).toHaveBeenCalledWith(loader);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:model-1');
     expect(manager.findModel('model-1')).toBeNull();
   });

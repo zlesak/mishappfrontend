@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
@@ -42,7 +43,7 @@ class ModelListItemKaribuTest {
         ModelListItem item = new ModelListItem(m, true, true);
         UI.getCurrent().add(item);
         btn(item, "Otevřít").click();
-        assertSame(m, com.vaadin.flow.server.VaadinSession.getCurrent().getAttribute("quickModelEntity"));
+        assertSame(m, VaadinSession.getCurrent().getAttribute("quickModelEntity"));
     }
 
     @Test
@@ -53,7 +54,7 @@ class ModelListItemKaribuTest {
         ModelListItem item = new ModelListItem(m, true, true);
         UI.getCurrent().add(item);
         btn(item, "Upravit").click();
-        assertSame(m, com.vaadin.flow.server.VaadinSession.getCurrent().getAttribute("quickModelEntity"));
+        assertSame(m, VaadinSession.getCurrent().getAttribute("quickModelEntity"));
         btn(item, "Smazat").click();
         ConfirmDialog dialog = _get(ConfirmDialog.class);
         _click(_get(Button.class, spec -> spec.withText("Smazat model")));
@@ -77,7 +78,7 @@ class ModelListItemKaribuTest {
         ModelListItem item = new ModelListItem(m, false, true);
         UI.getCurrent().add(item);
         btn(item, "Otevřít").click();
-        assertSame(m, com.vaadin.flow.server.VaadinSession.getCurrent().getAttribute("quickModelEntity"));
+        assertSame(m, VaadinSession.getCurrent().getAttribute("quickModelEntity"));
     }
 
     @Test

@@ -7,6 +7,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.router.Router;
+import com.vaadin.flow.server.RouteRegistry;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.i18n.CustomI18NProvider;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
@@ -35,22 +38,23 @@ public final class VaadinTestSupport {
     private static UI setCurrentUiInternal(Map<Class<?>, Object> beans, Class<? extends Component>... routeTargets) {
         ensureI18nContext(beans);
         Map<Class<? extends Component>, String> routes = resolveRoutes(routeTargets);
-        var routeRegistry = mock(com.vaadin.flow.server.RouteRegistry.class);
+        var routeRegistry = mock(RouteRegistry.class);
         when(routeRegistry.getTargetUrl(any())).thenAnswer(invocation ->
                 Optional.ofNullable(routes.get(asComponentType(invocation.getArgument(0)))));
         when(routeRegistry.getTargetUrl(any(), any(RouteParameters.class))).thenAnswer(invocation ->
                 Optional.ofNullable(routes.get(asComponentType(invocation.getArgument(0)))));
 
-        Router router = new Router(routeRegistry);
-        var service = mock(com.vaadin.flow.server.VaadinService.class);
-        when(service.getRouter()).thenReturn(router);
-        com.vaadin.flow.server.VaadinService.setCurrent(service);
+        var service = mock(VaadinService.class);
+        VaadinService.setCurrent(service);
 
-        var session = mock(com.vaadin.flow.server.VaadinSession.class);
+        Router router = new Router(routeRegistry);
+        when(service.getRouter()).thenReturn(router);
+
+        var session = mock(VaadinSession.class);
         doNothing().when(session).checkHasLock();
         when(session.getService()).thenReturn(service);
         when(session.hasLock()).thenReturn(true);
-        com.vaadin.flow.server.VaadinSession.setCurrent(session);
+        VaadinSession.setCurrent(session);
 
         UI ui = new UI();
         ui.setLocale(Locale.forLanguageTag("cs"));
@@ -61,8 +65,8 @@ public final class VaadinTestSupport {
 
     public static void clearCurrentUi() {
         UI.setCurrent(null);
-        com.vaadin.flow.server.VaadinSession.setCurrent(null);
-        com.vaadin.flow.server.VaadinService.setCurrent(null);
+        VaadinSession.setCurrent(null);
+        VaadinService.setCurrent(null);
     }
 
     public static <T extends Component> List<T> findAll(Component root, Class<T> type) {

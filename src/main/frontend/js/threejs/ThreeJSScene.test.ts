@@ -147,6 +147,8 @@ describe('ThreeJSScene', () => {
       lastSelectedTextureId: 'mask-1',
     });
 
+    (subject as any).scene.add(currentModel.modelLoader);
+
     return { subject, currentModel, modelManager, textureManager, disposalManager, guiManager, eventManager };
   }
 
@@ -222,7 +224,7 @@ describe('ThreeJSScene', () => {
     await subject.setBackground({ type: 'image', value: '/images/background.png' });
     expect((subject as any).scene.background).toBe(imageTexture);
 
-    await subject.setBackground({ type: 'cube', value: { path: 'skybox/', files: ['px.bmp'] } });
+    await subject.setBackground({ type: 'cube', value: { path: 'skybox/', files: ['px.bmp', 'nx.bmp', 'py.bmp', 'ny.bmp', 'pz.bmp', 'nz.bmp'] } });
     expect((subject as any).scene.background).toBe(cubeTexture);
     expect(render).toHaveBeenCalledTimes(3);
   });
@@ -324,6 +326,7 @@ describe('ThreeJSScene', () => {
   it('runs wrapper operations, queue notifications and thumbnail restore flow', async () => {
     vi.useFakeTimers();
     const { subject, currentModel, modelManager, textureManager } = createSubject();
+    vi.spyOn(subject as any, 'waitForSceneSettle').mockResolvedValue(undefined);
     const animateCameraToMask = vi.spyOn(subject as any, 'animateCameraToMask');
     const render = vi.spyOn(subject as any, 'render');
 

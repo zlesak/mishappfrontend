@@ -985,7 +985,7 @@ export class ThreeJSScene {
             return {type: 'cube', value: {path, files}};
         }
 
-        return null;
+        return { type: bgSpec.type, value: bgSpec.value };
     }
 
     private cloneBackgroundSpec(bgSpec: { type: string; value: any } | null): { type: string; value: any } | null {

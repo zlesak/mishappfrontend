@@ -217,9 +217,15 @@ export class Model implements IModelData {
                 const mesh = child as THREE.Mesh;
                 const oldMaterial = mesh.material;
                 if (Array.isArray(oldMaterial)) {
-                    mesh.material = oldMaterial.map((material) => this.applyTextureToMaterial(material, texture));
+                    const newMaterials = oldMaterial.map((material) => this.applyTextureToMaterial(material, texture));
+                    newMaterials.forEach((m, i) => { if (m !== oldMaterial[i]) oldMaterial[i].dispose(); });
+                    mesh.material = newMaterials;
                 } else if (oldMaterial) {
-                    mesh.material = this.applyTextureToMaterial(oldMaterial, texture);
+                    const newMaterial = this.applyTextureToMaterial(oldMaterial, texture);
+                    if (newMaterial !== oldMaterial) {
+                        oldMaterial.dispose();
+                    }
+                    mesh.material = newMaterial;
                 } else {
                     mesh.material = new THREE.MeshStandardMaterial({ map: texture });
                 }
@@ -312,7 +318,7 @@ export class Model implements IModelData {
             roughness?: number;
         };
 
-        if ('map' in mappedMaterial) {
+        if (mappedMaterial instanceof THREE.MeshStandardMaterial && 'map' in mappedMaterial) {
             mappedMaterial.map = texture;
 
             if (mappedMaterial.color) {

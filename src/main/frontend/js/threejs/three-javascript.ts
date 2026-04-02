@@ -70,7 +70,7 @@ async function applyPendingBackgroundIfAny(element: IVaadinElement): Promise<voi
     }
     const inst = new ThreeJSScene();
     setInstance(element, inst);
-    void inst.init(element)
+    void Promise.resolve(inst.init(element))
         .then(() => applyPendingBackgroundIfAny(element))
         .catch((e: unknown) => {
             console.error('Error in initThree:', e);
