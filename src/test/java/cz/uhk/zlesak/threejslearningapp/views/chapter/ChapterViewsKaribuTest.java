@@ -1,9 +1,13 @@
 package cz.uhk.zlesak.threejslearningapp.views.chapter;
 
+import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.server.VaadinSession;
+import cz.uhk.zlesak.threejslearningapp.components.containers.ChapterTabSheetContainer;
+import cz.uhk.zlesak.threejslearningapp.components.containers.SubchapterSelectContainer;
+import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateChapterForm;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextField;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.SearchTextField;
@@ -248,6 +252,393 @@ class ChapterViewsKaribuTest {
             current = current.getCause();
         }
         return current;
+    }
+
+    @Test
+    void createViewConstructorShouldRenderNameTextField() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, NameTextField.class).isEmpty());
+    }
+
+    @Test
+    void createViewConstructorShouldRenderCreateChapterForm() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, CreateChapterForm.class).isEmpty());
+    }
+
+    @Test
+    void createViewConstructorShouldNotContainSearchTextField() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertTrue(findAll(view, SearchTextField.class).isEmpty());
+    }
+
+    @Test
+    void createViewButtonLabelIsCreateBeforeAnyNavigation() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertEquals("Vytvořit kapitolu", findAll(view, CreateChapterForm.class).getFirst().getCreateChapterButton().getText());
+    }
+
+    @Test
+    void createViewBeforeEnterWithoutParamsShouldNotCallServiceRead() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterWithNoParams());
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService, never()).read(anyString());
+    }
+
+    @Test
+    void createViewBeforeEnterWithBlankChapterIdShouldNotCallServiceRead() {
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters("chapterId", ""));
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(event);
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService, never()).read(anyString());
+    }
+
+    @Test
+    void createViewAfterNavigationWithoutEditModeDoesNotCallServiceRead() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService, never()).read(anyString());
+    }
+
+    @Test
+    void createViewAfterNavigationWithChapterIdCallsServiceRead() throws Exception {
+        when(chapterService.read("chapter-load")).thenReturn(
+                ChapterEntity.builder().id("chapter-load").name("Loaded").build());
+        when(chapterService.getChapterContent("chapter-load")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.getChaptersModels("chapter-load")).thenReturn(Map.of());
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-load"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService).read("chapter-load");
+    }
+
+    @Test
+    void createViewAfterNavigationWithChapterIdSetsNameTextField() throws Exception {
+        when(chapterService.read("chapter-name")).thenReturn(
+                ChapterEntity.builder().id("chapter-name").name("Chapter Title").build());
+        when(chapterService.getChapterContent("chapter-name")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.getChaptersModels("chapter-name")).thenReturn(Map.of());
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-name"));
+        view.afterNavigation(null);
+        flushUi();
+        MockVaadin.clientRoundtrip(false);
+
+        assertEquals("Chapter Title", findAll(view, NameTextField.class).getFirst().getValue());
+    }
+
+    @Test
+    void createViewDoubleAfterNavigationCallsServiceReadOnlyOnce() throws Exception {
+        when(chapterService.read("chapter-once")).thenReturn(
+                ChapterEntity.builder().id("chapter-once").name("Once").build());
+        when(chapterService.getChapterContent("chapter-once")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.getChaptersModels("chapter-once")).thenReturn(Map.of());
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-once"));
+        view.afterNavigation(null);
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService, times(1)).read("chapter-once");
+    }
+
+    @Test
+    void createViewNameTextFieldIsEditable() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, NameTextField.class).getFirst().isReadOnly());
+    }
+
+    @Test
+    void createViewShouldContainChapterTabSheetContainer() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, ChapterTabSheetContainer.class).isEmpty());
+    }
+
+    @Test
+    void createViewSearchTextFieldRemainsAbsentAfterBeforeEnterWithId() {
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-1"));
+
+        assertTrue(findAll(view, SearchTextField.class).isEmpty());
+    }
+
+    @Test
+    void createViewModelSelectedEventWithNullMetadataIdDoesNotCallModelService() throws Exception {
+        QuickModelEntity model = QuickModelEntity.builder()
+                .metadataId(null)
+                .model(ModelFileEntity.builder().id("file-1").name("Model").related(List.of()).build())
+                .build();
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        Object secondaryNavigation = getField(view, "secondaryNavigation");
+        Object modelsScroller = getField(secondaryNavigation, "modelsScroller");
+        Method initSelects = modelsScroller.getClass().getMethod("initSelects", Map.class);
+        initSelects.invoke(modelsScroller, Map.of());
+
+        fireEvent(UI.getCurrent(), new ModelSelectedFromDialogEvent(UI.getCurrent(), false, model, "main"));
+        flushUi();
+
+        verify(modelService, never()).read(anyString());
+    }
+
+    @Test
+    void createViewModelSelectedEventWithBlankMetadataIdDoesNotCallModelService() throws Exception {
+        QuickModelEntity model = QuickModelEntity.builder()
+                .metadataId("   ")
+                .model(ModelFileEntity.builder().id("file-2").name("Model2").related(List.of()).build())
+                .build();
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        Object secondaryNavigation = getField(view, "secondaryNavigation");
+        Object modelsScroller = getField(secondaryNavigation, "modelsScroller");
+        Method initSelects = modelsScroller.getClass().getMethod("initSelects", Map.class);
+        initSelects.invoke(modelsScroller, Map.of());
+
+        fireEvent(UI.getCurrent(), new ModelSelectedFromDialogEvent(UI.getCurrent(), false, model, "main"));
+        flushUi();
+
+        verify(modelService, never()).read(anyString());
+    }
+
+    @Test
+    void detailViewConstructorShouldContainNameTextField() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, NameTextField.class).isEmpty());
+    }
+
+    @Test
+    void detailViewConstructorShouldContainSubchapterSelectContainer() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, SubchapterSelectContainer.class).isEmpty());
+    }
+
+    @Test
+    void detailViewConstructorShouldContainSearchTextField() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, SearchTextField.class).isEmpty());
+    }
+
+    @Test
+    void detailViewConstructorShouldContainEditorJs() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertFalse(findAll(view, EditorJs.class).isEmpty());
+    }
+
+    @Test
+    void detailViewBeforeEnterWithValidChapterIdShouldNotForwardToListing() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters("chapterId", "chapter-valid"));
+
+        view.beforeEnter(event);
+
+        verify(event, never()).forwardTo(ChapterListingView.class);
+    }
+
+    @Test
+    void detailViewAfterNavigationShouldCallGetChapterName() throws Exception {
+        when(chapterService.getChapterName("chapter-det")).thenReturn("Detail");
+        when(chapterService.getChapterContent("chapter-det")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-det")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-det")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-det"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService).getChapterName("chapter-det");
+    }
+
+    @Test
+    void detailViewAfterNavigationShouldCallGetChapterContent() throws Exception {
+        when(chapterService.getChapterName("chapter-det2")).thenReturn("Detail2");
+        when(chapterService.getChapterContent("chapter-det2")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-det2")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-det2")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-det2"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService).getChapterContent("chapter-det2");
+    }
+
+    @Test
+    void detailViewAfterNavigationShouldCallProcessHeaders() throws Exception {
+        when(chapterService.getChapterName("chapter-hdr")).thenReturn("Hdr");
+        when(chapterService.getChapterContent("chapter-hdr")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-hdr")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-hdr")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-hdr"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService).processHeaders("chapter-hdr");
+    }
+
+    @Test
+    void detailViewAfterNavigationShouldCallGetChaptersModels() throws Exception {
+        when(chapterService.getChapterName("chapter-mdl")).thenReturn("Mdl");
+        when(chapterService.getChapterContent("chapter-mdl")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-mdl")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-mdl")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-mdl"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(chapterService).getChaptersModels("chapter-mdl");
+    }
+
+    @Test
+    void detailViewAfterNavigationShouldSetChapterNameInTextField() throws Exception {
+        when(chapterService.getChapterName("chapter-title")).thenReturn("Expected Title");
+        when(chapterService.getChapterContent("chapter-title")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-title")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-title")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-title"));
+        view.afterNavigation(null);
+        flushUi();
+        MockVaadin.clientRoundtrip(false);
+
+        assertEquals("Expected Title", findAll(view, NameTextField.class).getFirst().getValue());
+    }
+
+    @Test
+    void detailViewAfterNavigationWithServiceErrorShouldNotThrow() {
+        when(chapterService.getChapterName("chapter-err")).thenThrow(new RuntimeException("service down"));
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-err"));
+
+        assertDoesNotThrow(() -> {
+            view.afterNavigation(null);
+            flushUi();
+        });
+    }
+
+    @Test
+    void detailViewNameTextFieldShouldBeReadOnly() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertTrue(findAll(view, NameTextField.class).getFirst().isReadOnly());
+    }
+
+    @Test
+    void detailViewShouldNotContainCreateChapterForm() {
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+
+        assertTrue(findAll(view, CreateChapterForm.class).isEmpty());
+    }
+
+    @Test
+    void detailViewAfterNavigationWithModelsShouldCallModelService() throws Exception {
+        QuickModelEntity quickModel = QuickModelEntity.builder()
+                .metadataId("meta-det-1")
+                .model(ModelFileEntity.builder().id("file-det-1").name("DetModel").related(List.of()).build())
+                .build();
+        ModelEntity fullModel = ModelEntity.builder()
+                .metadataId("meta-det-1")
+                .model(ModelFileEntity.builder().id("file-det-1").name("DetModel").related(List.of()).build())
+                .otherTextures(List.of())
+                .build();
+
+        when(chapterService.getChapterName("chapter-mod")).thenReturn("ModChapter");
+        when(chapterService.getChapterContent("chapter-mod")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-mod")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-mod")).thenReturn(Map.of("main", quickModel));
+        when(modelService.read("meta-det-1")).thenReturn(fullModel);
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-mod"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(modelService).read("meta-det-1");
+    }
+
+    @Test
+    void detailViewAfterNavigationWithEmptyModelsMapDoesNotCallModelService() throws Exception {
+        when(chapterService.getChapterName("chapter-nmod")).thenReturn("NoMod");
+        when(chapterService.getChapterContent("chapter-nmod")).thenReturn("{\"blocks\":[]}");
+        when(chapterService.processHeaders("chapter-nmod")).thenReturn(Map.of());
+        when(chapterService.getChaptersModels("chapter-nmod")).thenReturn(Map.of());
+
+        ChapterDetailView view = new ChapterDetailView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-nmod"));
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(modelService, never()).read(anyString());
+    }
+
+    private BeforeEnterEvent beforeEnterWithNoParams() {
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters());
+        return event;
     }
 
     private void flushUi() {

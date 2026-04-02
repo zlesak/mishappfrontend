@@ -21,6 +21,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -66,6 +67,40 @@ class ModelDetailViewKaribuTest {
 
         verify(modelService).read("model-1");
         assertEquals("MISH - Model", view.getPageTitle());
+    }
+
+    @Test
+    void shouldForwardToListingWhenModelIdParameterPresentButMissing() {
+        ModelDetailView view = new ModelDetailView();
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+
+        when(event.getRouteParameters()).thenReturn(new RouteParameters("otherId", "someValue"));
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo(ModelListingView.class);
+    }
+
+    @Test
+    void afterNavigation_whenModelIsNull_shouldHandleGracefully() {
+        when(modelService.read("model-1")).thenReturn(null);
+
+        ModelDetailView view = new ModelDetailView();
+        UI.getCurrent().add(view);
+
+        assertDoesNotThrow(() -> view.afterNavigation(afterNavigationEvent()));
+        verify(modelService).read("model-1");
+    }
+
+    @Test
+    void afterNavigation_whenServiceThrows_shouldNotPropagateException() {
+        when(modelService.read("model-1")).thenThrow(new RuntimeException("backend error"));
+
+        ModelDetailView view = new ModelDetailView();
+        UI.getCurrent().add(view);
+
+        assertDoesNotThrow(() -> view.afterNavigation(afterNavigationEvent()));
+        verify(modelService).read("model-1");
     }
 
     private AfterNavigationEvent afterNavigationEvent() {

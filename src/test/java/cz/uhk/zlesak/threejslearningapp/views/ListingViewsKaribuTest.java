@@ -1,6 +1,8 @@
 package cz.uhk.zlesak.threejslearningapp.views;
 
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.Location;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
@@ -55,7 +57,7 @@ class ListingViewsKaribuTest {
     void quizListingShouldLoadItems() {
         QuizListingView view = new QuizListingView(quizService);
         UI.getCurrent().add(view);
-        view.afterNavigation(null);
+        view.afterNavigation(mockNavigationEvent("quizes"));
         flushUi();
 
         verify(quizService, atLeastOnce()).readEntities(any());
@@ -65,7 +67,7 @@ class ListingViewsKaribuTest {
     void modelListingShouldLoadItems() {
         ModelListingView view = new ModelListingView(modelService);
         UI.getCurrent().add(view);
-        view.afterNavigation(null);
+        view.afterNavigation(mockNavigationEvent("models"));
         flushUi();
 
         verify(modelService, atLeastOnce()).readEntities(any());
@@ -92,5 +94,13 @@ class ListingViewsKaribuTest {
         if (current != null) {
             current.getInternals().getStateTree().runExecutionsBeforeClientResponse();
         }
+    }
+
+    private AfterNavigationEvent mockNavigationEvent(String path) {
+        AfterNavigationEvent event = mock(AfterNavigationEvent.class);
+        Location location = mock(Location.class);
+        when(location.getPath()).thenReturn(path);
+        when(event.getLocation()).thenReturn(location);
+        return event;
     }
 }

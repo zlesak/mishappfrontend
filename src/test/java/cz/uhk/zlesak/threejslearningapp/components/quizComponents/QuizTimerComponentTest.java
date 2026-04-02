@@ -72,6 +72,56 @@ class QuizTimerComponentTest {
         assertTrue(getScheduler(timer).isShutdown());
     }
 
+    @Test
+    void constructor_withNullTimeLimit_shouldHideTimerContainer() {
+        QuizTimerComponent timer = new QuizTimerComponent(null);
+        UI.getCurrent().add(timer);
+
+        assertFalse(timer.getTimerContainer().isVisible());
+    }
+
+    @Test
+    void constructor_withZeroTimeLimit_shouldHideTimerContainer() {
+        QuizTimerComponent timer = new QuizTimerComponent(0);
+        UI.getCurrent().add(timer);
+
+        assertFalse(timer.getTimerContainer().isVisible());
+    }
+
+    @Test
+    void stopTimer_withNullScheduler_shouldNotThrow() {
+        QuizTimerComponent timer = new QuizTimerComponent(null);
+        UI.getCurrent().add(timer);
+
+        assertDoesNotThrow(timer::stopTimer);
+    }
+
+    @Test
+    void updateTimerDisplay_withTimeBetween60And300Seconds_shouldAddWarningClass() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(6);
+        UI.getCurrent().add(timer);
+        setField(timer, "remainingTimeSeconds", 150);
+
+        invoke(timer, "updateTimerDisplay");
+
+        Span display = getTimerDisplay(timer);
+        assertTrue(display.getClassNames().contains(LumoUtility.TextColor.WARNING));
+        timer.stopTimer();
+    }
+
+    @Test
+    void updateTimerDisplay_withTimeAbove300Seconds_shouldAddPrimaryClass() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(10);
+        UI.getCurrent().add(timer);
+        setField(timer, "remainingTimeSeconds", 400);
+
+        invoke(timer, "updateTimerDisplay");
+
+        Span display = getTimerDisplay(timer);
+        assertTrue(display.getClassNames().contains(LumoUtility.TextColor.PRIMARY));
+        timer.stopTimer();
+    }
+
     private void invoke(QuizTimerComponent timer, String methodName) throws Exception {
         Method method = QuizTimerComponent.class.getDeclaredMethod(methodName);
         method.setAccessible(true);

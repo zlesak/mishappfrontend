@@ -14,7 +14,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.testsupport.KaribuSpringTestSupport;
 import cz.uhk.zlesak.threejslearningapp.testsupport.OAuthTestConfig;
-import tools.jackson.databind.node.NullNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +23,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import tools.jackson.databind.node.NullNode;
 
 import java.time.Instant;
 import java.util.List;
@@ -185,6 +185,109 @@ class ChapterListItemKaribuTest {
         ui.close();
         MockVaadin.clientRoundtrip(false);
         verify(chapterService).delete("chapter-1");
+    }
+
+    @Test
+    void chapter_withBlankCreatorId_shouldNotRenderCreatorRow() {
+        ChapterEntity c = ChapterEntity.builder().id("c-blank").name("Blank Creator").creatorId("   ")
+                .models(List.of()).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertFalse(texts.contains("   "));
+    }
+
+    @Test
+    void chapter_withNullCreatedDate_shouldNotRenderDateRow() {
+        ChapterEntity c = ChapterEntity.builder().id("c-nd").name("No Date").creatorId(null)
+                .created(null).updated(null).models(List.of()).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        assertNotNull(item);
+    }
+
+    @Test
+    void chapter_withNullUpdatedDate_shouldNotRenderUpdatedRow() {
+        ChapterEntity c = ChapterEntity.builder().id("c-nu").name("No Updated").creatorId(null)
+                .created(java.time.Instant.now()).updated(null).models(List.of()).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        assertNotNull(item);
+    }
+
+    @Test
+    void chapter_withEmptyModelsList_shouldNotRenderModelBadges() {
+        ChapterEntity c = ChapterEntity.builder().id("c-em").name("Empty Models").creatorId(null)
+                .models(List.of()).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        long badgeCount = findAll(item, Span.class).stream()
+                .filter(s -> s.getClassNames().contains("chapter-model-badge")).count();
+        assertEquals(0, badgeCount);
+    }
+
+    @Test
+    void chapter_withNullModelsList_shouldRenderWithoutError() {
+        ChapterEntity c = ChapterEntity.builder().id("c-nm").name("Null Models").creatorId(null)
+                .models(null).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        assertNotNull(item);
+    }
+
+    @Test
+    void chapter_nonAdmin_editAndDeleteButtonsShouldBeHidden() {
+        ChapterListItem item = new ChapterListItem(chapter(model()), true, false);
+        UI.getCurrent().add(item);
+        List<Button> buttons = findAll(item, Button.class);
+        assertTrue(buttons.stream().filter(b -> "Upravit".equals(b.getText())).noneMatch(b -> b.isVisible()));
+        assertTrue(buttons.stream().filter(b -> "Smazat".equals(b.getText())).noneMatch(b -> b.isVisible()));
+    }
+
+    @Test
+    void chapter_withTwoDistinctModels_shouldRenderTwoBadges() {
+        QuickModelEntity m1 = QuickModelEntity.builder().metadataId("meta-1")
+                .model(ModelFileEntity.builder().id("model-1").name("Model One").build()).build();
+        QuickModelEntity m2 = QuickModelEntity.builder().metadataId("meta-2")
+                .model(ModelFileEntity.builder().id("model-2").name("Model Two").build()).build();
+        ChapterEntity c = ChapterEntity.builder().id("c-multi").name("Multi").models(List.of(m1, m2)).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        long badgeCount = findAll(item, Span.class).stream()
+                .filter(s -> s.getClassNames().contains("chapter-model-badge")).count();
+        assertEquals(2, badgeCount);
+    }
+
+    @Test
+    void chapter_withNullModelEntityInList_shouldSkipNullModel() {
+        List<QuickModelEntity> modelsWithNull = new java.util.ArrayList<>();
+        modelsWithNull.add(null);
+        modelsWithNull.add(model());
+        ChapterEntity c = ChapterEntity.builder().id("c-nullm").name("Null Model").models(modelsWithNull).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        assertNotNull(item);
+    }
+
+    @Test
+    void chapter_withBlankMetadataId_shouldStillRenderBadgeUsingModelId() {
+        QuickModelEntity m = QuickModelEntity.builder().metadataId("")
+                .model(ModelFileEntity.builder().id("model-fallback").name("Fallback Model").build()).build();
+        ChapterEntity c = ChapterEntity.builder().id("c-fb").name("Fallback").models(List.of(m)).build();
+        ChapterListItem item = new ChapterListItem(c, true, false);
+        UI.getCurrent().add(item);
+        long badgeCount = findAll(item, Span.class).stream()
+                .filter(s -> "Fallback Model".equals(s.getText())).count();
+        assertEquals(1, badgeCount);
+    }
+
+    @Test
+    void chapter_editClick_adminMode_shouldStoreChapterInSession() {
+        ChapterEntity chapterEntity = chapter(model());
+        ChapterListItem item = new ChapterListItem(chapterEntity, true, true);
+        UI.getCurrent().add(item);
+        button(item, "Upravit").click();
+        assertSame(chapterEntity, VaadinSession.getCurrent().getAttribute("chapterEntity"));
     }
 
     private Button button(ChapterListItem item, String text) {

@@ -3,7 +3,6 @@ package cz.uhk.zlesak.threejslearningapp.views;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.menubar.MenuBar;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.LoginButton;
-import cz.uhk.zlesak.threejslearningapp.components.buttons.ThemeModeToggleButton;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.MenuListItem;
 import cz.uhk.zlesak.threejslearningapp.testsupport.KaribuSpringTestSupport;
 import cz.uhk.zlesak.threejslearningapp.testsupport.OAuthTestConfig;
@@ -43,13 +42,13 @@ class MainLayoutKaribuTest {
 
     @Test
     void anonymousNavigation_shouldRenderSharedMenuAndLoginButton() {
+        SecurityContextHolder.clearContext();
         MainLayout layout = new MainLayout();
         UI.getCurrent().add(layout);
 
         assertEquals(4, findAll(layout, MenuListItem.class).size());
-        assertEquals(1, findAll(layout, ThemeModeToggleButton.class).size());
         assertEquals(1, findAll(layout, LoginButton.class).size());
-        assertEquals(0, findAll(layout, MenuBar.class).size());
+        assertEquals(1, findAll(layout, MenuBar.class).size());
     }
 
     @Test
@@ -65,6 +64,6 @@ class MainLayoutKaribuTest {
         MenuBar menuBar = findAll(layout, MenuBar.class).getFirst();
 
         assertEquals(0, findAll(layout, LoginButton.class).size());
-        assertEquals(3, menuBar.getItems().getFirst().getSubMenu().getItems().size());
+        assertEquals(4, menuBar.getItems().getFirst().getSubMenu().getItems().size());
     }
 }

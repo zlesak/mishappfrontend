@@ -36,7 +36,7 @@ public class MatchQuestionOption extends QuestionOption {
     public void update(int index, List<Integer> optionIndices) {
         Integer oldValue = optionSelect.getValue();
         optionSelect.setItems(optionIndices);
-        if (optionIndices.contains(oldValue)) {
+        if (oldValue != null && optionIndices.contains(oldValue)) {
             optionSelect.setValue(oldValue);
         }
         updateIndex(index);

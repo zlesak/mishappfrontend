@@ -160,6 +160,95 @@ class ModelCreateViewKaribuTest {
         verify(modelService).saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
     }
 
+    @Test
+    void beforeEnter_withNoRouteParam_shouldNotSetModelId() {
+        when(modelService.read(null)).thenReturn(null);
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        BeforeEnterEvent event = Mockito.mock(BeforeEnterEvent.class);
+        when(event.getRouteParameters()).thenReturn(new RouteParameters());
+
+        view.beforeEnter(event);
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(modelService, never()).read(any());
+    }
+
+    @Test
+    void afterNavigation_withNullModelId_shouldNotCallModelService() {
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        view.afterNavigation(null);
+        flushUi();
+
+        verify(modelService, never()).read(any());
+    }
+
+    @Test
+    void editMode_whenModelServiceReturnsNull_shouldHandleGracefully() {
+        when(modelService.read("no-such-model")).thenReturn(null);
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        assertDoesNotThrow(() -> view.beforeEnter(beforeEnterEvent("no-such-model")));
+        assertDoesNotThrow(() -> view.afterNavigation(null));
+        flushUi();
+
+        verify(modelService).read("no-such-model");
+    }
+
+    @Test
+    void uploadModel_withEmptyModelName_shouldCallSave() throws Exception {
+        when(modelService.saveFromUpload(eq(null), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any()))
+                .thenReturn("saved-empty-name");
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        invoke(view, "uploadModel");
+        triggerBackgroundSpecCallback(view, null);
+        triggerThumbnailCallback(view, "data:image/png;base64,xyz");
+
+        verify(modelService).saveFromUpload(eq(null), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any());
+    }
+
+    @Test
+    void uploadModel_whenThumbnailCallbackCalledWithNull_shouldHandleGracefully() throws Exception {
+        when(modelService.saveFromUpload(any(), any(), any(), any(), any(), any(), isNull(), any()))
+                .thenReturn("saved-null-thumbnail");
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        invoke(view, "uploadModel");
+        triggerBackgroundSpecCallback(view, null);
+        assertDoesNotThrow(() -> triggerThumbnailCallback(view, null));
+    }
+
+    @Test
+    void editMode_shouldNotThrowWhenServiceReturnsEntityWithNullModel() throws Exception {
+        ModelEntity modelEntity = ModelEntity.builder()
+                .metadataId("model-null-file")
+                .name("No File")
+                .model(null)
+                .otherTextures(List.of())
+                .build();
+        when(modelService.read("model-null-file")).thenReturn(modelEntity);
+        when(modelService.buildPrefillData(modelEntity)).thenThrow(new RuntimeException("no model file"));
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+
+        view.beforeEnter(beforeEnterEvent("model-null-file"));
+        assertDoesNotThrow(() -> view.afterNavigation(null));
+        flushUi();
+    }
+
     private BeforeEnterEvent beforeEnterEvent(String modelId) {
         BeforeEnterEvent event = Mockito.mock(BeforeEnterEvent.class);
         when(event.getRouteParameters()).thenReturn(new RouteParameters("modelId", modelId));

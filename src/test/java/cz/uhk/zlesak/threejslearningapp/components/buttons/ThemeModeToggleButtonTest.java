@@ -8,8 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.clearCurrentUi;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.setCurrentUi;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class ThemeModeToggleButtonTest {
     private UI ui;
@@ -25,6 +24,39 @@ class ThemeModeToggleButtonTest {
     }
 
     @Test
+    void isDarkMode_withNullUi_shouldReturnFalse() {
+        assertFalse(ThemeModeToggleButton.isDarkMode(null));
+    }
+
+    @Test
+    void isDarkMode_withLightTheme_shouldReturnFalse() {
+        ui.getElement().getThemeList().remove(Lumo.DARK);
+
+        assertFalse(ThemeModeToggleButton.isDarkMode(ui));
+    }
+
+    @Test
+    void isDarkMode_afterEnablingDark_shouldReturnTrue() {
+        ui.getElement().getThemeList().add(Lumo.DARK);
+
+        assertTrue(ThemeModeToggleButton.isDarkMode(ui));
+    }
+
+    @Test
+    void toggleTheme_withNullUi_shouldReturnFalseWithoutThrowing() {
+        boolean result = ThemeModeToggleButton.toggleTheme(null);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void button_shouldHaveThemeModeToggleClass() {
+        ThemeModeToggleButton button = new ThemeModeToggleButton();
+
+        assertTrue(button.getElement().getClassList().contains("theme-mode-toggle"));
+    }
+
+    @Test
     void click_shouldToggleBetweenDarkAndLightTheme() {
         ThemeModeToggleButton button = new ThemeModeToggleButton();
 
@@ -37,3 +69,4 @@ class ThemeModeToggleButtonTest {
         assertEquals("vaadin:moon", button.getIcon().getElement().getAttribute("icon"));
     }
 }
+

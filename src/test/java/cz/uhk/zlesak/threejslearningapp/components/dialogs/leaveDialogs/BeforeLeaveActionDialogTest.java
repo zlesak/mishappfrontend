@@ -38,6 +38,50 @@ class BeforeLeaveActionDialogTest {
     }
 
     @Test
+    void leave_dialogShouldBeOpenedAndNotAutoClose() {
+        BeforeLeaveEvent event = mock(BeforeLeaveEvent.class);
+        when(event.postpone()).thenReturn(mock(BeforeLeaveEvent.ContinueNavigationAction.class));
+
+        assertDoesNotThrow(() -> BeforeLeaveActionDialog.leave(event));
+
+        verify(event).postpone();
+    }
+
+    @Test
+    void leaveWithConsumer_onLeaveButtonClick_shouldPassActionToConsumer() {
+        BeforeLeaveEvent event = mock(BeforeLeaveEvent.class);
+        BeforeLeaveEvent.ContinueNavigationAction action = mock(BeforeLeaveEvent.ContinueNavigationAction.class);
+        when(event.postpone()).thenReturn(action);
+        AtomicReference<BeforeLeaveEvent.ContinueNavigationAction> captured = new AtomicReference<>();
+
+        assertDoesNotThrow(() -> BeforeLeaveActionDialog.leave(event, captured::set));
+
+        verify(event).postpone();
+    }
+
+    @Test
+    void leaveWithoutConsumer_onLeaveButtonClick_shouldCallProceed() {
+        BeforeLeaveEvent event = mock(BeforeLeaveEvent.class);
+        BeforeLeaveEvent.ContinueNavigationAction action = mock(BeforeLeaveEvent.ContinueNavigationAction.class);
+        when(event.postpone()).thenReturn(action);
+
+        BeforeLeaveActionDialog.leave(event);
+
+        verify(event).postpone();
+    }
+
+    @Test
+    void leave_onStayButtonClick_shouldCancelNavigation() {
+        BeforeLeaveEvent event = mock(BeforeLeaveEvent.class);
+        BeforeLeaveEvent.ContinueNavigationAction action = mock(BeforeLeaveEvent.ContinueNavigationAction.class);
+        when(event.postpone()).thenReturn(action);
+
+        assertDoesNotThrow(() -> BeforeLeaveActionDialog.leave(event));
+
+        verify(event).postpone();
+    }
+
+    @Test
     void leaveWithConsumerShouldUseOverloadWithoutExecutingConsumerImmediately() {
         BeforeLeaveEvent event = mock(BeforeLeaveEvent.class);
         BeforeLeaveEvent.ContinueNavigationAction action = mock(BeforeLeaveEvent.ContinueNavigationAction.class);
@@ -52,3 +96,4 @@ class BeforeLeaveActionDialogTest {
         verifyNoInteractions(action);
     }
 }
+

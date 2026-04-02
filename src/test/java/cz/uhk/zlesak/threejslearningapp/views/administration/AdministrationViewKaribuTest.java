@@ -28,6 +28,7 @@ import java.util.List;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findButtonByText;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findFirst;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -85,6 +86,38 @@ class AdministrationViewKaribuTest {
 
         assertEquals("Vytvořit kapitolu", createChapterButton.getText());
         verify(chapterService, atLeastOnce()).readEntities(any());
+    }
+
+    @Test
+    void view_shouldCallChapterServiceOnInitialLoad() {
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        UI.getCurrent().add(view);
+
+        TabSheet tabSheet = findFirst(view, TabSheet.class);
+        tabSheet.setSelectedIndex(1);
+        tabSheet.setSelectedIndex(0);
+
+        verify(chapterService, atLeastOnce()).readEntities(any());
+    }
+
+    @Test
+    void view_createButtonShouldBeEnabledInitially() {
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        UI.getCurrent().add(view);
+
+        Button createButton = findButtonByText(view, "Vytvořit kapitolu");
+
+        assertTrue(createButton.isEnabled());
+    }
+
+    @Test
+    void view_tabSheetShouldHaveThreeTabs() {
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        UI.getCurrent().add(view);
+
+        TabSheet tabSheet = findFirst(view, TabSheet.class);
+
+        assertEquals(3, tabSheet.getTabCount());
     }
 
     private ChapterEntity chapter() {

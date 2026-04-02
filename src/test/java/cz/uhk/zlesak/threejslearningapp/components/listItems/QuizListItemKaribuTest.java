@@ -127,6 +127,78 @@ class QuizListItemKaribuTest {
         verify(quizService).delete("quiz-1");
     }
 
+    @Test
+    void quiz_withNullTimeLimit_shouldNotRenderTimeLimitRow() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-2").name("No Limit Quiz").timeLimit(null).chapterId("ch-1").build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.stream().noneMatch(t -> t.contains("limit") || t.contains("minut") || t.contains("minuta")));
+    }
+
+    @Test
+    void quiz_withTimeLimitOfOne_shouldShowSingularMinutaForm() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-3").name("One Min Quiz").timeLimit(1).chapterId("ch-1").build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.contains("1 minuta"));
+    }
+
+    @Test
+    void quiz_withTimeLimitOfZero_shouldShowBezLimitu() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-4").name("Zero Limit Quiz").timeLimit(0).chapterId("ch-1").build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.contains("Bez limitu"));
+    }
+
+    @Test
+    void quiz_withTimeLimitOfSix_shouldShowMinutPluralForm() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-5").name("Six Min Quiz").timeLimit(6).chapterId("ch-1").build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.contains("6 minut"));
+    }
+
+    @Test
+    void quiz_withNullChapterId_shouldNotRenderChapterRow() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-6").name("No Chapter Quiz").timeLimit(5).chapterId(null).build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.stream().noneMatch(t -> t.contains("chapter-")));
+    }
+
+    @Test
+    void quiz_withBlankChapterId_shouldNotRenderChapterRow() {
+        QuickQuizEntity q = QuickQuizEntity.builder().id("quiz-7").name("Blank Chapter Quiz").timeLimit(5).chapterId("   ").build();
+        QuizListItem item = new QuizListItem(q, true);
+        UI.getCurrent().add(item);
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+        assertTrue(texts.stream().noneMatch(t -> t.trim().isEmpty() || "   ".equals(t)));
+    }
+
+    @Test
+    void quiz_openButton_shouldNotThrowWhenClicked() {
+        QuizListItem item = new QuizListItem(quiz(), true);
+        UI.getCurrent().add(item);
+        Button openButton = findAll(item, Button.class).stream()
+                .filter(b -> "Otevřít".equals(b.getText())).findFirst().orElseThrow();
+        openButton.click();
+    }
+
+    @Test
+    void quiz_nonAdminView_editAndDeleteButtonsShouldBeHidden() {
+        QuizListItem item = new QuizListItem(quiz(), false);
+        UI.getCurrent().add(item);
+        List<Button> buttons = findAll(item, Button.class);
+        assertTrue(buttons.stream().filter(b -> "Upravit".equals(b.getText())).noneMatch(b -> b.isVisible()));
+        assertTrue(buttons.stream().filter(b -> "Smazat".equals(b.getText())).noneMatch(b -> b.isVisible()));
+    }
+
     private Button smazat(QuizListItem item) {
         return findAll(item, Button.class).stream().filter(b -> "Smazat".equals(b.getText())).findFirst().orElseThrow();
     }

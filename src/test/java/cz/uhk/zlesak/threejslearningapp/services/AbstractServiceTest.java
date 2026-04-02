@@ -93,6 +93,69 @@ class AbstractServiceTest {
         assertEquals("Chyba při mazání entity: nope", apiError.getMessage());
     }
 
+    @Test
+    void create_shouldWrapValidationException() throws Exception {
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> service.create(QuickModelEntity.builder().id("bad").name("invalid").build()));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při vytváření entity"));
+    }
+
+    @Test
+    void create_shouldWrapApiClientException() throws Exception {
+        when(apiClient.create(any())).thenThrow(new IllegalStateException("api down"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> service.create(QuickModelEntity.builder().id("x").name("Valid").build()));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při vytváření entity"));
+    }
+
+    @Test
+    void read_shouldThrowForBlankId() throws Exception {
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.read(""));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při získávání entity"));
+    }
+
+    @Test
+    void read_shouldThrowForNullId() throws Exception {
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.read(null));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při získávání entity"));
+    }
+
+    @Test
+    void readQuick_shouldThrowForBlankId() throws Exception {
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.readQuick(""));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při získávání quick entity"));
+    }
+
+    @Test
+    void readQuick_shouldThrowForNullId() throws Exception {
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> service.readQuick(null));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při získávání quick entity"));
+    }
+
+    @Test
+    void delete_shouldReturnFalseWhenApiClientReturnsFalse() throws Exception {
+        when(apiClient.delete("entity-false")).thenReturn(false);
+
+        assertFalse(service.delete("entity-false"));
+    }
+
+    @Test
+    void update_shouldThrowWhenApiClientFails() throws Exception {
+        when(apiClient.update(any(), any())).thenThrow(new IllegalStateException("update failed"));
+
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> service.update("entity-x", QuickModelEntity.builder().name("Valid").build()));
+
+        assertTrue(ex.getMessage().startsWith("Chyba při aktualizaci kapitoly"));
+    }
+
     private static final class TestService extends AbstractService<QuickModelEntity, QuickModelEntity, String> {
         private int validated;
         private int finalized;

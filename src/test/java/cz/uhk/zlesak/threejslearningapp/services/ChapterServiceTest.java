@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import cz.uhk.zlesak.threejslearningapp.api.clients.ChapterApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.testsupport.TestFixtures;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -277,5 +278,214 @@ class ChapterServiceTest {
         ));
 
         assertNotNull(ex.getMessage());
+    }
+
+    @Test
+    void getChapterName_shouldReturnNameForValidChapterId() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-name-1")
+                .name("Anatomy")
+                .content("{\"blocks\":[]}")
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-name-1")).thenReturn(loaded);
+
+        assertEquals("Anatomy", chapterService.getChapterName("ch-name-1"));
+    }
+
+    @Test
+    void getChapterName_shouldThrowForNullChapterId() {
+        assertThrows(RuntimeException.class, () -> chapterService.getChapterName(null));
+    }
+
+    @Test
+    void getChapterContent_shouldReturnContentForValidId() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-cnt-1")
+                .name("Chapter")
+                .content("{\"blocks\":[{\"type\":\"paragraph\"}]}")
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-cnt-1")).thenReturn(loaded);
+
+        assertEquals("{\"blocks\":[{\"type\":\"paragraph\"}]}", chapterService.getChapterContent("ch-cnt-1"));
+    }
+
+    @Test
+    void getChapterContent_shouldThrowForBlankChapterId() {
+        assertThrows(RuntimeException.class, () -> chapterService.getChapterContent(""));
+    }
+
+    @Test
+    void create_shouldThrowWhenContentIsEmpty() {
+        ChapterEntity invalid = ChapterEntity.builder()
+                .name("Valid Name")
+                .content("")
+                .models(List.of(TestFixtures.model("main", "model-main", "Main", null, List.of())))
+                .build();
+
+        assertThrows(RuntimeException.class, () -> chapterService.create(invalid));
+    }
+
+    @Test
+    void create_shouldThrowWhenModelsAreEmpty() {
+        ChapterEntity invalid = ChapterEntity.builder()
+                .name("Valid Name")
+                .content("{\"blocks\":[]}")
+                .models(List.of())
+                .build();
+
+        assertThrows(RuntimeException.class, () -> chapterService.create(invalid));
+    }
+
+    @Test
+    void create_shouldSucceedWithMinimalValidContent() throws Exception {
+        QuickModelEntity mainModel = TestFixtures.model("main", "model-main", "Main", null, List.of());
+        Map<String, QuickModelEntity> models = new LinkedHashMap<>();
+        models.put("main", mainModel);
+
+        ChapterEntity chapter = ChapterEntity.builder()
+                .name("Minimal Chapter")
+                .content("{\"blocks\":[{\"id\":\"main\",\"type\":\"header\",\"data\":{\"level\":1,\"text\":\"H1\"}}]}")
+                .models(List.of(mainModel))
+                .modelHeaderMap(models)
+                .build();
+        when(chapterApiClient.create(any(ChapterEntity.class))).thenAnswer(inv -> {
+            ChapterEntity e = inv.getArgument(0);
+            e.setId("min-id");
+            return e;
+        });
+
+        assertEquals("min-id", chapterService.create(chapter));
+    }
+
+    @Test
+    void processHeaders_shouldReturnEmptyForEmptyBlocks() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-empty-1")
+                .name("Chapter")
+                .content("{\"blocks\":[]}")
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-empty-1")).thenReturn(loaded);
+
+        assertTrue(chapterService.processHeaders("ch-empty-1").isEmpty());
+    }
+
+    @Test
+    void processHeaders_shouldReturnEmptyForBlocksWithNoLevelOneHeaders() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-nol1-1")
+                .name("Chapter")
+                .content("""
+                        {"blocks":[
+                          {"id":"h2","type":"header","data":{"level":2,"text":"Sub-only"}}
+                        ]}
+                        """)
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-nol1-1")).thenReturn(loaded);
+
+        assertTrue(chapterService.processHeaders("ch-nol1-1").isEmpty());
+    }
+
+    @Test
+    void processHeaders_shouldHandleLevelOneHeaderWithNoSubHeaders() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-nosub-1")
+                .name("Chapter")
+                .content("""
+                        {"blocks":[
+                          {"id":"h1","type":"header","data":{"level":1,"text":"Standalone","modelId":"m-1"}}
+                        ]}
+                        """)
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-nosub-1")).thenReturn(loaded);
+
+        var result = chapterService.processHeaders("ch-nosub-1");
+
+        assertEquals(1, result.size());
+        var entry = result.entrySet().iterator().next();
+        assertEquals("h1", entry.getKey().getLeft());
+        assertEquals("Standalone", entry.getKey().getMiddle());
+        assertTrue(entry.getValue().isEmpty());
+    }
+
+    @Test
+    void getSubChaptersNames_shouldReturnEmptyForNoLevelOneHeaders() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-noheaders-1")
+                .name("Chapter")
+                .content("""
+                        {"blocks":[
+                          {"id":"h2","type":"header","data":{"level":2,"text":"Sub"}}
+                        ]}
+                        """)
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-noheaders-1")).thenReturn(loaded);
+
+        assertTrue(chapterService.getSubChaptersNames("ch-noheaders-1").isEmpty());
+    }
+
+    @Test
+    void getSubChaptersNames_shouldHandleMultipleLevelOneHeaders() throws Exception {
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-multi-1")
+                .name("Chapter")
+                .content("""
+                        {"blocks":[
+                          {"id":"h1a","type":"header","data":{"level":1,"text":"First","modelId":"m-1"}},
+                          {"id":"h1b","type":"header","data":{"level":1,"text":"Second","modelId":"m-2"}},
+                          {"id":"h1c","type":"header","data":{"level":1,"text":"Third"}}
+                        ]}
+                        """)
+                .models(List.of())
+                .build();
+        when(chapterApiClient.read("ch-multi-1")).thenReturn(loaded);
+
+        var result = chapterService.getSubChaptersNames("ch-multi-1");
+
+        assertEquals(3, result.size());
+        assertEquals("h1a", result.get(0).id());
+        assertEquals("m-1", result.get(0).modelId());
+        assertEquals("h1b", result.get(1).id());
+        assertEquals("m-2", result.get(1).modelId());
+        assertEquals("h1c", result.get(2).id());
+        assertEquals("", result.get(2).modelId());
+    }
+
+    @Test
+    void getChaptersModels_shouldIncludeMainModelWithNoMatchingSubChapters() throws Exception {
+        QuickModelEntity mainModel = TestFixtures.model("main", "model-main", "Main", null, List.of());
+        ChapterEntity loaded = ChapterEntity.builder()
+                .id("ch-mainonly-1")
+                .name("Chapter")
+                .content("""
+                        {"blocks":[
+                          {"id":"sub-1","type":"header","data":{"level":1,"text":"Sub","modelId":""}}
+                        ]}
+                        """)
+                .models(List.of(mainModel))
+                .build();
+        when(chapterApiClient.read("ch-mainonly-1")).thenReturn(loaded);
+
+        var result = chapterService.getChaptersModels("ch-mainonly-1");
+
+        assertTrue(result.containsKey("main"));
+        assertEquals("model-main", result.get("main").getModel().getId());
+    }
+
+    @Test
+    void saveChapter_shouldRejectUpdateWhenLoadedChapterNullAndModelsEmpty() {
+        assertThrows(RuntimeException.class, () -> chapterService.saveChapter(
+                "chapter-1",
+                true,
+                "Chapter Name",
+                "{\"blocks\":[]}",
+                Map.of(),
+                null
+        ));
     }
 }

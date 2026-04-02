@@ -8,6 +8,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -41,6 +44,34 @@ class LogoutControllerWebMvcTest {
         mockMvc.perform(post("/custom-logout"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(expectedLogoutUrl()));
+    }
+
+    @Test
+    void logoutGet_redirectShouldContainConfiguredRealm() throws Exception {
+        mockMvc.perform(get("/custom-logout"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(expectedLogoutUrl()));
+
+        String url = expectedLogoutUrl();
+        assertTrue(url.contains("my-realm"));
+    }
+
+    @Test
+    void logoutPost_calledAgainAfterFirst_shouldAlwaysRedirect() throws Exception {
+        mockMvc.perform(post("/custom-logout"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(post("/custom-logout"))
+                .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    void logoutGet_redirectUrlShouldContainPostLogoutRedirectUri() throws Exception {
+        String redirectUrl = mockMvc.perform(get("/custom-logout"))
+                .andReturn().getResponse().getRedirectedUrl();
+
+        assertNotNull(redirectUrl);
+        assertTrue(redirectUrl.contains("post_logout_redirect_uri"));
     }
 
     private String expectedLogoutUrl() {

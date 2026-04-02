@@ -93,6 +93,97 @@ class ModelsSelectScrollerTest {
         assertEquals(subModel, result.get("sub-1"));
     }
 
+    @Test
+    void initSelects_withEmptyMap_shouldCreateNoSubchapterSelects() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of());
+
+        Map<String, ?> layouts = getOtherLayouts(scroller);
+
+        assertEquals(0, layouts.size());
+    }
+
+    @Test
+    void initSelects_calledTwice_shouldReplaceSubchapterSelects() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(new LinkedHashMap<>(Map.of("sub-A", "Alpha", "sub-B", "Beta")));
+        scroller.initSelects(new LinkedHashMap<>(Map.of("sub-C", "Gamma")));
+
+        Map<String, ?> layouts = getOtherLayouts(scroller);
+
+        assertEquals(1, layouts.size());
+        assertTrue(layouts.containsKey("sub-C"));
+    }
+
+    @Test
+    void updateModelSelect_withExplicitMainKey_shouldUpdateMainSelect() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of());
+
+        QuickModelEntity model = TestFixtures.model("meta-m", "model-m", "MainExplicit", null, List.of());
+        scroller.updateModelSelect("main", model);
+
+        Select<QuickModelEntity> mainSelect = getSelectField(scroller, "mainModelSelect");
+        assertEquals(model, mainSelect.getValue());
+    }
+
+    @Test
+    void updateModelSelect_withEmptyString_shouldUpdateMainSelect() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of());
+
+        QuickModelEntity model = TestFixtures.model("meta-e", "model-e", "EmptyKey", null, List.of());
+        scroller.updateModelSelect("", model);
+
+        Select<QuickModelEntity> mainSelect = getSelectField(scroller, "mainModelSelect");
+        assertEquals(model, mainSelect.getValue());
+    }
+
+    @Test
+    void updateModelSelect_withNonExistentKey_shouldNotThrow() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of());
+
+        QuickModelEntity model = TestFixtures.model("meta-x", "model-x", "Unknown", null, List.of());
+        scroller.updateModelSelect("nonexistent-key", model);
+    }
+
+    @Test
+    void getAllModelsMappedToChapterHeaderBlockId_withFalseArg_shouldSkipMainModelCheck() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+
+        Map<String, QuickModelEntity> result = scroller.getAllModelsMappedToChapterHeaderBlockId(false);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getAllModelsMappedToChapterHeaderBlockId_shouldSkipSubchapterSelectionsWithNullValue() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of("sub-empty", "Empty Sub"));
+
+        QuickModelEntity mainModel = TestFixtures.model("meta-main", "model-main", "Main", null, List.of());
+        scroller.updateModelSelect("main", mainModel);
+
+        Map<String, QuickModelEntity> result = scroller.getAllModelsMappedToChapterHeaderBlockId();
+
+        assertEquals(1, result.size());
+        assertEquals(mainModel, result.get("main"));
+    }
+
+    @Test
+    void initSelects_calledMultipleTimes_shouldOnlyCreateMainSelectOnce() {
+        ModelsSelectScroller scroller = new ModelsSelectScroller();
+        scroller.initSelects(Map.of("sub-1", "First"));
+        Select<QuickModelEntity> firstMainSelect = getSelectField(scroller, "mainModelSelect");
+
+        scroller.initSelects(Map.of("sub-2", "Second"));
+        Select<QuickModelEntity> secondMainSelect = getSelectField(scroller, "mainModelSelect");
+
+        assertSame(firstMainSelect, secondMainSelect);
+    }
+
     private Object getField(Object target, String name) {
         try {
             Class<?> current = target.getClass();

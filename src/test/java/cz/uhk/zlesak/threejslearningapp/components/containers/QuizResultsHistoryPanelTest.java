@@ -145,6 +145,10 @@ class QuizResultsHistoryPanelTest {
 
     @Test
     void loadPage_withSynchronousSessionAccess_shouldRenderResultsOnSuccess() throws Exception {
+        if (UI.getCurrent() == null) {
+            VaadinTestSupport.clearCurrentUi();
+            VaadinTestSupport.setCurrentUi();
+        }
         makeSynchronousSessionAccess();
 
         when(quizResultService.readEntities(any())).thenReturn(

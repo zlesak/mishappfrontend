@@ -27,6 +27,46 @@ class TextureListingDataParserTest {
     }
 
     @Test
+    void textureListingForSelectDataParser_shouldReturnEmptyWhenModelsMapIsNull() {
+        List<TextureListingForSelect> result =
+                TextureListingDataParser.textureListingForSelectDataParser(null, false, "No texture");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void textureListingForSelectDataParser_shouldReturnEmptyWhenModelsMapIsEmpty() {
+        List<TextureListingForSelect> result =
+                TextureListingDataParser.textureListingForSelectDataParser(Map.of(), false, "No texture");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void textureListingForSelectDataParser_shouldReturnOtherTexturesForNonAllMode() {
+        var otherTexture = TestFixtures.texture("other-id", "model-1", "Detail", null);
+        var model = TestFixtures.model("main", "model-1", "Femur", null, List.of(otherTexture));
+
+        List<TextureListingForSelect> result = TextureListingDataParser.textureListingForSelectDataParser(
+                Map.of("main", model), false, "No texture");
+
+        assertEquals(1, result.size());
+        assertEquals("other-id", result.getFirst().textureId());
+        assertEquals("Detail", result.getFirst().textureName());
+    }
+
+    @Test
+    void textureListingForSelectDataParser_shouldHandleModelWithNullTexturesForAllMode() {
+        var model = TestFixtures.model("main", "model-1", "Femur", null, null);
+
+        List<TextureListingForSelect> result = TextureListingDataParser.textureListingForSelectDataParser(
+                Map.of("main", model), true, "Fallback");
+
+        assertEquals(1, result.size());
+        assertEquals("Fallback", result.getFirst().textureName());
+    }
+
+    @Test
     void textureListingForSelectDataParser_shouldDeduplicateByModelAndReturnTexturesForAllMode() {
         var mainTexture = TestFixtures.texture("main-t", "model-1", "Main", null);
         var otherTexture = TestFixtures.texture("other-t", "model-1", "Other", null);
@@ -45,3 +85,4 @@ class TextureListingDataParserTest {
         assertTrue(parsed.stream().anyMatch(texture -> "other-t".equals(texture.textureId())));
     }
 }
+

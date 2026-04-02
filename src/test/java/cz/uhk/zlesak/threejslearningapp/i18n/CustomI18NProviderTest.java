@@ -30,6 +30,30 @@ class CustomI18NProviderTest {
     }
 
     @Test
+    void getTranslation_withChapterCreatorKey_shouldReturnCzechTranslation() {
+        CustomI18NProvider provider = new CustomI18NProvider(new ObjectMapper());
+
+        assertEquals("Autor", provider.getTranslation("chapter.creator", Locale.forLanguageTag("cs")));
+    }
+
+    @Test
+    void getTranslation_withModelViewPageTitle_shouldReturnCzechTranslation() {
+        CustomI18NProvider provider = new CustomI18NProvider(new ObjectMapper());
+
+        assertEquals("MISH - Model", provider.getTranslation("page.title.modelView", Locale.forLanguageTag("cs")));
+    }
+
+    @Test
+    void getProvidedLocales_shouldReturnImmutableViewOfSupportedLocales() {
+        CustomI18NProvider provider = new CustomI18NProvider(new ObjectMapper());
+
+        var locales = provider.getProvidedLocales();
+
+        assertEquals(1, locales.size());
+        assertTrue(locales.contains(Locale.forLanguageTag("cs")));
+    }
+
+    @Test
     void getProvidedLocales_shouldExposeCzechLocale() {
         CustomI18NProvider provider = new CustomI18NProvider(new ObjectMapper());
 
@@ -37,3 +61,4 @@ class CustomI18NProviderTest {
         assertTrue(provider.getProvidedLocales().contains(Locale.forLanguageTag("cs")));
     }
 }
+

@@ -24,8 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 @SuppressWarnings("SameParameterValue")
@@ -85,6 +84,79 @@ class AbstractEntityViewTest {
                 event.getFileType() == FileType.MODEL && "model-1".equals(event.getModelId())
         ));
         assertTrue(uploads.stream().anyMatch(event -> event.getFileType() == FileType.MAIN));
+    }
+
+    @Test
+    void loadSingleModelWithTextures_withNullQuestionId_shouldNotFireRemoveAction() {
+        TestEntityView view = new TestEntityView();
+        List<ThreeJsActionEvent> actions = new ArrayList<>();
+        ComponentUtil.addListener(UI.getCurrent(), ThreeJsActionEvent.class, actions::add);
+
+        view.exposeLoadSingleModelWithTextures(modelWithMainAndOtherTexture(), null, "main", true);
+
+        assertTrue(actions.stream().noneMatch(a -> a.getAction() == ThreeJsActions.REMOVE));
+        assertTrue(actions.stream().anyMatch(a -> a.getAction() == ThreeJsActions.SHOW_MODEL));
+    }
+
+    @Test
+    void loadSingleModelWithTextures_withOnlyMainTexture_shouldEmitModelAndMainUploads() {
+        TestEntityView view = new TestEntityView();
+        List<UploadFileEvent> uploads = new ArrayList<>();
+        List<ThreeJsActionEvent> actions = new ArrayList<>();
+        ComponentUtil.addListener(UI.getCurrent(), UploadFileEvent.class, uploads::add);
+        ComponentUtil.addListener(UI.getCurrent(), ThreeJsActionEvent.class, actions::add);
+
+        QuickModelEntity modelWithOnlyMain = QuickModelEntity.builder()
+                .metadataId("meta-only-main")
+                .model(ModelFileEntity.builder().id("model-only-main").name("OnlyMain").build())
+                .mainTexture(QuickTextureEntity.builder().id("only-main-texture").name("Main").build())
+                .otherTextures(List.of())
+                .build();
+
+        view.exposeLoadSingleModelWithTextures(modelWithOnlyMain, "q-1", "main", true);
+
+        assertEquals(List.of(FileType.MODEL, FileType.MAIN),
+                uploads.stream().map(UploadFileEvent::getFileType).toList());
+        assertEquals(List.of(ThreeJsActions.REMOVE, ThreeJsActions.SHOW_MODEL),
+                actions.stream().map(ThreeJsActionEvent::getAction).toList());
+    }
+
+    @Test
+    void loadSingleModelWithTextures_withOtherTextureHavingNullCsvContent_shouldNotEmitCsvUpload() {
+        TestEntityView view = new TestEntityView();
+        List<UploadFileEvent> uploads = new ArrayList<>();
+        ComponentUtil.addListener(UI.getCurrent(), UploadFileEvent.class, uploads::add);
+
+        QuickModelEntity modelNoCsv = QuickModelEntity.builder()
+                .metadataId("meta-no-csv")
+                .model(ModelFileEntity.builder().id("model-no-csv").name("NoCsv").build())
+                .mainTexture(QuickTextureEntity.builder().id("main-tex").name("Main").build())
+                .otherTextures(List.of(QuickTextureEntity.builder().id("other-tex").name("Other").csvContent(null).build()))
+                .build();
+
+        view.exposeLoadSingleModelWithTextures(modelNoCsv, "q-1", "main", true);
+
+        assertTrue(uploads.stream().noneMatch(u -> u.getFileType() == FileType.CSV));
+        assertEquals(3, uploads.size());
+    }
+
+    @Test
+    void testEntityService_readShouldReturnEntityFromApiClient() {
+        TestEntityService service = new TestEntityService();
+
+        QuickModelEntity result = service.read("test-id");
+
+        assertNotNull(result);
+        assertEquals("test-id", result.getId());
+    }
+
+    @Test
+    void testEntityService_deleteShouldReturnTrue() {
+        TestEntityService service = new TestEntityService();
+
+        boolean deleted = service.delete("any-id");
+
+        assertTrue(deleted);
     }
 
     private QuickModelEntity modelWithMainAndOtherTexture() {

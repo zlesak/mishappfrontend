@@ -2,6 +2,8 @@ package cz.uhk.zlesak.threejslearningapp.views.chapter;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.Location;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
@@ -59,7 +61,7 @@ class ChapterListingViewKaribuTest {
     void navigation_shouldRenderChapterCardsAndPagination() {
         ChapterListingView view = new ChapterListingView(chapterService);
         UI.getCurrent().add(view);
-        view.afterNavigation(null);
+        view.afterNavigation(mockNavigationEvent("chapters"));
         flushUi();
 
         verify(chapterService, timeout(1000).atLeastOnce()).readEntities(any());
@@ -69,7 +71,7 @@ class ChapterListingViewKaribuTest {
     void searchEvent_shouldUpdateFilterAndSortParameters() {
         ChapterListingView view = new ChapterListingView(chapterService);
         UI.getCurrent().add(view);
-        view.afterNavigation(null);
+        view.afterNavigation(mockNavigationEvent("chapters"));
         flushUi();
 
         FilterComponent filterComponent = (FilterComponent) ReflectionTestUtils.getField(view, "filter");
@@ -105,5 +107,13 @@ class ChapterListingViewKaribuTest {
     @SuppressWarnings("unchecked")
     private ArgumentCaptor<FilterParameters<ChapterFilter>> filterParametersCaptor() {
         return (ArgumentCaptor<FilterParameters<ChapterFilter>>) (ArgumentCaptor<?>) ArgumentCaptor.forClass(FilterParameters.class);
+    }
+
+    private AfterNavigationEvent mockNavigationEvent(String path) {
+        AfterNavigationEvent event = mock(AfterNavigationEvent.class);
+        Location location = mock(Location.class);
+        when(location.getPath()).thenReturn(path);
+        when(event.getLocation()).thenReturn(location);
+        return event;
     }
 }
