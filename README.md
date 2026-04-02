@@ -2,6 +2,9 @@
 
 ![MISH_LOGO](src/main/webapp/icons/MISH_icon.ico "MISH APP Logo")
 
+[![Java Tests](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml/badge.svg)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/java-tests.yml)
+[![Vitest](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml/badge.svg)](https://github.com/zlesak/threejsproofofconcept/actions/workflows/vitest.yml)
+
 ## Description
 
 This repository contains the frontend part of the MISH APP application that has been created as a part of a master thesis at the University of Hradec Kralove.  
