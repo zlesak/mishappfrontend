@@ -54,7 +54,7 @@ class ListingToolbarTest {
     void thePlaceholderSurvivesAsAnExampleNotAsTheLabel() {
         ListingToolbar toolbar = new ListingToolbar();
 
-        assertEquals("Hledat...", toolbar.getSearchField().getPlaceholder());
+        assertEquals("např. mozek", toolbar.getSearchField().getPlaceholder());
         assertFalse(toolbar.getSearchField().getLabel().isBlank());
     }
 
