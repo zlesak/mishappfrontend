@@ -44,6 +44,17 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
      * no time limit, running this script 39 ms after the last keystroke -- well inside the delay
      * the field waits out before reporting on its own -- stored all 26 characters that had been
      * typed.
+     *
+     * <p>Both of those were measured against the Vaadin version this build uses, in Chromium, and
+     * a later version that moved the field behind a shadow root would quietly make the first one
+     * wrong. To check it again, put the caret in an answer and run in the browser console:
+     * <pre>{@code
+     * let deep = document.activeElement;
+     * while (deep?.shadowRoot?.activeElement) deep = deep.shadowRoot.activeElement;
+     * console.log(document.activeElement.tagName, deep.tagName);
+     * }</pre>
+     * Two different tags mean the focused field is no longer reachable from
+     * {@code document.activeElement}, and the blur has to walk shadow roots to find it.
      */
     static final String AUTO_SUBMIT_SCRIPT = "document.activeElement?.blur(); this.click();";
 
