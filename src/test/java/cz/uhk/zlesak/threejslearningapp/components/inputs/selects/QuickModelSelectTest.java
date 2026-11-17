@@ -27,10 +27,12 @@ class QuickModelSelectTest {
     }
 
     @Test
-    void constructor_shouldConfigureHelperTextAndBlockId() {
+    void constructor_shouldConfigureLabelAndBlockId() {
         QuickModelSelect select = new QuickModelSelect("My Label", "block-1");
 
-        assertEquals("My Label", select.getHelperText());
+        // A label, not a helper text: the helper renders under the field and is not its accessible
+        // name, so the select announced itself as an unnamed combo box.
+        assertEquals("My Label", select.getLabel());
         assertEquals("block-1", select.getElement().getAttribute("block-id"));
         assertTrue(select.isReadOnly());
     }

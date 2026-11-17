@@ -18,7 +18,7 @@ public class QuickModelSelect extends Select<QuickModelEntity> implements I18nAw
      */
     public QuickModelSelect(String label, String id) {
         super();
-        setHelperText(label);
+        setLabel(label);
         getElement().setAttribute("block-id", id);
         setItemLabelGenerator(entity -> entity != null ? entity.getModel().getName() : "");
         setWidthFull();

@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.claude
+node_modules
+target
+docs
+e2e
+test-results
+playwright-report
+coverage
+src/main/frontend/generated
+vite.generated.ts
+*.iml

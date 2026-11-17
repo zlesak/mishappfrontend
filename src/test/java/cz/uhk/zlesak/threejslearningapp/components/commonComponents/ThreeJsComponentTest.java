@@ -9,7 +9,6 @@ import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.file.UploadFileEvent;
 import cz.uhk.zlesak.threejslearningapp.events.quiz.TextureClickedEvent;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.*;
-import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,39 +34,6 @@ class ThreeJsComponentTest {
     @AfterEach
     void tearDown() {
         VaadinTestSupport.clearCurrentUi();
-    }
-
-    @Test
-    void clientCallableMethodsShouldEmitEventsAndToken() {
-        ThreeJsComponent component = attach(new ThreeJsComponent());
-
-        AtomicReference<TextureClickedEvent> clicked = new AtomicReference<>();
-        AtomicReference<ThreeJsDoingActions> doing = new AtomicReference<>();
-        AtomicReference<ThreeJsFinishedActions> finished = new AtomicReference<>();
-        AtomicReference<ThreeJsLoadingProgress> progress = new AtomicReference<>();
-        ComponentUtil.addListener(component, TextureClickedEvent.class, clicked::set);
-        ComponentUtil.addListener(UI.getCurrent(), ThreeJsDoingActions.class, doing::set);
-        ComponentUtil.addListener(UI.getCurrent(), ThreeJsFinishedActions.class, finished::set);
-        ComponentUtil.addListener(UI.getCurrent(), ThreeJsLoadingProgress.class, progress::set);
-
-        component.onColorPicked("model-1", "texture-1", "#AA11CC", "");
-        assertNotNull(clicked.get());
-        assertEquals("model-1", clicked.get().getModelId());
-
-        component.doingActions("loading");
-        assertEquals("loading", doing.get().getDescription());
-
-        component.finishedActions();
-        assertNotNull(finished.get());
-
-        component.loadingProgress(42, "textures");
-        assertEquals(42, progress.get().getPercent());
-        assertEquals("textures", progress.get().getDescription());
-
-        AccessTokenProvider provider = mock(AccessTokenProvider.class);
-        when(provider.getValidAccessToken()).thenReturn("token-xyz");
-        registerBean(provider);
-        assertEquals("token-xyz", component.getToken());
     }
 
     @Test
@@ -230,13 +196,6 @@ class ThreeJsComponentTest {
         var field = ThreeJsComponent.class.getDeclaredField("jsDispatchExecutor");
         field.setAccessible(true);
         return field.get(component);
-    }
-
-    private void registerBean(AccessTokenProvider bean) {
-        GenericApplicationContext context = new GenericApplicationContext();
-        context.registerBean(AccessTokenProvider.class, () -> bean);
-        context.refresh();
-        SpringContextUtils.setContext(context);
     }
 
     @Test

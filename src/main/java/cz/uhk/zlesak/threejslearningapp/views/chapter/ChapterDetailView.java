@@ -81,7 +81,7 @@ public class ChapterDetailView extends AbstractChapterView {
                     }
                 },
                 detailData -> {
-                    nameTextField.setValue(detailData.chapterName());
+                    setChapterName(detailData.chapterName());
                     editorjs.setChapterContentData(detailData.chapterContent());
                     ComponentUtil.fireEvent(UI.getCurrent(), new SubchapterInitEvent(UI.getCurrent(), detailData.headers(), false));
                     setupData(detailData.modelsMap());

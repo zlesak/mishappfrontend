@@ -9,6 +9,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionDat
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,8 +43,7 @@ public class QuizResultDetailCardComponent extends VerticalLayout implements I18
         }
 
         int questionNumber = 1;
-        for (AbstractQuestionData question : quiz.getQuestions()) {
-            String questionText = question.getQuestionText();
+        for (String questionText : questionTexts(result, quiz)) {
             QuizValidationQuestion questionResult = questionResultMap.get(questionText);
 
             QuizQuestionResultCardComponent questionResultCard;
@@ -60,6 +60,33 @@ public class QuizResultDetailCardComponent extends VerticalLayout implements I18
             add(questionResultCard);
             questionNumber++;
         }
+    }
+
+    /**
+     * Decides which questions the breakdown lists, and in what order.
+     *
+     * <p>The quiz is used when it is still there, so the breakdown follows the quiz's own question
+     * order even for questions the student skipped. When the quiz has since been deleted, the
+     * stored result stands on its own: grading records every question of the quiz, skipped ones
+     * included, in that same order, so the breakdown survives the quiz rather than disappearing
+     * with it.
+     *
+     * @param result the stored result.
+     * @param quiz   the quiz as it stands now, or {@code null} when it no longer exists.
+     * @return the question texts to render, in display order.
+     */
+    private List<String> questionTexts(QuizValidationResult result, QuizEntity quiz) {
+        if (quiz != null && quiz.getQuestions() != null) {
+            return quiz.getQuestions().stream()
+                    .map(AbstractQuestionData::getQuestionText)
+                    .toList();
+        }
+        if (result == null || result.getQuestionResults() == null) {
+            return List.of();
+        }
+        return result.getQuestionResults().stream()
+                .map(QuizValidationQuestion::getQuestionText)
+                .toList();
     }
 
 }

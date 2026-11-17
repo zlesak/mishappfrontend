@@ -6,7 +6,6 @@ import cz.uhk.zlesak.threejslearningapp.api.contracts.IApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
-import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
 import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
 import cz.uhk.zlesak.threejslearningapp.testsupport.KaribuSpringTestSupport;
 import cz.uhk.zlesak.threejslearningapp.testsupport.OAuthTestConfig;
@@ -127,171 +126,24 @@ class AbstractViewKaribuTest {
         assertEquals("something went wrong", result);
     }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException400_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        ApiCallException ex = apiEx(400, null, null);
-        String result = view.exposeResolveError(ex);
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException401_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(401, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException403_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(403, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException404_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(404, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException409_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(409, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException413_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(413, "/api/other", null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException413ModelUpload_shouldReturnModelTooLarge() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(413, "/api/model/upload", null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException413ModelUpdate_shouldReturnModelTooLarge() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(413, "/api/model/update", null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException415_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(415, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException422_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(422, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException500_shouldReturnStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(500, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException502_shouldReturnGatewayMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(502, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException503_shouldReturnGatewayMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(503, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallException504_shouldReturnGatewayMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(504, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallExceptionUnknownStatusAndBody_shouldReturnBody() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(418, null, "I am a teapot"));
-        assertEquals("I am a teapot", result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallExceptionAndEmptyJsonBody_shouldFallbackToStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(418, null, "{}"));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallExceptionAndEmptyArrayBody_shouldFallbackToStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(418, null, "[]"));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallExceptionAndNullBody_shouldFallbackToStatusMessage() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String result = view.exposeResolveError(apiEx(418, null, null));
-        assertNotNull(result);
-    }
 
-    @Test
-    void resolveUserFriendlyErrorMessage_withApiCallExceptionAndLongBody_shouldTruncate() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        String longBody = "A".repeat(300);
-        String result = view.exposeResolveError(apiEx(418, null, longBody));
-        assertNotNull(result);
-        assertTrue(result.endsWith("..."));
-        assertTrue(result.length() < 300);
-    }
-
-    @Test
-    void resolveUserFriendlyErrorMessage_withWrappedApiCallException_shouldTraverseCauseChain() {
-        TestView view = new TestView();
-        UI.getCurrent().add(view);
-        ApiCallException inner = apiEx(404, null, null);
-        RuntimeException wrapper = new RuntimeException("wrapper", inner);
-        String result = view.exposeResolveError(wrapper);
-        assertNotNull(result);
-    }
 
     @Test
     void runAsyncVoid_withSuccessfulRunnable_shouldCallSuccessCallback() {
@@ -445,10 +297,6 @@ class AbstractViewKaribuTest {
         MockVaadin.clientRoundtrip(false);
     }
 
-    private static ApiCallException apiEx(int status, String request, String body) {
-        return new ApiCallException("err", null, request, HttpStatus.valueOf(status), body, null);
-    }
-
     private static final class TestView extends AbstractView<TestService> {
         TestView() {
             super("page.title", new TestService());
@@ -540,11 +388,6 @@ class AbstractViewKaribuTest {
         @Override
         public boolean delete(String id) {
             return true;
-        }
-
-        @Override
-        public String getJwtToken() {
-            return null;
         }
     }
 }

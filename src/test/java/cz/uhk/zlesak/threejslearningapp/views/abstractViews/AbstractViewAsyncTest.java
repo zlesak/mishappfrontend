@@ -155,11 +155,6 @@ class AbstractViewAsyncTest {
         public boolean delete(String id) {
             return true;
         }
-
-        @Override
-        public String getJwtToken() {
-            return null;
-        }
     }
 }
 

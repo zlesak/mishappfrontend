@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CustomI18NProviderTest {
@@ -19,6 +20,20 @@ class CustomI18NProviderTest {
                 "Opravdu chcete smazat kvíz \"Atlas\"?",
                 provider.getTranslation("dialog.delete.quiz.message", Locale.forLanguageTag("cs"), "Atlas")
         );
+    }
+
+    @Test
+    void everyMessageShownWhenSavingAQuizFailsIsTranslated() {
+        // An undefined key falls back to the key itself, so the author was shown the literal
+        // "quiz.create.error: ..." on every failed save. These three carry that whole path.
+        CustomI18NProvider provider = new CustomI18NProvider(new ObjectMapper());
+        Locale czech = Locale.forLanguageTag("cs");
+
+        for (String key : java.util.List.of("quiz.create.error", "quiz.update.error",
+                "quiz.validation.question.invalid")) {
+            assertNotEquals(key, provider.getTranslation(key, czech),
+                    "The key '" + key + "' has no Czech text, so the user is shown the key");
+        }
     }
 
     @Test

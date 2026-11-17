@@ -18,4 +18,10 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 public class ChapterFilter extends FilterBase {
     String SearchText;
+    /**
+     * Name of a model the chapter has to contain.
+     *
+     * <p>Chapters store only model ids, so this is resolved to ids before the chapter query runs.
+     */
+    String ModelName;
 }

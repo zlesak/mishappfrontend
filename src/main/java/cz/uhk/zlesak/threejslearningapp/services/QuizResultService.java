@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
-import cz.uhk.zlesak.threejslearningapp.api.clients.QuizResultApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IQuizResultApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizValidationResult;
@@ -24,7 +24,7 @@ public class QuizResultService extends AbstractService<QuizValidationResult, Qui
      * @param quizApiClient API client for quiz result operations.
      */
     @Autowired
-    public QuizResultService(QuizResultApiClient quizApiClient) {
+    public QuizResultService(IQuizResultApiClient quizApiClient) {
         super(quizApiClient);
     }
 

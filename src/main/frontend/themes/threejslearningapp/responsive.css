@@ -117,31 +117,35 @@ body {
   padding: var(--lumo-space-s) var(--lumo-space-m) 0;
 }
 
-.entity-card {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.entity-card-header,
-.entity-card-details,
-.entity-card-actions {
+.page-header,
+.page-header-text {
   min-width: 0;
 }
 
-.entity-card-actions {
-  flex-wrap: wrap;
+/* The upload's own drop label renders in the secondary text colour on the dashed area, which axe
+   measured below 4.5 : 1. It is an instruction, so it has to be readable. */
+vaadin-upload > span[slot='drop-label'],
+vaadin-upload::part(drop-label) {
+  color: var(--lumo-body-text-color);
 }
 
-.chapter-model-badge {
+.entity-row {
   min-width: 0;
-  max-width: 100%;
-  text-align: left;
 }
 
-.chapter-model-overflow {
-  flex: 0 0 auto !important;
-  min-width: fit-content !important;
-  text-align: center;
+.entity-row:last-of-type {
+  border-bottom: none;
+}
+
+.entity-row-body,
+.entity-row-meta,
+.entity-row-actions {
+  min-width: 0;
+}
+
+.listing-rows > li + li .entity-row {
+  /* The rows share one hairline between them rather than stacking two. */
+  border-top: none;
 }
 
 .model-texture-select-row {
@@ -149,9 +153,12 @@ body {
   align-items: flex-start;
 }
 
+/* Wrap rather than shrink. With flex-basis: 0 and min-width: 0 the three selects squeezed themselves
+   to nothing instead of moving onto a second line, and the third one — the texture area — was clipped
+   off the right-hand edge of the pane. A real basis makes the row wrap when it runs out of room. */
 .model-texture-select-row > * {
   min-width: 0;
-  flex: 1 1 0;
+  flex: 1 1 12rem;
 }
 
 vaadin-select::part(value),
@@ -371,8 +378,7 @@ main-page-view hr {
 }
 
 @media (min-width: 600px) and (max-width: 1023px) {
-  .app-filter .app-filter-order,
-  .app-filter .app-filter-direction {
+  .app-filter .app-filter-order {
     flex: 1 1 calc(50% - var(--lumo-space-s));
   }
 
@@ -380,8 +386,11 @@ main-page-view hr {
     flex: 1 1 100%;
   }
 
+  /* The direction is one icon button now, not a select box; it keeps its own size. */
+  .app-filter .app-filter-direction,
+  .app-filter .app-filter-advanced-toggle,
   .app-filter .app-filter-submit {
-    margin-left: auto;
+    flex: 0 0 auto;
   }
 }
 
@@ -400,12 +409,24 @@ main-page-view hr {
     padding-inline-end: var(--lumo-space-xxs);
   }
 
+  /* The toolbar's two rows are always full width; the controls inside them are not, or the direction
+     icon would stretch across the screen. */
   .app-filter > * {
     flex: 1 1 100% !important;
     width: 100%;
   }
 
+  .app-filter .app-filter-search,
+  .app-filter .app-filter-order {
+    flex: 1 1 100% !important;
+    width: 100%;
+  }
+
+  .app-filter .app-filter-direction,
+  .app-filter .app-filter-advanced-toggle,
   .app-filter .app-filter-submit {
+    flex: 0 0 auto !important;
+    width: auto;
     justify-content: center;
   }
 
@@ -413,11 +434,11 @@ main-page-view hr {
     padding-inline: var(--lumo-space-s);
   }
 
-  .listing-grid {
+  .listing-body {
     padding-inline: var(--lumo-space-s);
   }
 
-  .entity-card-actions {
+  .entity-row-actions {
     justify-content: flex-start;
   }
 
@@ -457,5 +478,48 @@ main-page-view hr {
 
   .app-user-menu .user-full-name {
     max-width: clamp(8rem, 18vw, 16rem);
+  }
+}
+
+/* Spacing in the listings. The rows carry the reading rhythm: a hairline between them, generous
+   padding inside, and metadata items far enough apart to be read as separate facts rather than as one
+   run-on sentence. */
+.listing-rows > li {
+  list-style: none;
+}
+
+.entity-row {
+  align-items: flex-start;
+  row-gap: var(--lumo-space-xs);
+}
+
+.entity-row-meta > span {
+  white-space: normal;
+}
+
+.entity-row:hover {
+  background-color: var(--lumo-contrast-5pct);
+}
+
+.listing-pagination-bar .listing-page-size {
+  flex: 0 0 auto;
+}
+
+/* The toolbar's two rows sit close together — they are one control surface, not two sections. */
+.app-filter .app-filter-advanced {
+  padding-top: var(--lumo-space-xs);
+}
+
+.chapter-search-toggle {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 599px) {
+  .entity-row-actions {
+    width: 100%;
+  }
+
+  .listing-pagination-bar {
+    justify-content: center;
   }
 }

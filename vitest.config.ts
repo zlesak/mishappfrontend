@@ -3,7 +3,9 @@ import {defineConfig} from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    include: ['src/main/frontend/**/*.test.ts', 'src/main/frontend/**/*.test.tsx'],
+    // e2e/*.test.ts are unit tests of the Playwright helpers, not browser specs; the specs
+    // themselves are *.spec.ts and stay with Playwright.
+    include: ['src/main/frontend/**/*.test.ts', 'src/main/frontend/**/*.test.tsx', 'e2e/**/*.test.ts'],
     exclude: ['src/main/frontend/generated/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',

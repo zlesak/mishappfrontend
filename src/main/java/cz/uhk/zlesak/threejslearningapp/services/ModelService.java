@@ -3,8 +3,8 @@ package cz.uhk.zlesak.threejslearningapp.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractApiClient;
-import cz.uhk.zlesak.threejslearningapp.api.clients.ModelApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.ModelFileUrl;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
@@ -25,14 +25,15 @@ import java.util.stream.Collectors;
 
 /**
  * Service for managing 3D models, including uploading and retrieving model files and textures.
- * Model uploads (including textures and CSV files) are handled in a single API call via ModelApiClient.
+ * Model uploads (including textures and CSV files) are handled in a single call via the model API client.
  *
- * @see ModelApiClient
+ * @see IModelApiClient
  */
 @Service
 @Slf4j
 @Scope("prototype")
 public class ModelService extends AbstractService<ModelEntity, QuickModelEntity, ModelFilter> {
+    private final IModelApiClient modelApiClient;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String DESCRIPTION_THUMBNAIL_KEY = "thumbnailDataUrl";
     private static final String DESCRIPTION_BACKGROUND_KEY = "background";
@@ -46,8 +47,9 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
      * @param modelApiClient the API client for interacting with model-related endpoints.
      */
     @Autowired
-    public ModelService(ModelApiClient modelApiClient) {
+    public ModelService(IModelApiClient modelApiClient) {
         super(modelApiClient);
+        this.modelApiClient = modelApiClient;
     }
 
     /**
@@ -77,12 +79,13 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
     }
 
     /**
-     * Reads a model entity by its metadata ID.
-     * Fetches the file entity tree from the backend and maps it to a {@link ModelEntity}.
+     * Reads a model by its ID.
+     * The model is stored whole, so this is a single lookup; the previously loaded model is reused
+     * while the view stays on the same entity.
      *
-     * @param entityId metadata ID of the model.
-     * @return ModelEntity with populated file references and textures.
-     * @throws RuntimeException if the API call fails.
+     * @param entityId ID of the model.
+     * @return the model with its files and textures.
+     * @throws RuntimeException if the model cannot be read.
      */
     @Override
     public ModelEntity read(String entityId) throws RuntimeException {
@@ -92,8 +95,7 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
             }
 
             if (entity == null || entity.getId() == null || !entity.getId().equals(entityId)) {
-                FileEntityTree tree = ((ModelApiClient) apiClient).readFileEntityTree(entityId);
-                entity = tree == null ? null : mapFileEntityTreeToModelEntity(tree, entityId);
+                entity = modelApiClient.read(entityId);
             }
             return entity;
         } catch (Exception e) {
@@ -108,7 +110,7 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
      * @return the file as InputStreamMultipartFile
      */
     public InputStreamMultipartFile downloadFile(String fileId) throws Exception {
-        return ((ModelApiClient) apiClient).downloadFile(fileId);
+        return modelApiClient.downloadFile(fileId);
     }
 
     /**
@@ -366,7 +368,7 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
 
         String backgroundFileId = findBackgroundImageFileId(entity);
         if (backgroundFileId != null && !backgroundFileId.isBlank()) {
-            String streamUrl = AbstractApiClient.getStreamBeEndpointUrl(backgroundFileId);
+            String streamUrl = ModelFileUrl.of(backgroundFileId);
             try {
                 ObjectNode root = OBJECT_MAPPER.createObjectNode();
                 root.put("type", "image");
@@ -551,88 +553,6 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         }
 
         return null;
-    }
-
-    private ModelEntity mapFileEntityTreeToModelEntity(FileEntityTree tree, String modelMetadataId) {
-        List<ModelFileEntity> allRelatedFiles = new ArrayList<>();
-        if (tree.getAllRelatedFiles() != null) {
-            for (FileEntityRecursive fr : tree.getAllRelatedFiles()) {
-                allRelatedFiles.add(convertRecursiveToModelFileEntity(fr));
-            }
-        }
-
-        ModelFileEntity root = ModelFileEntity.builder()
-                .id(tree.getId())
-                .name(tree.getName())
-                .senseType(tree.getSenseType())
-                .related(allRelatedFiles)
-                .build();
-
-        ModelEntity model = ModelEntity.builder()
-                .id(tree.getId())
-                .model(root)
-                .metadataId(modelMetadataId)
-                .name(tree.getName())
-                .creatorId(tree.getCreatorId())
-                .description(tree.getDescription())
-                .created(tree.getCreated())
-                .updated(tree.getUpdated())
-                .isAdvanced(tree.isAdvanced())
-                .build();
-        populateTextures(model, allRelatedFiles);
-        return model;
-    }
-
-    private ModelFileEntity convertRecursiveToModelFileEntity(FileEntityRecursive fr) {
-        ModelFileEntity mfe = new ModelFileEntity();
-        mfe.setId(fr.getId());
-        mfe.setName(fr.getName());
-        mfe.setSenseType(fr.getSenseType());
-        if (fr.getRelatedFiles() != null) {
-            List<ModelFileEntity> nested = new ArrayList<>();
-            for (FileEntityRecursive child : fr.getRelatedFiles()) {
-                nested.add(convertRecursiveToModelFileEntity(child));
-            }
-            mfe.setRelated(nested);
-        }
-        return mfe;
-    }
-
-    private void populateTextures(ModelEntity entity, List<ModelFileEntity> allRelatedFiles) {
-        List<QuickTextureEntity> others = new ArrayList<>();
-        for (ModelFileEntity f : allRelatedFiles) {
-            if (f == null) continue;
-            if (f.getSenseType() == FileSenseType.MAIN_TEXTURE && entity.getMainTexture() == null) {
-                entity.setMainTexture(buildQuickTexture(f));
-            } else if (f.getSenseType() == FileSenseType.OTHER_TEXTURE) {
-                others.add(buildQuickTexture(f));
-            }
-        }
-        if (!others.isEmpty()) entity.setOtherTextures(others);
-    }
-
-    private QuickTextureEntity buildQuickTexture(ModelFileEntity textureFile) {
-        QuickTextureEntity.QuickTextureEntityBuilder<?, ?> builder = QuickTextureEntity.builder()
-                .id(textureFile.getId())
-                .name(textureFile.getName());
-
-        if (textureFile.getRelated() != null) {
-            for (ModelFileEntity child : textureFile.getRelated()) {
-                if (child != null && child.getSenseType() == FileSenseType.CSV_FILE) {
-                    try {
-                        InputStreamMultipartFile csvFile = downloadFile(child.getId());
-                        if (csvFile != null) {
-                            builder.csvContent(new String(csvFile.getBytes(), StandardCharsets.UTF_8));
-                        }
-                    } catch (Throwable throwable) {
-                        log.error("Failed to download CSV file for texture {}: {}", textureFile.getName(), throwable.getMessage());
-                        new ErrorNotification("Failed to download CSV file for texture " + textureFile.getName());
-                    }
-                    break;
-                }
-            }
-        }
-        return builder.build();
     }
 
     public record ModelPrefillData(

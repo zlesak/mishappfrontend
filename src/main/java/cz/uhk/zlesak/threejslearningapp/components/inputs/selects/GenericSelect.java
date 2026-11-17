@@ -44,22 +44,59 @@ public abstract class GenericSelect<T extends HasPrimarySecondaryMain, E extends
      * @param itemType            the class type of the items
      * @param allowEmptySelection flag to allow empty selection
      */
+    /**
+     * Renders one texture area as a colour swatch followed by its name.
+     *
+     * <p>The area's colour used to be applied to the text itself, which made half the list unreadable:
+     * a pale yellow area name on a white background is not a colour scheme, it is a coincidence. The
+     * name now uses the ordinary text colour and the colour is shown beside it as a swatch, where being
+     * pale costs nothing.
+     *
+     * @param area the texture area
+     * @param areaName the name to show
+     * @return the rendered row
+     */
+    private static Span renderTextureArea(TextureAreaForSelect area, String areaName) {
+        Span row = new Span();
+        row.getStyle()
+                .set("display", "inline-flex")
+                .set("align-items", "center")
+                .set("gap", "var(--lumo-space-s)");
+
+        String color = area == null ? null : area.hexColor();
+        if (color != null && !color.isBlank()) {
+            Span swatch = new Span();
+            swatch.getStyle()
+                    .set("width", "1em")
+                    .set("height", "1em")
+                    .set("flex", "0 0 auto")
+                    .set("border-radius", "var(--lumo-border-radius-s)")
+                    .set("border", "1px solid var(--lumo-contrast-30pct)")
+                    .set("background-color", color);
+            // Decorative: the name beside it is what identifies the area, and a colour is not
+            // something a screen reader can convey anyway.
+            swatch.getElement().setAttribute("aria-hidden", "true");
+            row.add(swatch);
+        }
+
+        row.add(new Span(areaName));
+        return row;
+    }
+
     public GenericSelect(String label, ItemLabelGenerator<T> itemLabelGenerator, Class<T> itemType, boolean allowEmptySelection) {
         super();
         this.itemLabelGenerator = itemLabelGenerator;
 
+        // Both, on purpose. The empty-selection caption is the "nothing chosen yet" entry inside the
+        // list; it is not the field's accessible name, so on its own it left every one of these selects
+        // announced as an unnamed combo box once a value had been picked.
         setEmptySelectionCaption(text(label));
+        setLabel(text(label));
         setWidthFull();
         setRenderer(new TextRenderer<>(itemLabelGenerator));
         if (itemType == TextureAreaForSelect.class) {
-            setRenderer(new ComponentRenderer<>(item -> {
-                Span span = new Span(itemLabelGenerator.apply(item));
-                String color = ((TextureAreaForSelect) item).hexColor();
-                if (color != null) {
-                    span.getStyle().set("color", color);
-                }
-                return span;
-            }));
+            setRenderer(new ComponentRenderer<>(item -> renderTextureArea((TextureAreaForSelect) item,
+                    itemLabelGenerator.apply(item))));
         }
         items = new ObservableMap<>((value, fromClient) -> {
             if (fromClient) {

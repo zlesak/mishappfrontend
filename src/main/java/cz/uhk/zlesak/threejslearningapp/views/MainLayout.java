@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.views;
 
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.HasElement;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.contextmenu.MenuItem;
@@ -19,6 +20,7 @@ import cz.uhk.zlesak.threejslearningapp.components.buttons.ThemeModeToggleButton
 import cz.uhk.zlesak.threejslearningapp.components.listItems.AvatarListItem;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.MenuListItem;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.CookiesNotification;
+import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import cz.uhk.zlesak.threejslearningapp.views.administration.AdministrationView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import cz.uhk.zlesak.threejslearningapp.views.documentation.DocumentationView;
@@ -39,13 +41,39 @@ import java.util.List;
 @Scope("prototype")
 @Layout
 @Slf4j
-public class MainLayout extends AppLayout {
+public class MainLayout extends AppLayout implements I18nAware {
+
+    /** Target of the skip link, and the id of the {@code <main>} wrapper it jumps to. */
+    static final String MAIN_CONTENT_ID = "obsah";
+
     /**
      * Constructor for MainLayout.
      */
     public MainLayout() {
         addClassName("app-shell");
         addToNavbar(createHeaderContent());
+    }
+
+    /**
+     * Wraps the route's content in a named {@code <main>} landmark.
+     *
+     * <p>AppLayout does not do this itself, so without it the page has a header and a navigation but
+     * no main region — a screen reader user has nothing to jump to, and the skip link has no target.
+     * The wrapper is focusable programmatically only ({@code tabindex="-1"}), so following the skip
+     * link moves focus into the content without adding a stop to the tab order.
+     *
+     * @param content the route's content
+     */
+    @Override
+    public void showRouterLayoutContent(HasElement content) {
+        Main main = new Main();
+        main.setId(MAIN_CONTENT_ID);
+        main.getElement().setAttribute("tabindex", "-1");
+        main.getElement().getStyle().set("display", "contents");
+        if (content != null) {
+            main.getElement().appendChild(content.getElement());
+        }
+        setContent(main);
     }
 
     /**
@@ -59,6 +87,13 @@ public class MainLayout extends AppLayout {
         Header header = new Header();
         header.addClassName("app-shell-header");
         header.addClassNames(BoxSizing.BORDER, Display.FLEX, FlexDirection.COLUMN, Width.FULL);
+
+        // First focusable thing on every route: a keyboard user must be able to jump past the
+        // navigation instead of tabbing through it on each page. Hidden until it has focus.
+        Anchor skipToContent = new Anchor("#" + MAIN_CONTENT_ID, text("skip.toContent"));
+        skipToContent.addClassName("skip-to-content");
+        skipToContent.addClassNames(LumoUtility.Accessibility.SCREEN_READER_ONLY);
+        header.add(skipToContent);
 
         /// Layout item in form of div component
         Div layout = new Div();
@@ -94,7 +129,11 @@ public class MainLayout extends AppLayout {
         UI.getCurrent().getPage().executeJs(
                 "const match = document.cookie.match('(^|;) ?cookieConsent=([^;]*)(;|$)'); return match ? match[2] : null;"
         ).then(String.class, value -> {
-            if (!"accepted".equals(value)) {
+            // Asking again only while no answer has been recorded. Testing for "accepted" alone
+            // meant a recorded refusal counted as no answer, so the bar came back on every load
+            // and took the focus with it -- which is worse for the person who declined than for
+            // the one who agreed.
+            if (value == null || value.isBlank()) {
                 showCookieNotification();
             }
         });
@@ -121,7 +160,10 @@ public class MainLayout extends AppLayout {
         menuIcon.setSize("1.1rem");
 
         MenuItem root = navMenuBar.addItem(menuIcon);
-        root.getElement().setProperty("title", "Navigace");
+        // aria-label, not title: a title is a tooltip, and a screen reader announcing "button" with
+        // no name leaves the user guessing what the icon does.
+        root.getElement().setAttribute("aria-label", text("nav.menu.label"));
+        root.getElement().setProperty("title", text("nav.menu.label"));
         var subMenu = root.getSubMenu();
         for (NavigationTarget target : commonNavigationTargets()) {
             HorizontalLayout row = new HorizontalLayout(target.icon().create(), new Span(target.label()));
@@ -134,6 +176,8 @@ public class MainLayout extends AppLayout {
 
     private Component createDesktopNavigation() {
         Nav nav = new Nav();
+        // Named landmark: with more than one <nav> on a page, "navigation" alone does not say which.
+        nav.getElement().setAttribute("aria-label", text("nav.main.label"));
         nav.addClassNames(
                 "desktop-nav",
                 Display.FLEX,

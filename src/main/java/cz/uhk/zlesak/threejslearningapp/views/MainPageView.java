@@ -10,12 +10,14 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
+import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.DividerComponent;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ShowcaseVideo;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.IView;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
 import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
@@ -29,18 +31,19 @@ import cz.uhk.zlesak.threejslearningapp.views.model.ModelListingView;
 @Tag("main-page-view")
 @AnonymousAllowed
 public class MainPageView extends Composite<VerticalLayout> implements IView {
-    private static final String TRANSPARENT_GIF_PLACEHOLDER = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
     /**
      * Constructor for MainPageView.
      * Initializes the main layout and adds sections to the page.
      */
     public MainPageView() {
-        VerticalLayout mainLayout = getContent();
-        mainLayout.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
-        mainLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-        mainLayout.getStyle().set("margin", "0 auto");
-        mainLayout.addAttachListener(event -> initGifLazyLoading());
-        mainLayout.add(
+        // The window itself does not scroll — the shell has to stay put — so this long page scrolls
+        // inside its own scroller. Without it the sections below the hero would be unreachable.
+        VerticalLayout sections = new VerticalLayout();
+        sections.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
+        sections.setAlignItems(FlexComponent.Alignment.CENTER);
+        sections.setPadding(false);
+        sections.setWidthFull();
+        sections.add(
                 createHeroSection(),
                 new DividerComponent(),
                 createAboutSection(),
@@ -52,6 +55,18 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
                 createCollaborationSection(),
                 createFooterSection()
         );
+
+        Scroller scroller = new Scroller(sections, Scroller.ScrollDirection.VERTICAL);
+        scroller.setSizeFull();
+        // The recordings are found and observed once the page is on screen; the observer needs the
+        // scroller as its root, which is why it runs after attach rather than during construction.
+        scroller.addAttachListener(event -> initGifLazyLoading());
+
+        VerticalLayout mainLayout = getContent();
+        mainLayout.setPadding(false);
+        mainLayout.setSpacing(false);
+        mainLayout.setSizeFull();
+        mainLayout.add(scroller);
     }
 
     /**
@@ -71,7 +86,9 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         logoWrapper.setHeightFull();
         logoWrapper.addClassNames(LumoUtility.AlignItems.CENTER, LumoUtility.JustifyContent.CENTER, LumoUtility.Display.FLEX);
 
-        Image logo = new Image("/img/MISH_big.png", "MISH Logo");
+        // Decorative: the application's name is right beside it as the H1, so describing the logo would
+        // only make a screen reader say "MISH" twice.
+        Image logo = new Image("/img/MISH_big.png", "");
         logo.setMaxWidth("90%");
         logo.setMaxHeight("80vh");
         logo.getStyle().set("object-fit", "contain");
@@ -89,12 +106,14 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         H1 title = new H1(text("applicationTitle"));
         title.addClassNames(LumoUtility.Margin.Bottom.SMALL, LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, LumoUtility.LineHeight.MEDIUM);
 
-        H2 subtitle = new H2(text("welcomeMessage"));
+        // A slogan, not a section: it introduces nothing that follows it, so an H2 here put an empty
+        // rung on the heading ladder a screen reader user climbs.
+        Paragraph subtitle = new Paragraph(text("welcomeMessage"));
         subtitle.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.FontSize.XLARGE, LumoUtility.TextColor.SECONDARY);
 
         Paragraph description = new Paragraph(text("description"));
-        description.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.Bottom.LARGE, LumoUtility.TextAlignment.JUSTIFY);
-        description.getStyle().set("max-width", "600px");
+        description.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.TextColor.SECONDARY, LumoUtility.Margin.Bottom.LARGE);
+        applyReadableMeasure(description);
 
         HorizontalLayout buttons = new HorizontalLayout();
         buttons.addClassName("main-hero-cta");
@@ -104,6 +123,9 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
         Button modelsBtn = new Button(text("cta.models"), new Icon(VaadinIcon.CUBES));
         modelsBtn.addThemeVariants(ButtonVariant.LUMO_LARGE);
+        // A pale grey surface on a white page gave the control a boundary of 1.1 : 1 — for practical
+        // purposes no boundary at all. The border is what makes it recognisable as a button.
+        modelsBtn.getStyle().set("border", "2px solid #A3232A");
         modelsBtn.addClickListener(e -> UI.getCurrent().navigate(ModelListingView.class));
 
         buttons.add(startBtn, modelsBtn);
@@ -191,9 +213,9 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         showcaseGrid.setWidthFull();
         showcaseGrid.setMaxWidth("1200px");
 
-        showcaseGrid.add(createGifPlaceholder("showcase.gif1.title", "/img/modelgif.gif"));
-        showcaseGrid.add(createGifPlaceholder("showcase.gif2.title", "/img/kapitolagif.gif"));
-        showcaseGrid.add(createGifPlaceholder("showcase.gif3.title", "/img/quizgif.gif"));
+        showcaseGrid.add(createShowcaseItem("showcase.gif1.title", "modelgif"));
+        showcaseGrid.add(createShowcaseItem("showcase.gif2.title", "kapitolagif"));
+        showcaseGrid.add(createShowcaseItem("showcase.gif3.title", "quizgif"));
 
         section.add(title, desc, showcaseGrid);
         return section;
@@ -205,69 +227,105 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
      * @param gifPath The path to the GIF image.
      * @return The VerticalLayout containing the GIF/Image and title.
      */
-    private VerticalLayout createGifPlaceholder(String titleKey, String gifPath) {
+    private VerticalLayout createShowcaseItem(String titleKey, String baseName) {
         VerticalLayout container = new VerticalLayout();
         container.addClassName("main-showcase-item");
         container.setAlignItems(FlexComponent.Alignment.CENTER);
         container.setWidthFull();
         container.setPadding(false);
 
-        Image gifImage = new Image(gifPath, text(titleKey));
-        gifImage.getElement().setAttribute("data-lazy-src", gifPath);
-        gifImage.setSrc(TRANSPARENT_GIF_PLACEHOLDER);
-        gifImage.getElement().setAttribute("loading", "lazy");
-        gifImage.getElement().setAttribute("decoding", "async");
-        gifImage.getElement().setAttribute("fetchpriority", "low");
-        gifImage.setWidthFull();
-        gifImage.setHeight("400px");
-        gifImage.getStyle().set("object-fit", "contain");
-        gifImage.getStyle().set("border-radius", "var(--lumo-border-radius-m)");
+        ShowcaseVideo video = new ShowcaseVideo(
+                "/img/" + baseName,
+                "/img/" + baseName + "-poster.jpg",
+                text(titleKey));
+        video.setWidthFull();
+        video.getStyle()
+                .set("aspect-ratio", "16 / 10")
+                .set("height", "auto")
+                .set("object-fit", "contain")
+                .set("border-radius", "var(--lumo-border-radius-m)")
+                .set("background", "var(--lumo-contrast-5pct)");
 
-        H4 title = new H4(text(titleKey));
+        // An H3 under the section's H2. It was an H4, which skipped a level.
+        H3 title = new H3(text(titleKey));
         title.addClassNames(LumoUtility.Margin.Top.SMALL);
 
-        container.add(gifImage, title);
+        container.add(video, title);
         return container;
     }
 
+    /**
+     * Fetches and starts each recording only once it has been scrolled to.
+     *
+     * <p>The page itself downloads three poster frames and nothing more; the video files, which are the
+     * bulk of the weight, are fetched when the visitor actually reaches them. Playback then starts on
+     * its own — muted, which is what browsers insist on — and stops again when the recording leaves the
+     * screen, so three videos never run at once.
+     *
+     * <p>A visitor who has asked for reduced motion gets the poster and the controls, and nothing moves
+     * until they press play.
+     */
     private void initGifLazyLoading() {
         getContent().getElement().executeJs(
                 """
                 const root = this;
-                const imgs = root.querySelectorAll('img[data-lazy-src]:not([data-lazy-bound])');
-                if (!imgs.length) {
+                const scrollRoot = root.querySelector('vaadin-scroller') || null;
+                const videos = root.querySelectorAll('video.main-showcase-video:not([data-video-bound])');
+                if (!videos.length) {
                   return;
                 }
 
-                const loadImage = (img) => {
-                  const src = img.getAttribute('data-lazy-src');
-                  if (!src) {
+                const reduceMotion = window.matchMedia
+                  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+                const attach = (video) => {
+                  if (video.dataset.videoLoaded) {
                     return;
                   }
-                  img.src = src;
-                  img.removeAttribute('data-lazy-src');
-                  img.setAttribute('data-lazy-loaded', 'true');
+                  video.dataset.videoLoaded = 'true';
+                  // Both: the attribute lets the browser start playback as soon as it has enough data,
+                  // and the explicit play() below covers the case where the element was already loaded.
+                  if (!reduceMotion) {
+                    video.autoplay = true;
+                  }
+                  // Promoting data-src to src is what starts the download. The browser then picks the
+                  // first of the two formats it can actually decode.
+                  video.querySelectorAll('source[data-src]').forEach((source) => {
+                    source.src = source.getAttribute('data-src');
+                    source.removeAttribute('data-src');
+                  });
+                  video.load();
                 };
 
+                videos.forEach((video) => {
+                  video.setAttribute('data-video-bound', 'true');
+                  // The muted attribute alone is not always enough for autoplay; the property is.
+                  video.muted = true;
+                });
+
                 if (!('IntersectionObserver' in window)) {
-                  imgs.forEach(loadImage);
+                  videos.forEach(attach);
                   return;
                 }
 
                 const observer = new IntersectionObserver((entries) => {
                   entries.forEach((entry) => {
-                    if (entry.isIntersecting || entry.intersectionRatio > 0) {
-                      const img = entry.target;
-                      loadImage(img);
-                      observer.unobserve(img);
+                    const video = entry.target;
+                    if (entry.isIntersecting) {
+                      attach(video);
+                      if (!reduceMotion) {
+                        const started = video.play();
+                        if (started && typeof started.catch === 'function') {
+                          started.catch(() => {});
+                        }
+                      }
+                    } else if (!video.paused) {
+                      video.pause();
                     }
                   });
-                }, { root: null, rootMargin: '300px 0px', threshold: 0.01 });
+                }, { root: scrollRoot, rootMargin: '200px 0px', threshold: 0.25 });
 
-                imgs.forEach((img) => {
-                  img.setAttribute('data-lazy-bound', 'true');
-                  observer.observe(img);
-                });
+                videos.forEach((video) => observer.observe(video));
                 """
         );
     }
@@ -287,7 +345,8 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
 
         Paragraph aboutDesc = new Paragraph(text("about.description"));
         aboutDesc.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.TextColor.SECONDARY);
-        aboutDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.JUSTIFY);
+        aboutDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM);
+        applyReadableMeasure(aboutDesc);
 
         VerticalLayout aboutCol = new VerticalLayout(aboutTitle, aboutDesc);
         aboutCol.setPadding(false);
@@ -303,11 +362,13 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         section.setWidth("80%");
         section.setAlignItems(FlexComponent.Alignment.CENTER);
 
-        H3 collabTitle = new H3(text("collaboration.title"));
+        // A section of the page like the others, so an H2 like the others.
+        H2 collabTitle = new H2(text("collaboration.title"));
         collabTitle.addClassNames(LumoUtility.Margin.Top.LARGE, LumoUtility.Margin.Bottom.NONE);
 
         Paragraph collabDesc = new Paragraph(text("collaboration.description"));
-        collabDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.JUSTIFY);
+        collabDesc.addClassNames(LumoUtility.Margin.Bottom.MEDIUM);
+        applyReadableMeasure(collabDesc);
 
         VerticalLayout collabCol = new VerticalLayout(collabTitle, collabDesc);
         collabCol.setPadding(false);
@@ -323,8 +384,12 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         logosLayout.setWidthFull();
         logosLayout.addClassNames(LumoUtility.Gap.XLARGE, LumoUtility.FlexWrap.WRAP);
 
-        Div uhkLogoWrapper = creteLogoWrapper("/img/fim-uhk-abb_xs_rgb.png", "/img/fim-uhk-abb_xs_rgb-neg.png", "UHK Logo");
-        Div lfhkLogoWrapper = creteLogoWrapper("/img/LFHK-337-version1-logo_lfhk.png", "/img/LFHK-337-version1-logo_lfhk_bila.png", "LFHK Logo");
+        // Named in full. "UHK Logo" told the listener the shape of the thing rather than whose it is,
+        // and the abbreviation means nothing to anyone outside the two faculties.
+        Div uhkLogoWrapper = creteLogoWrapper("/img/fim-uhk-abb_xs_rgb.png", "/img/fim-uhk-abb_xs_rgb-neg.png",
+                text("collaboration.logo.fim"));
+        Div lfhkLogoWrapper = creteLogoWrapper("/img/LFHK-337-version1-logo_lfhk.png", "/img/LFHK-337-version1-logo_lfhk_bila.png",
+                text("collaboration.logo.lfhk"));
 
         logosLayout.add(uhkLogoWrapper, lfhkLogoWrapper);
 
@@ -353,8 +418,46 @@ public class MainPageView extends Composite<VerticalLayout> implements IView {
         footer.setWidthFull();
         footer.addClassNames(LumoUtility.TextAlignment.CENTER, LumoUtility.FontSize.MEDIUM);
         int currentYear = java.time.Year.now().getValue();
-        footer.add(new Span("© " + currentYear + " MISH | " + text("footer.rights")));
+
+        // Required by the European Accessibility Act, and on its own public route rather than in the
+        // documentation: the documentation sits behind the login, and someone who cannot use the login
+        // screen is exactly the person most likely to need this page.
+        Anchor statement = new Anchor("/accessibility", text("footer.accessibility"));
+
+        Span copyright = new Span("© " + currentYear + " MISH | " + text("footer.rights"));
+
+        Span separator = new Span("|");
+        separator.addClassName(LumoUtility.TextColor.SECONDARY);
+        separator.getElement().setAttribute("aria-hidden", "true");
+
+        // One line, wrapping only when it has to.
+        footer.getStyle()
+                .set("display", "flex")
+                .set("flex-wrap", "wrap")
+                .set("justify-content", "center")
+                .set("align-items", "baseline")
+                .set("gap", "var(--lumo-space-xs) var(--lumo-space-s)")
+                .set("padding", "var(--lumo-space-m) 0");
+        footer.add(copyright, separator, statement);
         return footer;
+    }
+
+    /**
+     * Caps a paragraph at a comfortable measure and leaves it aligned to the start.
+     *
+     * <p>The three long paragraphs were justified. Justification stretches the word spacing of every
+     * line differently, and the resulting "rivers" of white running down the block are a documented
+     * obstacle for readers with dyslexia — as is a line so long the eye loses its place returning to
+     * the start of the next one.
+     *
+     * @param paragraph the paragraph to constrain
+     */
+    private void applyReadableMeasure(Paragraph paragraph) {
+        paragraph.getStyle()
+                // Wide enough not to look like a column in a newspaper, capped before the line grows
+                // long enough that the eye loses its place coming back to the next one.
+                .set("max-width", "min(80ch, 100%)")
+                .set("text-align", "start");
     }
 
     /**

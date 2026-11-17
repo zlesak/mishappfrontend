@@ -52,7 +52,65 @@ class ModelUploadFormKaribuTest {
         assertEquals("Vytvořit model", form.createButton.getText());
         assertFalse(form.uploadOtherTexturesDiv.isEnabled());
         assertFalse(form.csvOtherTexturesDiv.isEnabled());
-        assertEquals(6, form.getVl().getComponentCount());
+        // Name, the combined drop zone, four per-kind sections, the submit button.
+        assertEquals(7, form.getVl().getComponentCount());
+    }
+
+    @Test
+    void everythingCanBeDroppedAtOnceAndIsSortedByExtension() {
+        // Uploading a model took about 21 seconds and nine interactions — as much as the other seven
+        // measured tasks together — because each kind of file had its own button and its own dialog.
+        ModelUploadForm form = new ModelUploadForm();
+        UI.getCurrent().add(form);
+
+        route(form, file("organ.glb", "glb"));
+        route(form, file("main.jpg", "main"));
+        route(form, file("detail.jpg", "detail"));
+        route(form, file("areas.csv", "hex,name"));
+
+        assertEquals(1, form.getObjFileUpload().getUploadedFiles().size());
+        assertEquals(1, form.getMainTextureFileUpload().getUploadedFiles().size());
+        assertEquals(1, form.getOtherTexturesFileUpload().getUploadedFiles().size());
+        assertEquals(1, form.getCsvFileUpload().getUploadedFiles().size());
+
+        // The first texture becomes the main one, which is also what unlocks the sections below it.
+        assertTrue(form.uploadOtherTexturesDiv.isEnabled());
+        assertTrue(form.csvOtherTexturesDiv.isEnabled());
+    }
+
+    @Test
+    void aSecondModelFileIsRefusedRatherThanSilentlyReplacingTheFirst() {
+        ModelUploadForm form = new ModelUploadForm();
+        UI.getCurrent().add(form);
+
+        route(form, file("organ.glb", "glb"));
+        route(form, file("other.obj", "obj"));
+
+        assertEquals(1, form.getObjFileUpload().getUploadedFiles().size());
+        assertEquals("organ.glb", form.getObjFileUpload().getUploadedFiles().getFirst().getOriginalFilename());
+    }
+
+    @Test
+    void aFileThatCannotBePlacedGoesNowhere() {
+        ModelUploadForm form = new ModelUploadForm();
+        UI.getCurrent().add(form);
+
+        route(form, file("notes.txt", "text"));
+
+        assertEquals(0, form.getObjFileUpload().getUploadedFiles().size());
+        assertEquals(0, form.getMainTextureFileUpload().getUploadedFiles().size());
+        assertEquals(0, form.getCsvFileUpload().getUploadedFiles().size());
+    }
+
+    private void route(ModelUploadForm form, cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile file) {
+        try {
+            var method = ModelUploadForm.class.getDeclaredMethod("routeDroppedFile", String.class,
+                    cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile.class);
+            method.setAccessible(true);
+            method.invoke(form, file.getOriginalFilename(), file);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

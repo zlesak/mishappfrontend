@@ -5,8 +5,9 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
- * QuickQuizEntity Class - Represents a lightweight quiz entity containing list of chapters teh quiz belongs to.
- * Extends AbstractEntity to inherit common entity properties.
+ * A quiz as it appears in listings: identity, the chapter it belongs to and its time limit.
+ * {@link QuizEntity} adds the questions and answers.
+ *
  * @see AbstractEntity for inherited properties.
  */
 @Data
@@ -17,6 +18,15 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class QuickQuizEntity extends AbstractEntity {
+
     String chapterId;
+
+    /**
+     * Name of {@link #chapterId} at the time of writing, so a listing can say which chapter a quiz
+     * belongs to without reading every chapter — and without falling back to showing the id.
+     */
+    String chapterName;
+
+    /** Minutes available for the quiz; zero means no limit. */
     Integer timeLimit;
 }

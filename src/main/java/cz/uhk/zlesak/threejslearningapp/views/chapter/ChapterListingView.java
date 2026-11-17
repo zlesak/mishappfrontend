@@ -3,10 +3,11 @@ package cz.uhk.zlesak.threejslearningapp.views.chapter;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
-import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.EntityRow;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.ChapterListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractListingView;
 import cz.uhk.zlesak.threejslearningapp.views.quizes.QuizCreateView;
@@ -24,7 +25,7 @@ import org.springframework.context.annotation.Scope;
 @Scope("prototype")
 @Tag("chapters-listing")
 @PermitAll
-public class ChapterListingView extends AbstractListingView<ChapterEntity, ChapterFilter, ChapterEntity, ChapterService> {
+public class ChapterListingView extends AbstractListingView<QuickChapterEntity, ChapterFilter, ChapterEntity, ChapterService> {
 
     /**
      * Constructor for ChapterListingView.
@@ -35,6 +36,8 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
     @Autowired
     public ChapterListingView(ChapterService chapterService) {
         super(true, "page.title.chapterListView", chapterService);
+        // Only chapters contain models, so only this listing offers the filter.
+        filter.setModelFilterVisible(true);
     }
 
     /**
@@ -53,7 +56,7 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      * @return a ChapterListItem component representing the chapter
      */
     @Override
-    protected AbstractListItem createListItem(ChapterEntity chapter) {
+    protected EntityRow createListItem(QuickChapterEntity chapter) {
         return new ChapterListItem(chapter, listView, administrationView);
     }
 
@@ -65,6 +68,6 @@ public class ChapterListingView extends AbstractListingView<ChapterEntity, Chapt
      */
     @Override
     protected ChapterFilter createFilter(String searchText) {
-        return new ChapterFilter(searchText);
+        return ChapterFilter.builder().SearchText(searchText).build();
     }
 }

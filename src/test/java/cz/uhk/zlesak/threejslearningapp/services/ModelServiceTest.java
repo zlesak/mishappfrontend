@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
-import cz.uhk.zlesak.threejslearningapp.api.clients.ModelApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
@@ -18,12 +18,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class ModelServiceTest {
-    private ModelApiClient modelApiClient;
+    private IModelApiClient modelApiClient;
     private ModelService modelService;
 
     @BeforeEach
     void setUp() {
-        modelApiClient = mock(ModelApiClient.class);
+        modelApiClient = mock(IModelApiClient.class);
         modelService = new ModelService(modelApiClient);
     }
 
@@ -101,11 +101,9 @@ class ModelServiceTest {
 
     @Test
     void read_shouldReturnEntityForValidId() throws Exception {
-        FileEntityTree tree = FileEntityTree.builder()
+        when(modelApiClient.read("model-1")).thenReturn(ModelEntity.builder()
                 .id("model-1").name("Femur").creatorId("u1").description("thumb")
-                .created(Instant.now()).updated(Instant.now())
-                .isAdvanced(false).allRelatedFiles(List.of()).build();
-        when(modelApiClient.readFileEntityTree("model-1")).thenReturn(tree);
+                .created(Instant.now()).updated(Instant.now()).build());
 
         ModelEntity result = modelService.read("model-1");
 
@@ -116,16 +114,14 @@ class ModelServiceTest {
 
     @Test
     void read_shouldCacheEntityOnSecondCall() throws Exception {
-        FileEntityTree tree = FileEntityTree.builder()
+        when(modelApiClient.read("model-2")).thenReturn(ModelEntity.builder()
                 .id("model-2").name("Atlas").creatorId("u1").description("thumb")
-                .created(Instant.now()).updated(Instant.now())
-                .isAdvanced(false).allRelatedFiles(List.of()).build();
-        when(modelApiClient.readFileEntityTree("model-2")).thenReturn(tree);
+                .created(Instant.now()).updated(Instant.now()).build());
 
         modelService.read("model-2");
         modelService.read("model-2");
 
-        verify(modelApiClient, times(1)).readFileEntityTree("model-2");
+        verify(modelApiClient, times(1)).read("model-2");
     }
 
     @Test

@@ -24,6 +24,8 @@
   "showcase.gif1.title": "Prohlížení modelů",
   "showcase.gif2.title": "Průchod kapitolou",
   "showcase.gif3.title": "Test v kvízu",
+  "showcase.play": "Přehrát ukázku",
+  "showcase.stop": "Zastavit ukázku",
 
   "collaboration.title": "Spolupráce",
   "collaboration.description": "Aplikace projektu MISH vznikla v rámci diplomových prací Jakuba Folga a Jana Zlesáka a to ve spolupráci Fakulty informatiky a managementu Univerzity Hradec Králové a Lékařské fakulty Univerzity Karlovy v Hradci Králové. Tato mezioborová spolupráce propojuje moderní softwarové technologie, 3D vizualizaci a uživatelsky přívětivé rozhraní s odbornými znalostmi z oblasti medicíny a anatomie. Výsledkem je nástroj, který odpovídá jak pedagogickým potřebám lékařského vzdělávání, tak současným technologickým standardům.",
@@ -31,5 +33,9 @@
   "target.students": "Pro studenty: Učte se efektivněji s vizuální podporou.",
   "target.teachers": "Pro pedagogy: Obohaťte svou výuku o interaktivní prvky.",
 
-  "footer.rights" : "Vytvořeno ve spolupráci FIM UHK a LFHK UK"
+  "collaboration.logo.fim": "Fakulta informatiky a managementu Univerzity Hradec Králové",
+  "collaboration.logo.lfhk": "Lékařská fakulta Univerzity Karlovy v Hradci Králové",
+
+  "footer.rights" : "Vytvořeno ve spolupráci FIM UHK a LFHK UK",
+  "footer.accessibility": "Prohlášení o přístupnosti"
 }

@@ -33,6 +33,6 @@ test('student bart/password can list, view and execute learning content', async 
   }
 
   await page.getByRole('button', {name: 'Odeslat kvíz'}).click();
-  await page.waitForURL(/\/quiz-result\//);
-  await expect(page.getByRole('heading', {name: 'Výsledky kvízu'})).toBeVisible();
+  // The result is rendered in place on the player route rather than on its own URL.
+  await expect(page.getByRole('heading', {name: 'Výsledky kvízu'})).toBeVisible({timeout: 30000});
 });

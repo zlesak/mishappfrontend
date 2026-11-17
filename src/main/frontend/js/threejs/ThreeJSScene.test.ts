@@ -13,6 +13,7 @@ vi.mock('./core/ModelManager', () => ({
     removeQuestionId = vi.fn();
     removeModel = vi.fn();
     removeFromList = vi.fn();
+    forgetModel = vi.fn();
     clear = vi.fn();
     loadModel = vi.fn();
   },
@@ -46,6 +47,7 @@ vi.mock('./core/GUIManager', () => ({
   GUIManager: class {
     createGUI = vi.fn(() => document.createElement('div'));
     attachToCanvas = vi.fn();
+    getCameraActions = vi.fn(() => null);
     dispose = vi.fn();
   },
 }));
@@ -88,6 +90,7 @@ describe('ThreeJSScene', () => {
       removeQuestionId: vi.fn(),
       removeModel: vi.fn(),
       removeFromList: vi.fn(),
+      forgetModel: vi.fn(),
       clear: vi.fn(),
       loadModel: vi.fn(),
     };
@@ -113,6 +116,7 @@ describe('ThreeJSScene', () => {
       dispose: vi.fn(),
       createGUI: vi.fn(() => document.createElement('div')),
       attachToCanvas: vi.fn(),
+      getCameraActions: vi.fn(() => null),
     };
     const eventManager = { dispose: vi.fn(), registerClickHandler: vi.fn(), registerResizeObserver: vi.fn(() => null), createResizeHandler: vi.fn(() => vi.fn()) };
 
@@ -358,6 +362,9 @@ describe('ThreeJSScene', () => {
 
     expect(modelManager.loadModel).toHaveBeenCalledWith('/models/femur.glb', 'model-1', true, 'q-1');
     expect(modelManager.removeModel).toHaveBeenCalledWith('model-1', expect.any(Function));
+    // Removing the file must also drop the registration and the cached blob, or a later display
+    // request would reload the model the user has just deleted.
+    expect(modelManager.forgetModel).toHaveBeenCalledWith('model-1');
     expect(textureManager.addMainTexture).toHaveBeenCalledWith('/textures/main.png', currentModel, { Authorization: 'Bearer token-1' }, expect.any(Function));
     expect(textureManager.removeMainTexture).toHaveBeenCalledWith(currentModel);
     expect(textureManager.addOtherTexture).toHaveBeenCalledWith('/textures/mask.png', 'mask-1', currentModel, { Authorization: 'Bearer token-1' }, expect.any(Function));

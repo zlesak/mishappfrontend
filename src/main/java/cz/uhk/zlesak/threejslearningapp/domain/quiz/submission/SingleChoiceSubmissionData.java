@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 /**
  * Submission for single choice question type where user selects one answer from multiple options.
@@ -21,6 +22,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
+@TypeAlias("SingleChoiceSubmissionData")
 public class SingleChoiceSubmissionData extends AbstractSubmissionData {
     Integer selectedIndex;
 }

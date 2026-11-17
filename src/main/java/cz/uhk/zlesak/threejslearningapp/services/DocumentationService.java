@@ -2,12 +2,9 @@ package cz.uhk.zlesak.threejslearningapp.services;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import cz.uhk.zlesak.threejslearningapp.api.clients.DocumentationApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationEntry;
 import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationEntryIndex;
-import cz.uhk.zlesak.threejslearningapp.domain.documentation.DocumentationFilter;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -32,7 +29,7 @@ import java.util.stream.Stream;
  */
 @Slf4j
 @Service
-public class DocumentationService extends AbstractService<DocumentationEntry, DocumentationEntry, DocumentationFilter> {
+public class DocumentationService {
     private final ObjectMapper objectMapper;
     private List<DocumentationEntry> cachedEntries = null;
 
@@ -43,8 +40,7 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
     private static final String CLASSPATH_PATTERN = "classpath*:texts/doc/documentation*.json";
 
     @Autowired
-    public DocumentationService(DocumentationApiClient documentationApiClient, ObjectMapper objectMapper) {
-        super(documentationApiClient);
+    public DocumentationService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -388,28 +384,5 @@ public class DocumentationService extends AbstractService<DocumentationEntry, Do
             log.error("Critical error while saving documentation: {}", e.getMessage());
             throw new RuntimeException("Documentation save failure", e);
         }
-    }
-    /**
-     * Validates the create entity.
-     *
-     * @param createEntity Entity to validate
-     * @return Validated entity
-     * @throws RuntimeException if validation fails
-     */
-    @Override
-    protected DocumentationEntry validateCreateEntity(DocumentationEntry createEntity) throws RuntimeException {
-        throw new NotImplementedException("Creation of documentation entries via API is not supported. Use saveAll() method instead.");
-    }
-
-    /**
-     * Creates the final entity from the create entity.
-     *
-     * @param createEntity Entity to create
-     * @return Final entity
-     * @throws RuntimeException if creation fails
-     */
-    @Override
-    protected DocumentationEntry createFinalEntity(DocumentationEntry createEntity) throws RuntimeException {
-        throw new NotImplementedException("Creation of documentation entries via API is not supported.");
     }
 }

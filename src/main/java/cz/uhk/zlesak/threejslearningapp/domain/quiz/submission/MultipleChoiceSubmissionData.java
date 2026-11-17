@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ import java.util.List;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
+@TypeAlias("MultipleChoiceSubmissionData")
 public class MultipleChoiceSubmissionData extends AbstractSubmissionData {
     List<Integer> selectedItems;
 }

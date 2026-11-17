@@ -33,7 +33,6 @@ public final class TestFixtures {
     ) {
         return QuickModelEntity.builder()
                 .id(metadataId)
-                .metadataId(metadataId)
                 .name(name)
                 .model(ModelFileEntity.builder().id(modelId).name(name).build())
                 .mainTexture(mainTexture)

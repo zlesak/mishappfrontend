@@ -2,55 +2,61 @@ name: E2E
 
 on:
   workflow_dispatch:
-    inputs:
-      backend-branch:
-        description: 'Backend branch to deploy (default: main)'
-        required: false
-      frontend-image:
-        description: 'Frontend image to test'
-        required: false
-        default: 'ghcr.io/zlesak/mishappfrontend:latest'
+  # The nightly run is deliberately off (#32); the suite runs on pull requests and on demand.
   #schedule:
   #  - cron: '0 3 * * *'
+  pull_request:
+    branches: [ main, monolith ]
 
 permissions:
   contents: read
-  packages: read
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    # Pinned, not `ubuntu-latest`: that label now resolves to Ubuntu 26.04, which
+    # `playwright install --with-deps` refuses ("Playwright does not support chromium on
+    # ubuntu26.04-x64"). The step then fails, the suite is skipped, and the job reports a
+    # failure that has nothing to do with the code. Raise this once Playwright supports 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: zlesak/MISH_SCRIPTS
-          path: mish-scripts
-
       - name: Map gateway hostname
         run: echo "127.0.0.1 mish" | sudo tee -a /etc/hosts
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start full stack
-        working-directory: mish-scripts
+      - name: Configure the stack
+        working-directory: infra
         run: |
-          BE_BRANCH="${{ inputs.backend-branch }}"
-          FE_IMAGE="${{ inputs.frontend-image }}"
-          ./start_all.sh --dev \
-            --image-frontend="${FE_IMAGE:-ghcr.io/zlesak/mishappfrontend:latest}" \
-            ${BE_BRANCH:+--branch-backend=$BE_BRANCH}
+          cp .env.example .env
+          sed -i 's|^EXTERNAL_BASE_URL=.*|EXTERNAL_BASE_URL=https://mish|' .env
+          sed -i 's|^EXTERNAL_HOSTNAME=.*|EXTERNAL_HOSTNAME=mish|' .env
 
-      - name: Wait for gateway
+      # The suite must exercise the frontend and backend in this repository. They are one image, so
+      # the check is that `app` is built here rather than pulled: an override file swapping in a
+      # registry tag, or a stray `image:`, would silently test something else.
+      - name: Verify the stack builds the in-repo application
+        working-directory: infra
+        run: |
+          docker compose config --format json > /tmp/compose.json
+          python3 - <<'PY'
+          import json, sys
+          app = json.load(open('/tmp/compose.json'))['services']['app']
+          if 'build' not in app:
+              sys.exit('app is not built from this repository: %s' % app.get('image', '<no image>'))
+          print('app builds from', app['build']['context'], 'via', app['build']['dockerfile'])
+          PY
+
+      - name: Start the stack
+        working-directory: infra
+        run: docker compose up -d --build --wait
+
+      - name: Wait for the gateway
         run: timeout 300 bash -c 'until curl -ksf https://mish >/dev/null; do sleep 5; done'
+
+      - name: Wait for Keycloak
+        run: timeout 300 bash -c 'until curl -ksf https://mish/auth/realms/mock-realm >/dev/null; do sleep 5; done'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -64,20 +70,42 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # No file list: positional filters apply to every project, so naming the specs would leave the
+      # `setup` project matching nothing and the fixtures unseeded. Projects carry their own
+      # selection and dependencies — setup seeds, e2e runs in parallel, usability runs after it
+      # alone so its timings are not measured under load.
       - name: Run e2e tests
         env:
           E2E_BASE_URL: https://mish
-        run: >
-          npx playwright test --workers=1
-          e2e/auth-role-guard.spec.ts
-          e2e/chapter-import.spec.ts
-          e2e/chapter-crud.spec.ts
-          e2e/model-crud.spec.ts
-          e2e/quiz-crud-execute.spec.ts
-          e2e/student-access.spec.ts
-          e2e/student-no-teacher-routes.spec.ts
-          e2e/model-assets-visibility.spec.ts
-          e2e/public-routes.spec.ts
+        run: npx playwright test --project=e2e
+
+      # Separate invocation with a single worker: the report measures how long each task takes, and
+      # that number is only meaningful when nothing else is competing for the machine. `always()`
+      # because a failing functional suite is exactly when the walkthrough is worth reading.
+      - name: Measure the usability walkthrough
+        if: always()
+        env:
+          E2E_BASE_URL: https://mish
+          E2E_WORKERS: 1
+        run: npx playwright test --project=usability
+
+      - name: Upload usability report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: usability-report
+          path: test-results/usability-report.md
+          if-no-files-found: ignore
+
+      # Machine-readable results, kept so a run can be imported into a test-management tool later
+      # without changing anything about the tests. See docs/test-scenarios.md.
+      - name: Upload machine-readable results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-results
+          path: test-results/results.xml
+          if-no-files-found: ignore
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
@@ -88,9 +116,7 @@ jobs:
 
       - name: Dump stack state on failure
         if: failure()
+        working-directory: infra
         run: |
-          docker ps -a
-          for c in $(docker ps -aq); do
-            echo "===== $(docker inspect --format '{{.Name}}' $c) ====="
-            docker logs --tail 100 "$c" 2>&1 || true
-          done
+          docker compose ps
+          docker compose logs --tail 200

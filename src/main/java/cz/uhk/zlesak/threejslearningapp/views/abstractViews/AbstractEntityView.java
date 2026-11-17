@@ -7,7 +7,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.router.BeforeLeaveEvent;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.api.clients.AbstractApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.ModelFileUrl;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ModelContainer;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.leaveDialogs.BeforeLeaveActionDialog;
@@ -122,6 +122,8 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
      */
     protected void loadSingleModelWithTextures(QuickModelEntity quickModelEntity, String questionId, String key, boolean... showImmediately) {
         String modelId = quickModelEntity.getModel().getId();
+        // The scene is named after whatever it is showing, so it is not announced merely as a canvas.
+        modelDiv.renderer.setAccessibleModelName(quickModelEntity.getModel().getName());
         if (questionId != null) {
             ComponentUtil.fireEvent(
                     UI.getCurrent(),
@@ -138,13 +140,13 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
 
         ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MODEL,
                 quickModelEntity.getMainTexture() != null ? quickModelEntity.getMainTexture().getId() : "main",
-                AbstractApiClient.getStreamBeEndpointUrl(quickModelEntity.getModel().getId()),
+                ModelFileUrl.of(quickModelEntity.getModel().getId()),
                 quickModelEntity.getModel().getName(), false, questionId, Objects.equals(key, "main")));
 
 
         if (quickModelEntity.getOtherTextures() != null && !quickModelEntity.getOtherTextures().isEmpty()) {
             for (var texture : quickModelEntity.getOtherTextures()) {
-                String otherTextureUrl = AbstractApiClient.getStreamBeEndpointUrl(texture.getId());
+                String otherTextureUrl = ModelFileUrl.of(texture.getId());
                 ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.OTHER, texture.getId(), otherTextureUrl, texture.getName(), false, questionId, true));
                 if (texture.getCsvContent() != null && !texture.getCsvContent().isEmpty()) {
                     ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.CSV, texture.getId(), texture.getCsvContent(), texture.getName(), false, questionId, true));
@@ -154,7 +156,7 @@ public abstract class AbstractEntityView<S extends AbstractService<?, ?, ?>> ext
 
         if (quickModelEntity.getMainTexture() != null) {
             ComponentUtil.fireEvent(UI.getCurrent(), new UploadFileEvent(UI.getCurrent(), modelId, FileType.MAIN, quickModelEntity.getMainTexture().getId(),
-                    AbstractApiClient.getStreamBeEndpointUrl(quickModelEntity.getMainTexture().getId()),
+                    ModelFileUrl.of(quickModelEntity.getMainTexture().getId()),
                     quickModelEntity.getMainTexture().getName(), false, questionId, true));
         }
         if (showImmediately.length > 0 && showImmediately[0]) {

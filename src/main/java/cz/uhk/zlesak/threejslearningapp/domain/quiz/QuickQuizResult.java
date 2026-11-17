@@ -5,8 +5,9 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 /**
- * QuickQuizResult Class - Represents the result of a quiz taken by a user.
- * Extends AbstractEntity to inherit common entity properties.
+ * The score of one quiz attempt, as shown in attempt listings.
+ * {@link QuizValidationResult} adds the per-question feedback.
+ *
  * @see AbstractEntity for inherited properties.
  */
 @Data
@@ -17,11 +18,17 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class QuickQuizResult extends AbstractEntity {
+
     String quizId;
+
+    /** Who took the quiz; this is what scopes result listings to their owner. */
     String userId;
-    String name;
+
     String chapterName;
+
     Integer maxScore;
+
     Integer totalScore;
+
     Double percentage;
 }

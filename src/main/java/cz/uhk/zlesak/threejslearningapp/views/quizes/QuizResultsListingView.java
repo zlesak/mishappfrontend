@@ -3,7 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Route;
-import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.EntityRow;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.QuizResultListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter;
@@ -34,7 +34,7 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      */
     @Autowired
     public QuizResultsListingView(QuizResultService quizResultService) {
-        super(true, "page.title.quizListView", quizResultService, false);
+        super(true, "page.title.quizResultsListView", quizResultService, false);
     }
 
     /**
@@ -44,7 +44,7 @@ public class QuizResultsListingView extends AbstractListingView<QuickQuizResult,
      * @return a QuizListItem component representing the quiz
      */
     @Override
-    protected AbstractListItem createListItem(QuickQuizResult quiz) {
+    protected EntityRow createListItem(QuickQuizResult quiz) {
         return new QuizResultListItem(quiz, administrationView, quizId);
     }
 

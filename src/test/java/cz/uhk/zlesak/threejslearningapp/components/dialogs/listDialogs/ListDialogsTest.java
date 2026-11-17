@@ -2,7 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.dialogs.listDialogs;
 
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.UI;
-import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.chapter.ChapterSelectedFromDialogEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelSelectedFromDialogEvent;
@@ -46,8 +46,8 @@ class ListDialogsTest {
         AtomicReference<ChapterSelectedFromDialogEvent> capturedEvent = new AtomicReference<>();
         ComponentUtil.addListener(UI.getCurrent(), ChapterSelectedFromDialogEvent.class, capturedEvent::set);
 
-        ChapterEntity chapter = ChapterEntity.builder().id("ch-1").name("Test Chapter").build();
-        invokeProtected(ChapterListDialog.class, "fireEntitySelectedEvent", ChapterEntity.class, dialog, chapter);
+        QuickChapterEntity chapter = QuickChapterEntity.builder().id("ch-1").name("Test Chapter").build();
+        invokeProtected(ChapterListDialog.class, "fireEntitySelectedEvent", QuickChapterEntity.class, dialog, chapter);
 
         assertNotNull(capturedEvent.get(), "ChapterSelectedFromDialogEvent should have been fired");
         assertEquals("ch-1", capturedEvent.get().getSelectedChapter().getId());
@@ -90,8 +90,8 @@ class ListDialogsTest {
         AtomicReference<ChapterSelectedFromDialogEvent> capturedEvent = new AtomicReference<>();
         ComponentUtil.addListener(UI.getCurrent(), ChapterSelectedFromDialogEvent.class, capturedEvent::set);
 
-        ChapterEntity chapter = ChapterEntity.builder().id("ch-2").build();
-        invokeProtected(ChapterListDialog.class, "fireEntitySelectedEvent", ChapterEntity.class, dialog, chapter);
+        QuickChapterEntity chapter = QuickChapterEntity.builder().id("ch-2").build();
+        invokeProtected(ChapterListDialog.class, "fireEntitySelectedEvent", QuickChapterEntity.class, dialog, chapter);
 
         assertNotNull(capturedEvent.get());
         assertNull(capturedEvent.get().getBlockId());

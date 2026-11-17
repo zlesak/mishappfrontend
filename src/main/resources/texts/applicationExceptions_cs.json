@@ -2,5 +2,8 @@
   "model.upload.error.emptyName": "Jméno modelu není vyplněno.",
   "model.upload.error.emptyModelFile": "Není nahrán žádný model.",
   "model.upload.error.emptyModelMainTexture": "Není nahrána hlavní textura modelu.",
-  "textureListingSelect.noOtherTextures" : "Žádné další textury nejsou k dispozici."
+  "textureListingSelect.noOtherTextures" : "Žádné další textury nejsou k dispozici.",
+  "listing.error.title": "Seznam se nepodařilo načíst",
+  "listing.error.message": "Data se nyní nepodařilo získat.",
+  "listing.error.hint": "Zkuste to prosím znovu nebo obnovte stránku. Pokud chyba trvá, kontaktujte správce aplikace."
 }

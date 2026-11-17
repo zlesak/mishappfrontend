@@ -3,8 +3,6 @@ package cz.uhk.zlesak.threejslearningapp.components.containers;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.RouteParameters;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -33,12 +31,9 @@ public class QuizDetailContainer extends VerticalLayout implements I18nAware {
         addClassName(LumoUtility.BorderRadius.LARGE);
         addClassName(LumoUtility.Padding.LARGE);
 
-        H2 title = new H2(quiz.getName());
-        title.addClassName(LumoUtility.Margin.Bottom.MEDIUM);
-        add(title);
-
-        Div table = new QuizDetailTableComponent(quiz);
-        add(table);
+        // No heading of its own: the route's PageHeader carries the quiz name as the page's H1, and a
+        // second copy of the same name right below it is noise for anyone reading by heading.
+        add(new QuizDetailTableComponent(quiz));
 
         Button startButton = new Button(text("quiz.detail.startButton"));
         startButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);

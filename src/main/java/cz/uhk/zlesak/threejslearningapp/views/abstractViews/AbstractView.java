@@ -8,20 +8,18 @@ import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.server.Command;
 import com.vaadin.flow.server.VaadinSession;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import com.vaadin.flow.shared.Registration;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import cz.uhk.zlesak.threejslearningapp.api.contracts.ApiTokenContext;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
+import cz.uhk.zlesak.threejslearningapp.common.logging.LogContext;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
-import cz.uhk.zlesak.threejslearningapp.exceptions.ApiCallException;
-import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
-import cz.uhk.zlesak.threejslearningapp.services.AbstractService;
-import org.springframework.http.HttpStatusCode;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -34,7 +32,7 @@ import java.util.function.Supplier;
  * This class manages event registrations and ensures they are cleaned up when the view is detached.
  * @param <S> the type of service associated with the view
  */
-public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Composite<VerticalLayout> implements IView {
+public abstract class AbstractView<S> extends Composite<VerticalLayout> implements IView {
     private static final String SESSION_IO_BULKHEAD_KEY = AbstractView.class.getName() + ".sessionIoBulkhead";
     private static final int MAX_PARALLEL_SESSION_TASKS = Integer.parseInt(System.getenv().getOrDefault("FE_SESSION_IO_MAX_PARALLEL", "3"));
     private static final long MIN_LOADING_VISIBLE_MS = Long.parseLong(System.getenv().getOrDefault("FE_LOADING_MIN_VISIBLE_MS", "250"));
@@ -143,93 +141,32 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
     }
 
     /**
-     * Shows a user-friendly error notification from a throwable (supports ApiCallException status mapping).
+     * Shows an error notification describing a failure.
+     * The backend raises failures with messages already written for the user, so the deepest
+     * message in the chain is the most specific one worth showing.
      */
     protected void showErrorNotification(String source, Throwable throwable) {
         showErrorNotification(source, resolveUserFriendlyErrorMessage(throwable));
     }
 
+    /**
+     * @param throwable failure to describe, may be {@code null}.
+     * @return the message to show the user.
+     */
     protected String resolveUserFriendlyErrorMessage(Throwable throwable) {
-        ApiCallException apiCallException = findApiCallException(throwable);
-        if (apiCallException != null) {
-            String endpoint = apiCallException.getRequest();
-            HttpStatusCode status = apiCallException.getStatus();
-            String statusMessage = statusToUserMessage(status, endpoint);
-            if (statusMessage != null) {
-                return statusMessage;
-            }
-
-            String bodyMessage = sanitizeBackendBody(apiCallException.getResponseBody());
-            if (bodyMessage != null) {
-                return bodyMessage;
-            }
-
-            if (status != null) {
-                return text("notification.apiError.withStatus", status.value());
-            }
-        }
-
-        String directMessage = throwable == null ? null : throwable.getMessage();
-        if (directMessage != null && !directMessage.isBlank()) {
-            return directMessage.trim();
-        }
-
-        return text("notification.apiError.default");
-    }
-
-    private String statusToUserMessage(HttpStatusCode status, String request) {
-        if (status == null) {
-            return null;
-        }
-
-        boolean modelUploadRequest = request != null && (request.contains("/api/model/update") || request.contains("/api/model/upload"));
-        int value = status.value();
-
-        if (value == 413 && modelUploadRequest) {
-            return text("notification.apiError.modelTooLarge");
-        }
-
-        return switch (value) {
-            case 400 -> text("notification.apiError.400");
-            case 401 -> text("notification.apiError.401");
-            case 403 -> text("notification.apiError.403");
-            case 404 -> text("notification.apiError.404");
-            case 409 -> text("notification.apiError.409");
-            case 413 -> text("notification.apiError.413");
-            case 415 -> text("notification.apiError.415");
-            case 422 -> text("notification.apiError.422");
-            case 500 -> text("notification.apiError.500");
-            case 502, 503, 504 -> text("notification.apiError.gateway");
-            default -> null;
-        };
-    }
-
-    private ApiCallException findApiCallException(Throwable throwable) {
+        String message = null;
         Throwable current = throwable;
         while (current != null) {
-            if (current instanceof ApiCallException apiCallException) {
-                return apiCallException;
+            if (current.getMessage() != null && !current.getMessage().isBlank()) {
+                message = current.getMessage().trim();
             }
             current = current.getCause();
         }
-        return null;
-    }
 
-    private String sanitizeBackendBody(String responseBody) {
-        if (responseBody == null) {
-            return null;
+        if (message == null) {
+            return text("notification.apiError.default");
         }
-
-        String sanitized = responseBody.replaceAll("\\s+", " ").trim();
-        if (sanitized.isEmpty() || Objects.equals(sanitized, "{}") || Objects.equals(sanitized, "[]")) {
-            return null;
-        }
-
-        if (sanitized.length() > 220) {
-            return sanitized.substring(0, 220) + "...";
-        }
-
-        return sanitized;
+        return message.length() > 220 ? message.substring(0, 220) + "..." : message;
     }
 
     /**
@@ -253,26 +190,29 @@ public abstract class AbstractView<S extends AbstractService<?,?,?>> extends Com
             return;
         }
 
-        String capturedAccessToken = null;
-        try {
-            capturedAccessToken = SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
-        } catch (Exception ignored) {
-            // Bez tokenu dál běžíme; API klient případně fallbackne na svůj standardní mechanismus.
-        }
+        // Přihlášeného uživatele je nutné přenést explicitně: worker vlákno nemá vazbu na Vaadin
+        // session, ze které se přihlášení jinak odvozuje, a backend z něj čte autora změn.
+        SecurityContext capturedSecurityContext = SecurityContextHolder.getContext();
+        // Stejný důvod pro logovací kontext: bez něj by řádky z workeru neměly korelační ID
+        // a nešlo by je spojit s požadavkem, který je vyvolal.
+        Map<String, String> capturedLogContext = LogContext.capture();
 
         onAsyncWorkStarted(ui);
 
         try {
-            final String tokenForAsync = capturedAccessToken;
             CompletableFuture
                     .supplyAsync(() -> {
-                        ApiTokenContext.set(tokenForAsync);
+                        SecurityContext previous = SecurityContextHolder.getContext();
+                        SecurityContextHolder.setContext(capturedSecurityContext);
                         try {
-                            return supplier.get();
+                            return LogContext.with(capturedLogContext, supplier);
                         } catch (Throwable t) {
                             throw new CompletionException(t);
                         } finally {
-                            ApiTokenContext.clear();
+                            // Restore rather than clear: the worker may be a pooled thread whose
+                            // holder is shared with the caller, and clearing it would sign the
+                            // user out of everything that runs afterwards.
+                            SecurityContextHolder.setContext(previous);
                         }
                     }, ioExecutor)
                     .whenComplete((result, error) -> {

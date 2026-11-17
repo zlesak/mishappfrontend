@@ -9,7 +9,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.MultipleChoiceAnswerD
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.MultipleChoiceQuestionData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,7 +26,7 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
         super(QuestionTypeEnum.MULTIPLE_CHOICE);
 
         correctAnswersGroup = new MultiSelectComboBox<>();
-        correctAnswersGroup.setHelperText(text("quiz.multipleChoice.correctOptions"));
+        correctAnswersGroup.setLabel(text("quiz.multipleChoice.correctOptions"));
         correctAnswersGroup.addThemeVariants(MultiSelectComboBoxVariant.LUMO_SMALL);
         correctAnswersGroup.setItemLabelGenerator(i ->  text("quiz.option.label") + " " + i);
 
@@ -73,7 +72,9 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
     @Override
     public void setAnswerData(AbstractAnswerData answerData) {
         if (answerData instanceof MultipleChoiceAnswerData data) {
-            correctAnswersGroup.setValue(new java.util.HashSet<>(data.getCorrectItems()));
+            correctAnswersGroup.setValue(data.getCorrectItems().stream()
+                    .map(index -> index + 1)
+                    .collect(Collectors.toSet()));
         }
     }
 
@@ -103,7 +104,11 @@ public class MultipleChoiceQuestionEditor extends QuestionEditorBase<QuestionOpt
     @Override
     public AbstractAnswerData getAnswerData() {
         Set<Integer> selected = correctAnswersGroup.getValue();
-        List<Integer> correctIndices = new ArrayList<>(selected);
+        // The combo box labels options 1..n for the author; everything behind the editor —
+        // the validator's range check, grading and the renderer — counts from zero.
+        List<Integer> correctIndices = selected.stream()
+                .map(index -> index - 1)
+                .collect(Collectors.toList());
 
         return MultipleChoiceAnswerData.builder()
                 .questionId(questionId)

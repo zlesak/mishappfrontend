@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 /**
  * Texture click question data class - Represents a question where the user must click on a texture of a model.
@@ -16,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@TypeAlias("TextureClickQuestionData")
 public class TextureClickQuestionData extends AbstractQuestionData {
     String modelId;
     String textureId;

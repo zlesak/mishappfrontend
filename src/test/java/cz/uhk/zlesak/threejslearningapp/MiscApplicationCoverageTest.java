@@ -54,34 +54,6 @@ class MiscApplicationCoverageTest {
     }
 
     @Test
-    void chapterEntityShouldConvertModelsForBackendRecursively() {
-        ModelFileEntity detail = ModelFileEntity.builder().id("csv-1").name("detail.csv").senseType(FileSenseType.CSV_FILE).build();
-        ModelFileEntity modelFile = ModelFileEntity.builder()
-                .id("model-1")
-                .name("organ.glb")
-                .senseType(FileSenseType.MODEL)
-                .related(List.of(detail))
-                .build();
-
-        ChapterEntity entity = ChapterEntity.builder()
-                .name("Chapter")
-                .content("{}")
-                .models(new ArrayList<>(List.of(TestFixtures.model("meta-1", "ignored", "Model 1", null, List.of()))))
-                .build();
-        entity.getModels().add(null);
-        entity.getModels().getFirst().setModel(modelFile);
-
-        var modelsForBackend = entity.getModelsForBackend();
-
-        assertEquals(1, modelsForBackend.size());
-        assertEquals("meta-1", modelsForBackend.getFirst().getMetadataId());
-        assertEquals("model-1", modelsForBackend.getFirst().getModel().getId());
-        assertEquals("csv-1", modelsForBackend.getFirst().getModel().getRelated().getFirst().getId());
-        entity.setModels(null);
-        assertTrue(entity.getModelsForBackend().isEmpty());
-    }
-
-    @Test
     void smallRecordsAndEventsShouldExposePayload() {
         TextureAreaForSelect textureArea = new TextureAreaForSelect("texture-1", "#AABBCC", "Area", "model-1");
         assertEquals("texture-1", textureArea.primary());

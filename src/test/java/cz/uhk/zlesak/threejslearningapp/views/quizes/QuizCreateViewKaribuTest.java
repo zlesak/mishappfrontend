@@ -262,7 +262,7 @@ class QuizCreateViewKaribuTest {
         UI.getCurrent().add(view);
 
         QuickModelEntity firstPageModel = QuickModelEntity.builder()
-                .metadataId("wrong-meta")
+                .id("other-meta")
                 .model(ModelFileEntity.builder().id("other-file").name("Other").related(List.of()).build())
                 .build();
         QuickModelEntity secondPageModel = quickModel();
@@ -493,7 +493,7 @@ class QuizCreateViewKaribuTest {
         UI.getCurrent().add(view);
 
         QuickModelEntity chapterModel = QuickModelEntity.builder()
-                .metadataId("meta-1")
+                .id("meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Skull").related(List.of()).build())
                 .build();
         setField(view, "chapterModelsByModelId", new HashMap<>(Map.of("file-1", chapterModel)));
@@ -523,14 +523,13 @@ class QuizCreateViewKaribuTest {
 
     private QuickModelEntity quickModel() {
         return QuickModelEntity.builder()
-                .metadataId("model-meta-1")
+                .id("model-meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Lebka").related(List.of()).build())
                 .build();
     }
 
     private ModelEntity modelEntity() {
         return ModelEntity.builder()
-                .metadataId("model-meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Lebka").related(List.of()).build())
                 .otherTextures(List.of())
                 .build();

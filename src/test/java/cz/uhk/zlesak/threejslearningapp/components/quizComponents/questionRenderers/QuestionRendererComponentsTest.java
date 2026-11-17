@@ -7,6 +7,7 @@ import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.*;
@@ -60,7 +61,7 @@ class QuestionRendererComponentsTest {
     }
 
     @Test
-    void multipleChoiceRendererShouldConvertToOneBasedIndices() {
+    void multipleChoiceRendererShouldSubmitTheOptionsOwnZeroBasedIndices() {
         MultipleChoiceQuestionRendererComponent component = new MultipleChoiceQuestionRendererComponent(multipleChoiceQuestion());
         AtomicReference<MultipleChoiceSubmissionData> captured = new AtomicReference<>();
         component.setAnswerChangedListener(data -> captured.set((MultipleChoiceSubmissionData) data));
@@ -69,8 +70,8 @@ class QuestionRendererComponentsTest {
         checkboxGroup.setValue(java.util.Set.of(0, 2));
 
         MultipleChoiceSubmissionData submission = component.getSubmissionData();
-        assertEquals(List.of(1, 3), submission.getSelectedItems().stream().sorted().toList());
-        assertEquals(List.of(1, 3), captured.get().getSelectedItems().stream().sorted().toList());
+        assertEquals(List.of(0, 2), submission.getSelectedItems().stream().sorted().toList());
+        assertEquals(List.of(0, 2), captured.get().getSelectedItems().stream().sorted().toList());
     }
 
     @Test
@@ -85,6 +86,21 @@ class QuestionRendererComponentsTest {
         OpenTextSubmissionData submission = component.getSubmissionData();
         assertEquals("Ulna", submission.getText());
         assertEquals("Ulna", captured.get().getText());
+    }
+
+    @Test
+    void openTextRendererSendsTheAnswerWhileItIsBeingTypedAndNotOnlyOnLeaving() {
+        // A text field's default is to tell the server its value when it loses focus. An answer
+        // still being written when the clock runs out never loses focus, so the automatic
+        // submission sent nothing and the student was told they had answered nothing. Every other
+        // question type is a select or a checkbox and reports immediately; this is the one input
+        // in the player where the mode decides whether the answer survives.
+        OpenTextQuestionRendererComponent component = new OpenTextQuestionRendererComponent(openTextQuestion());
+
+        TextArea textArea = VaadinTestSupport.findFirst(component, TextArea.class);
+
+        assertNotEquals(ValueChangeMode.ON_CHANGE, textArea.getValueChangeMode());
+        assertNotEquals(ValueChangeMode.ON_BLUR, textArea.getValueChangeMode());
     }
 
     @Test
@@ -135,7 +151,7 @@ class QuestionRendererComponentsTest {
 
         assertNotNull(modelLoadEvent.get());
         assertEquals("q-texture", modelLoadEvent.get().getQuestionId());
-        assertEquals("model-1", modelLoadEvent.get().getQuickModelEntity().getMetadataId());
+        assertEquals("model-1", modelLoadEvent.get().getQuickModelEntity().getId());
         assertEquals("texture-1", modelLoadEvent.get().getQuickModelEntity().getOtherTextures().getFirst().getId());
 
         ComponentUtil.fireEvent(

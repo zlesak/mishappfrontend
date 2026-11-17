@@ -10,7 +10,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizResultFilter;
-import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 import cz.uhk.zlesak.threejslearningapp.services.QuizResultService;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -39,96 +38,6 @@ class QuizResultsHistoryPanelTest {
     @AfterEach
     void tearDown() {
         VaadinTestSupport.clearCurrentUi();
-    }
-
-    @Test
-    void renderInitialPageShouldShowNoItemsComponentForEmptyResults() {
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-        UI.getCurrent().add(panel);
-
-        panel.renderInitialPage(new PageResult<>(List.of(), 0L, 0));
-
-        assertFalse(findAll(panel, NoItemInfoComponent.class).isEmpty());
-        assertTrue(findAll(panel, QuizResultListItem.class).isEmpty());
-        assertTrue(findAll(panel, PaginationComponent.class).isEmpty());
-    }
-
-    @Test
-    void renderInitialPageShouldRenderItemsAndPagination() {
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-        UI.getCurrent().add(panel);
-
-        panel.renderInitialPage(new PageResult<>(List.of(result("r-1"), result("r-2")), 2L, 0));
-
-        assertEquals(2, findAll(panel, QuizResultListItem.class).size());
-        assertEquals(1, findAll(panel, PaginationComponent.class).size());
-    }
-
-    @Test
-    void loadPageShouldRenderErrorStateWhenServiceFails() throws Exception {
-        when(quizResultService.readEntities(any())).thenThrow(new RuntimeException("boom"));
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-        UI.getCurrent().add(panel);
-
-        invoke(panel, "loadPage", new Class[]{int.class}, 0);
-        flushUi();
-
-        assertFalse(findAll(panel, NoItemInfoComponent.class).isEmpty());
-        assertTrue(findAll(panel, QuizResultListItem.class).isEmpty());
-    }
-
-    @Test
-    void loadPageShouldBuildFilterUsingQuizIdAndPaging() throws Exception {
-        when(quizResultService.readEntities(any())).thenReturn(new PageResult<>(List.of(result("r-1")), 1L, 2));
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-xyz");
-        UI.getCurrent().add(panel);
-
-        invoke(panel, "loadPage", new Class[]{int.class}, 2);
-        flushUi();
-
-        ArgumentCaptor<FilterParameters<QuizResultFilter>> captor = ArgumentCaptor.forClass(FilterParameters.class);
-        verify(quizResultService).readEntities(captor.capture());
-        FilterParameters<QuizResultFilter> filterParameters = captor.getValue();
-        assertNotNull(filterParameters);
-        assertEquals("quiz-xyz", filterParameters.getFilter().getQuizId());
-        assertEquals(2, filterParameters.getPageRequest().getPageNumber());
-        assertEquals(10, filterParameters.getPageRequest().getPageSize());
-    }
-
-    @Test
-    void renderPageWithNullPageResult_shouldShowNoItemsComponent() throws Exception {
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-        UI.getCurrent().add(panel);
-
-        invoke(panel, "renderPage", new Class[]{PageResult.class}, (Object) null);
-
-        assertFalse(findAll(panel, NoItemInfoComponent.class).isEmpty());
-        assertTrue(findAll(panel, QuizResultListItem.class).isEmpty());
-    }
-
-    @Test
-    void loadPage_whenPanelNotAttachedToUi_shouldSkipRenderingGracefully() throws Exception {
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-
-        invoke(panel, "loadPage", new Class[]{int.class}, 0);
-    }
-
-    @Test
-    void loadPage_withAccessTokenProvider_shouldCallGetValidAccessToken() throws Exception {
-        AccessTokenProvider tokenProvider = mock(AccessTokenProvider.class);
-        when(tokenProvider.getValidAccessToken()).thenReturn("test-token");
-
-        VaadinTestSupport.clearCurrentUi();
-        VaadinTestSupport.setCurrentUiWithBeans(Map.of(AccessTokenProvider.class, tokenProvider));
-        quizResultService = mock(QuizResultService.class);
-        when(quizResultService.readEntities(any())).thenReturn(new PageResult<>(List.of(), 0L, 0));
-
-        QuizResultsHistoryPanel panel = new QuizResultsHistoryPanel(quizResultService, "quiz-1");
-        UI.getCurrent().add(panel);
-
-        invoke(panel, "loadPage", new Class[]{int.class}, 0);
-
-        verify(tokenProvider).getValidAccessToken();
     }
 
     @Test

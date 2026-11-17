@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 /**
  * Answer data for single choice question.
@@ -17,6 +18,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@TypeAlias("SingleChoiceAnswerData")
 public class SingleChoiceAnswerData extends AbstractAnswerData {
     Integer correctIndex;
 }

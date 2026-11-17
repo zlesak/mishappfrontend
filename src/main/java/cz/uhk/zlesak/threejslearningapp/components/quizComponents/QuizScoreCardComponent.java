@@ -1,7 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.components.quizComponents;
 
-import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -28,9 +27,14 @@ public class QuizScoreCardComponent extends VerticalLayout implements I18nAware 
                 LumoUtility.Padding.LARGE, LumoUtility.Margin.Bottom.MEDIUM, LumoUtility.TextAlignment.CENTER,
                 LumoUtility.Background.PRIMARY_10);
 
-        H3 scoreTitle = new H3(text("quiz.result.score"));
-        H1 scoreValue = new H1(result.getTotalScore() + " / " + possibleScore);
-        scoreTitle.addClassNames(LumoUtility.TextColor.PRIMARY);
+        // An H2 under the result's H1, and the score itself as text rather than a second H1. The card
+        // used to open with an H3 and then put the number in an H1, so the page's only top-level
+        // heading was "7 / 10" and the outline skipped a level to reach it.
+        H2 scoreTitle = new H2(text("quiz.result.score"));
+        scoreTitle.addClassNames(LumoUtility.TextColor.PRIMARY, LumoUtility.FontSize.LARGE);
+
+        Span scoreValue = new Span(result.getTotalScore() + " / " + possibleScore);
+        scoreValue.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD);
 
         Span percentage = new Span(String.format("%.2f%%", result.getPercentage()));
         percentage.addClassNames(LumoUtility.FontSize.XLARGE, LumoUtility.FontWeight.BOLD);

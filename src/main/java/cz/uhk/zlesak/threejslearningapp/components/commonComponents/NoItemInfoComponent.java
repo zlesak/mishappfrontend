@@ -1,7 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.components.commonComponents;
 
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.H2;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 
 /**
@@ -20,10 +20,11 @@ public class NoItemInfoComponent extends Div implements I18nAware {
         getStyle().set("display", "flex");
         getStyle().set("justify-content", "center");
         getStyle().set("align-items", "center");
-        getStyle().set("grid-column", "1 / -1");
 
-        H1 header = new H1(text(infoTextKey));
-        header.getStyle().set("font-size", "2em");
+        // An H2, not an H1: the route's own name is the H1, and a page with two of them leaves a screen
+        // reader user unable to tell which one is the title.
+        H2 header = new H2(text(infoTextKey));
+        header.getStyle().set("font-size", "1.6em");
         header.getStyle().set("margin-top", "1em");
         header.getStyle().set("margin-bottom", "0.5em");
         header.getStyle().set("text-align", "center");

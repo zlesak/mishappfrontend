@@ -8,7 +8,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateModelButton;
 import cz.uhk.zlesak.threejslearningapp.components.containers.UploadLabelContainer;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.files.FileUpload;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.files.ModelFilesDropZone;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.textFields.NameTextField;
+import cz.uhk.zlesak.threejslearningapp.components.notifications.WarningNotification;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
 import cz.uhk.zlesak.threejslearningapp.events.file.FileType;
 import cz.uhk.zlesak.threejslearningapp.events.file.RemoveFileEvent;
@@ -34,9 +36,12 @@ public class ModelUploadForm extends Scroller implements I18nAware {
     protected final VerticalLayout vl = new VerticalLayout();
     @Getter
     protected final TextField modelName;
-    protected final UploadLabelContainer uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv;
+    protected final UploadLabelContainer uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv, dropZoneDiv;
     @Getter
     protected final FileUpload objFileUpload, mainTextureFileUpload, otherTexturesFileUpload, csvFileUpload;
+    /** One place to drop everything at once; the sections below stay for correcting the result. */
+    @Getter
+    protected final ModelFilesDropZone dropZone;
     private final Map<String, QuickTextureEntity> quickTextureEntityMap = new HashMap<>();
     private final Map<String, String> csvMap = new HashMap<>();
     protected String modelUrl = null;
@@ -147,9 +152,52 @@ public class ModelUploadForm extends Scroller implements I18nAware {
         modelName.setWidthFull();
         modelName.getStyle().set("min-width", "0");
 
+        dropZone = new ModelFilesDropZone(this::routeDroppedFile);
+        dropZoneDiv = new UploadLabelContainer(dropZone, text("modelUploadForm.dropZone.title"));
+
         vl.setWidthFull();
         vl.setPadding(false);
-        vl.add(modelName, uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv, createButton);
+        vl.add(modelName, dropZoneDiv, uploadModelDiv, uploadMainTextureDiv, uploadOtherTexturesDiv, csvOtherTexturesDiv, createButton);
+    }
+
+    /**
+     * Sorts one file dropped into the combined zone into the section it belongs to.
+     *
+     * <p>By extension: {@code .obj} and {@code .glb} are the model, {@code .csv} is the area map, and a
+     * {@code .jpg} is the main texture if there is not one yet and a further texture otherwise. The
+     * guess is corrigible — every section still takes and releases files on its own — which is why the
+     * only thing that needs saying out loud is when a file could not be placed.
+     *
+     * @param fileName the uploaded file's name
+     * @param file the uploaded file
+     */
+    private void routeDroppedFile(String fileName, InputStreamMultipartFile file) {
+        String name = fileName == null ? "" : fileName.toLowerCase(Locale.ROOT);
+
+        if (name.endsWith(".obj") || name.endsWith(".glb")) {
+            if (!objFileUpload.getUploadedFiles().isEmpty()) {
+                new WarningNotification(text("modelUploadForm.dropZone.modelAlreadyPresent", fileName));
+                return;
+            }
+            objFileUpload.acceptFile(file);
+            return;
+        }
+
+        if (name.endsWith(".csv")) {
+            csvFileUpload.acceptFile(file);
+            return;
+        }
+
+        if (name.endsWith(".jpg") || name.endsWith(".jpeg")) {
+            if (mainTextureFileUpload.getUploadedFiles().isEmpty()) {
+                mainTextureFileUpload.acceptFile(file);
+            } else {
+                otherTexturesFileUpload.acceptFile(file);
+            }
+            return;
+        }
+
+        new WarningNotification(text("modelUploadForm.dropZone.unsupported", fileName));
     }
 
     private String createDataUrl(String fileName, String contentType, InputStream inputStream) {

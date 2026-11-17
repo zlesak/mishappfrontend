@@ -1,21 +1,22 @@
 package cz.uhk.zlesak.threejslearningapp.components.containers;
 
 import com.vaadin.flow.component.html.Div;
-import cz.uhk.zlesak.threejslearningapp.components.inputs.files.FileUpload;
+import com.vaadin.flow.component.upload.Upload;
 
 /**
- * A simple component that combines an UploadComponent with a label.
+ * A simple component that combines an upload with a label.
  */
 public class UploadLabelContainer extends Div {
     /**
-     * Constructor that initializes the UploadLabelDiv with an UploadComponent and a label.
+     * Constructor that initializes the container with an upload and a label.
      *
-     * @param fileUpload The UploadComponent to be included in the div.
+     * @param upload The upload to be included in the div; any {@link Upload}, so the combined drop zone
+     *               is labelled the same way as the individual sections.
      * @param label The label text to be displayed in the div.
      */
-    public UploadLabelContainer(FileUpload fileUpload, String label) {
+    public UploadLabelContainer(Upload upload, String label) {
         super(label);
         setWidthFull();
-        add(fileUpload);
+        add(upload);
     }
 }

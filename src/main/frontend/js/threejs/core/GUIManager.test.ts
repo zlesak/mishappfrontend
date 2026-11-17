@@ -19,6 +19,19 @@ describe('GUIManager', () => {
     } as any;
   }
 
+  /**
+   * The 3 x 3 camera pad. Scoped on purpose: the collapse control's glyph is also '►', and it comes
+   * first in document order.
+   */
+  function pad(gui: HTMLElement): HTMLElement {
+    return gui.querySelector('div[style*="grid"]') as HTMLElement;
+  }
+
+  function padButton(gui: HTMLElement, symbol: string): HTMLButtonElement {
+    return Array.from(pad(gui).getElementsByTagName('button'))
+      .find((candidate) => candidate.textContent === symbol) as HTMLButtonElement;
+  }
+
   it('creates GUI, toggles visibility and dispatches opacity changes', () => {
     const manager = new GUIManager();
     const controls = createControls();
@@ -118,7 +131,7 @@ describe('GUIManager', () => {
     zoomInButton.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
     expect(zoomInButton.style.background).toBe('rgba(255, 255, 255, 0.3)');
     zoomInButton.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }));
-    expect(zoomInButton.style.background).toBe('rgba(255, 255, 255, 0.3)');
+    expect(zoomInButton.style.background).toBe('rgba(255, 255, 255, 0.2)');
   });
 
   it('runs control actions, attaches to canvas parent and disposes gui', () => {
@@ -138,11 +151,17 @@ describe('GUIManager', () => {
     expect(renderFn).toHaveBeenCalledTimes(1);
 
     const zoomInButton = Array.from(gui.getElementsByTagName('button')).find((button) => button.textContent === '+') as HTMLButtonElement;
-    zoomInButton.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    zoomInButton.click();
+    zoomInButton.dispatchEvent(new Event('pointerdown', { bubbles: true }));
     vi.advanceTimersByTime(120);
-    zoomInButton.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    zoomInButton.dispatchEvent(new Event('pointerup', { bubbles: true }));
 
     expect(renderFn.mock.calls.length).toBeGreaterThan(2);
+
+    // Once released, holding stops: the interval must not keep turning the model on its own.
+    const afterRelease = renderFn.mock.calls.length;
+    vi.advanceTimersByTime(500);
+    expect(renderFn.mock.calls.length).toBe(afterRelease);
 
     const parent = document.createElement('div');
     const canvas = document.createElement('canvas');
@@ -177,11 +196,105 @@ describe('GUIManager', () => {
 
     for (const symbol of ['▲', '▼', '◄', '►', '+', '−']) {
       const button = Array.from(gui.getElementsByTagName('button')).find((candidate) => candidate.textContent === symbol) as HTMLButtonElement;
-      button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-      button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      button.click();
     }
 
     expect((controls.update as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThanOrEqual(5);
     expect(renderFn.mock.calls.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('every arrow and magnifier works from the keyboard', () => {
+    // They listened for mousedown, mouseup and mouseleave and nothing else. They are real buttons, so
+    // focus reached them, but Enter and the space bar did nothing — only the centring button had a
+    // click listener, so the keyboard could centre the camera and nothing more.
+    const manager = new GUIManager();
+    const controls = createControls();
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(0, 0, 5);
+    const renderFn = vi.fn();
+    const gui = manager.createGUI(controls, camera, renderFn, vi.fn());
+
+    for (const symbol of ['▲', '▼', '◄', '►', '+', '−']) {
+      const button = padButton(gui, symbol);
+      const before = renderFn.mock.calls.length;
+
+      const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+      button.dispatchEvent(event);
+
+      expect(renderFn.mock.calls.length).toBeGreaterThan(before);
+      // The synthesised click is suppressed, so a keypress is one step and not two.
+      expect(event.defaultPrevented).toBe(true);
+    }
+  });
+
+  it('names every control and makes it big enough to hit', () => {
+    const manager = new GUIManager();
+    const gui = manager.createGUI(createControls(), new THREE.PerspectiveCamera(), vi.fn(), vi.fn());
+
+    expect(gui.getAttribute('role')).toBe('group');
+    expect(gui.getAttribute('aria-label')).toBe('Ovládání modelu');
+
+    const named = new Map<string, string>([
+      ['▲', 'Otočit nahoru'],
+      ['▼', 'Otočit dolů'],
+      ['◄', 'Otočit vlevo'],
+      ['►', 'Otočit vpravo'],
+      ['+', 'Přiblížit'],
+      ['−', 'Oddálit'],
+      ['⟲', 'Vycentrovat kameru na model']
+    ]);
+
+    named.forEach((label, symbol) => {
+      // A glyph in textContent is not an accessible name.
+      expect(padButton(gui, symbol).getAttribute('aria-label')).toBe(label);
+    });
+
+    // 3 x 44 px plus two 4 px gaps. The grid used to be 122 px wide, leaving each button under 40.
+    expect(pad(gui).style.width).toBe('140px');
+  });
+
+  it('the collapse control and the appearance panel say whether they are open', () => {
+    const manager = new GUIManager();
+    const gui = manager.createGUI(createControls(), new THREE.PerspectiveCamera(), vi.fn(), vi.fn());
+    Object.defineProperty(gui, 'offsetWidth', { value: 140, configurable: true });
+
+    const toggle = gui.querySelector('.scene-controls-toggle') as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    toggle.click();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+
+    const appearance = Array.from(gui.getElementsByTagName('button'))
+      .find((button) => button.textContent === 'Zobrazit vzhled') as HTMLButtonElement;
+    expect(appearance.getAttribute('aria-expanded')).toBe('false');
+    appearance.click();
+    expect(appearance.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('every field in the appearance panel is attached to its own label', () => {
+    const manager = new GUIManager();
+    const gui = manager.createGUI(createControls(), new THREE.PerspectiveCamera(), vi.fn(), vi.fn());
+
+    const labels = Array.from(gui.getElementsByTagName('label'));
+    const targets = labels.map((label) => label.htmlFor);
+
+    // htmlFor did not appear anywhere in this file: the labels sat beside their fields without being
+    // attached to them, and the colour and file inputs had no label at all.
+    expect(targets).toContain('threejs-mask-opacity');
+    expect(targets).toContain('threejs-bg-select');
+    expect(targets).toContain('threejs-bg-color');
+    expect(targets).toContain('threejs-bg-image');
+
+    labels.forEach((label) => {
+      expect(gui.querySelector(`#${label.htmlFor}`)).not.toBeNull();
+    });
+  });
+
+  it('says which keys work, so the keyboard route can be found', () => {
+    const manager = new GUIManager();
+    const gui = manager.createGUI(createControls(), new THREE.PerspectiveCamera(), vi.fn(), vi.fn());
+
+    const hint = gui.querySelector('.scene-controls-hint') as HTMLElement;
+    expect(hint.textContent).toContain('šipky');
+    expect(hint.textContent).toContain('R');
   });
 });

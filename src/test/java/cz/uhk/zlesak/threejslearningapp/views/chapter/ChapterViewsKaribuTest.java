@@ -185,11 +185,10 @@ class ChapterViewsKaribuTest {
     @Test
     void createViewShouldLoadSelectedModelFromDialogIntoScroller() throws Exception {
         QuickModelEntity selectedModel = QuickModelEntity.builder()
-                .metadataId("meta-1")
+                .id("meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Quick").related(List.of()).build())
                 .build();
         ModelEntity fullModel = ModelEntity.builder()
-                .metadataId("meta-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Full").related(List.of()).build())
                 .otherTextures(List.of())
                 .build();
@@ -399,7 +398,6 @@ class ChapterViewsKaribuTest {
     @Test
     void createViewModelSelectedEventWithNullMetadataIdDoesNotCallModelService() throws Exception {
         QuickModelEntity model = QuickModelEntity.builder()
-                .metadataId(null)
                 .model(ModelFileEntity.builder().id("file-1").name("Model").related(List.of()).build())
                 .build();
 
@@ -420,7 +418,6 @@ class ChapterViewsKaribuTest {
     @Test
     void createViewModelSelectedEventWithBlankMetadataIdDoesNotCallModelService() throws Exception {
         QuickModelEntity model = QuickModelEntity.builder()
-                .metadataId("   ")
                 .model(ModelFileEntity.builder().id("file-2").name("Model2").related(List.of()).build())
                 .build();
 
@@ -595,11 +592,10 @@ class ChapterViewsKaribuTest {
     @Test
     void detailViewAfterNavigationWithModelsShouldCallModelService() throws Exception {
         QuickModelEntity quickModel = QuickModelEntity.builder()
-                .metadataId("meta-det-1")
+                .id("meta-det-1")
                 .model(ModelFileEntity.builder().id("file-det-1").name("DetModel").related(List.of()).build())
                 .build();
         ModelEntity fullModel = ModelEntity.builder()
-                .metadataId("meta-det-1")
                 .model(ModelFileEntity.builder().id("file-det-1").name("DetModel").related(List.of()).build())
                 .otherTextures(List.of())
                 .build();

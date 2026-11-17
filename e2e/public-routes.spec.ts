@@ -13,6 +13,7 @@ test('permitAll routes documentation and quiz results listing are accessible for
   await page.goto('/quizes-results');
   await expect(page).toHaveURL(/\/quizes-results$/);
   await expect(page.getByRole('heading', {name: 'Výsledky předchozích pokusů.'})).toBeVisible();
-  await expect(page.getByRole('heading', {name: 'Nebyly nalezeny žádné položky.'})).toBeVisible();
+  // The listing may be empty or already hold this student's attempts, depending on what ran
+  // before; what this test is about is that the route is reachable at all.
   await expect(page.getByRole('heading', {name: 'Přístup odepřen'})).toHaveCount(0);
 });

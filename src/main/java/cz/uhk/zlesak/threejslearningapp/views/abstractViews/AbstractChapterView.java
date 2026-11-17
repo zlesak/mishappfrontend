@@ -8,6 +8,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.Scroller;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PageHeader;
 import cz.uhk.zlesak.threejslearningapp.components.containers.ChapterTabSheetContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.SubchapterSelectContainer;
 import cz.uhk.zlesak.threejslearningapp.components.editors.EditorJs;
@@ -44,8 +45,18 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
     protected final SubchapterSelectContainer subchapterSelectContainer = new SubchapterSelectContainer();
     protected final EditorJs editorjs;
     protected final NameTextField nameTextField = new NameTextField("chapter.title");
+    /**
+     * The chapter's name as the page heading, in read mode.
+     *
+     * <p>The name lived only in {@code nameTextField}, which read mode merely switched to read-only —
+     * so to a screen reader the chapter detail had no heading at all, only an uneditable text field.
+     * The large text that looks like a title on screen comes from the Editor.js content, not from here.
+     */
+    protected final PageHeader chapterHeader = new PageHeader("");
     protected ChapterTabSheetContainer secondaryNavigation = null;
     private Button chapterNavigationToggleButton;
+    private Button searchToggleButton;
+    private boolean searchExpanded = false;
     private VerticalLayout chapterNavigationContent;
     private String chapterNavigationStateKey = "";
     private boolean chapterNavigationExpanded = true;
@@ -86,21 +97,51 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
             entityContent.add(tabsScroller);
         } else {
             nameTextField.setWidthFull();
-            HorizontalLayout horizontalLayout = new HorizontalLayout(nameTextField, searchTextField);
-            horizontalLayout.setWidthFull();
-            horizontalLayout.addClassName("chapter-nav-search-row");
+            // A search field whose only description was a placeholder: once the user typed, nothing
+            // said what the field was for.
+            searchTextField.setLabel(text("chapter.search.label"));
+            searchTextField.setClearButtonVisible(true);
+            searchTextField.setVisible(false);
+            searchTextField.getStyle().set("flex", "1 1 14rem");
+
+            // Two rows instead of four controls stacked. The title line carries a search icon; the
+            // field appears only when it is wanted, and the cross on it clears the term. The second row
+            // is the sub-chapter and heading selects, and it disappears entirely when the chapter has
+            // neither, rather than showing two empty boxes.
+            searchToggleButton = new Button(VaadinIcon.SEARCH.create());
+            searchToggleButton.addClassName("chapter-search-toggle");
+            searchToggleButton.setAriaLabel(text("chapter.search.label"));
+            searchToggleButton.setTooltipText(text("chapter.search.label"));
+            searchToggleButton.getElement().setAttribute("aria-expanded", "false");
+            searchToggleButton.getStyle().set("min-width", "44px").set("min-height", "44px").set("flex", "0 0 auto");
+            searchToggleButton.addClickListener(e -> setSearchExpanded(!searchExpanded));
+
+            HorizontalLayout titleRow = new HorizontalLayout(nameTextField, searchTextField, searchToggleButton);
+            titleRow.setWidthFull();
+            titleRow.setPadding(false);
+            titleRow.setWrap(true);
+            titleRow.setAlignItems(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.END);
+            titleRow.addClassName("chapter-nav-search-row");
+            titleRow.expand(nameTextField);
 
             chapterNavigationToggleButton = new Button("Navigace kapitoly", VaadinIcon.ANGLE_DOWN.create());
             chapterNavigationToggleButton.addClassName("chapter-nav-toggle");
             chapterNavigationToggleButton.addClickListener(e -> setChapterNavigationExpanded(!chapterNavigationExpanded, true));
 
-            chapterNavigationContent = new VerticalLayout(horizontalLayout, subchapterSelectContainer);
+            chapterNavigationContent = new VerticalLayout(titleRow, subchapterSelectContainer);
             chapterNavigationContent.addClassName("chapter-nav-content");
             chapterNavigationContent.setWidthFull();
             chapterNavigationContent.setPadding(false);
-            chapterNavigationContent.setSpacing(true);
+            chapterNavigationContent.setSpacing(false);
+            chapterNavigationContent.getStyle().set("gap", "var(--lumo-space-xs)");
 
-            entityContent.add(chapterNavigationToggleButton, chapterNavigationContent, chapterContentScroller);
+            // Nothing to navigate to until the chapter's structure arrives.
+            subchapterSelectContainer.setVisible(false);
+
+            // Before the navigation, so the screen has a name before it has controls. Hidden until read
+            // mode replaces the name field with it.
+            chapterHeader.setVisible(false);
+            entityContent.add(chapterHeader, chapterNavigationToggleButton, chapterNavigationContent, chapterContentScroller);
         }
 
         searchTextField.addValueChangeListener(event -> editorjs.search(event.getValue()));
@@ -182,8 +223,8 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
                 continue;
             }
             try {
-                if (quickModelEntity.getMetadataId() != null && !quickModelEntity.getMetadataId().isBlank()) {
-                    resolved.put(entry.getKey(), modelService.read(quickModelEntity.getMetadataId()));
+                if (quickModelEntity.getId() != null && !quickModelEntity.getId().isBlank()) {
+                    resolved.put(entry.getKey(), modelService.read(quickModelEntity.getId()));
                 } else {
                     resolved.put(entry.getKey(), quickModelEntity);
                 }
@@ -272,6 +313,40 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
      */
     protected void configureReadOnlyMode() {
         nameTextField.setReadOnly(true);
+        // In read mode the field has nothing to offer: it cannot be edited and it is not a heading.
+        nameTextField.setVisible(false);
+        chapterHeader.setVisible(true);
+    }
+
+    /**
+     * Sets the chapter's name in whichever place is showing it — the heading in read mode, the field in
+     * edit mode. Both are kept in step so the page title never disagrees with the form.
+     *
+     * @param chapterName the chapter's name
+     */
+    protected void setChapterName(String chapterName) {
+        nameTextField.setValue(chapterName == null ? "" : chapterName);
+        chapterHeader.setTitleText(chapterName);
+    }
+
+    /**
+     * Opens or closes the in-chapter search.
+     *
+     * <p>Closing leaves the term in force and the matches highlighted — someone who opened the search to
+     * find a word does not want it undone by tidying the toolbar away. The cross inside the field is
+     * what clears it.
+     *
+     * @param expanded whether the field should be shown
+     */
+    private void setSearchExpanded(boolean expanded) {
+        searchExpanded = expanded;
+        searchTextField.setVisible(expanded);
+        if (searchToggleButton != null) {
+            searchToggleButton.getElement().setAttribute("aria-expanded", String.valueOf(expanded));
+        }
+        if (expanded) {
+            searchTextField.focus();
+        }
     }
 
     private void setChapterNavigationExpanded(boolean expanded, boolean persist) {
@@ -282,6 +357,8 @@ public abstract class AbstractChapterView extends AbstractEntityView<ChapterServ
         if (chapterNavigationToggleButton != null) {
             chapterNavigationToggleButton.setIcon(expanded ? VaadinIcon.ANGLE_UP.create() : VaadinIcon.ANGLE_DOWN.create());
             chapterNavigationToggleButton.setText(expanded ? "Navigace kapitoly (skrýt)" : "Navigace kapitoly (zobrazit)");
+            // Says which state it is in, not only what pressing it would do.
+            chapterNavigationToggleButton.getElement().setAttribute("aria-expanded", String.valueOf(expanded));
         }
         if (!persist || chapterNavigationStateKey == null || chapterNavigationStateKey.isBlank()) {
             return;

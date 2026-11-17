@@ -144,7 +144,7 @@ class ModelListItemKaribuTest {
     }
 
     private QuickModelEntity model() {
-        return QuickModelEntity.builder().metadataId("model-meta-1").description("https://cdn.example.com/t.png")
+        return QuickModelEntity.builder().id("model-meta-1").description("https://cdn.example.com/t.png")
                 .model(ModelFileEntity.builder().id("model-file-1").name("Lebka").build()).build();
     }
 }

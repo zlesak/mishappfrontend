@@ -2,7 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.events.chapter;
 
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.UI;
-import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import lombok.Getter;
 
 /**
@@ -10,7 +10,7 @@ import lombok.Getter;
  */
 @Getter
 public class ChapterSelectedFromDialogEvent extends ComponentEvent<UI> {
-    private final ChapterEntity selectedChapter;
+    private final QuickChapterEntity selectedChapter;
     private final String blockId;
 
     /**
@@ -21,7 +21,7 @@ public class ChapterSelectedFromDialogEvent extends ComponentEvent<UI> {
      * @param selectedChapter The chapter that was selected
      * @param blockId         The block ID (if applicable)
      */
-    public ChapterSelectedFromDialogEvent(UI source, boolean fromClient, ChapterEntity selectedChapter, String blockId) {
+    public ChapterSelectedFromDialogEvent(UI source, boolean fromClient, QuickChapterEntity selectedChapter, String blockId) {
         super(source, fromClient);
         this.selectedChapter = selectedChapter;
         this.blockId = blockId;

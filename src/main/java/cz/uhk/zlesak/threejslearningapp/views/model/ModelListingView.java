@@ -4,7 +4,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.router.Route;
 import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.listDialogs.ModelListDialog;
-import cz.uhk.zlesak.threejslearningapp.components.listItems.AbstractListItem;
+import cz.uhk.zlesak.threejslearningapp.components.listItems.EntityRow;
 import cz.uhk.zlesak.threejslearningapp.components.listItems.ModelListItem;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
@@ -57,7 +57,7 @@ public class ModelListingView extends AbstractListingView<QuickModelEntity, Mode
      * @return a ModelListItem representing the given model
      */
     @Override
-    protected AbstractListItem createListItem(QuickModelEntity model) {
+    protected EntityRow createListItem(QuickModelEntity model) {
         return new ModelListItem(model, listView, administrationView);
     }
 

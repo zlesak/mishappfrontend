@@ -1,4 +1,7 @@
 {
+  "skip.toContent": "Přeskočit na hlavní obsah",
+  "nav.main.label": "Hlavní navigace",
+  "nav.menu.label": "Navigace",
   "page.title.modelView" : "MISH - Model",
   "page.title.createChapterView" : "MISH - Vytvořit kapitolu",
   "page.title.chapterView" : "MISH - Kapitola",
@@ -13,6 +16,24 @@
   "page.title.quizListView" : "MISH - Kvízy",
   "page.title.administrationView" : "MISH - Administrační centrum",
   "page.title.documentation" : "MISH - Dokumentace",
+  "page.title.quizResultsListView" : "MISH - Výsledky kvízů",
+
+  "page.heading.chapterListView": "Kapitoly",
+  "page.heading.modelListView": "Modely",
+  "page.heading.quizListView": "Kvízy",
+  "page.heading.quizResultsListView": "Výsledky kvízů",
+  "page.heading.administrationView": "Administrační centrum",
+
+  "listing.meta.shown": "Zobrazeno {0} z {1}",
+  "listing.meta.empty": "Nenalezena žádná položka",
+  "pagination.label": "Stránkování",
+  "pagination.pageSize": "Na stránku",
+  "pagination.range": "Zobrazeno {0}–{1} z {2}",
+  "pagination.rangeEmptyPage": "Na této stránce nic není, celkem {0}",
+  "pagination.previous": "Předchozí stránka",
+  "pagination.next": "Následující stránka",
+  "pagination.page": "Stránka {0}",
+  "pagination.current": "Stránka {0}, aktuální",
 
   "page.info.noItemsFound" : "Nebyly nalezeny žádné položky.",
   "page.info.quizResultsInfo" : "Výsledky předchozích pokusů.",

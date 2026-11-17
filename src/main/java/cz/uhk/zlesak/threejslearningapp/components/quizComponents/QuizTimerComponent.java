@@ -19,14 +19,26 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Component for displaying and managing quiz countdown timer.
- * Supports auto-submission when time expires with early warning notifications.
+ * The quiz countdown, with auto-submission when the time runs out.
+ *
+ * <p>Counted down in minutes rather than seconds. The display used to change every second inside what
+ * is now a live region, which makes a screen reader read the clock aloud continuously and drowns out
+ * the question. The internal clock still ticks once a second — auto-submission needs that precision —
+ * but the text only changes when the minute does.
+ *
+ * <p>No extension is offered. A time limit on an examination falls under the "essential" exception to
+ * WCAG 2.2.1: extending it would destroy what is being measured. What is owed instead is warning, and
+ * the warning comes a minute before the end rather than five seconds before it.
  */
 public class QuizTimerComponent extends Div implements I18nAware {
+
+    /** How long before the end to warn, in seconds. */
+    private static final int WARNING_THRESHOLD_SECONDS = 60;
 
     private final Span timerDisplay;
     private final Integer timeLimitMinutes;
     private int remainingTimeSeconds;
+    private int displayedMinutes = -1;
     private ScheduledExecutorService timerScheduler;
     private boolean timerExpired = false;
     private boolean warningShown = false;
@@ -45,15 +57,38 @@ public class QuizTimerComponent extends Div implements I18nAware {
      * @param timeLimitMinutes The time limit for the quiz in minutes. If null or <= 0, timer is not started.
      */
     public QuizTimerComponent(Integer timeLimitMinutes) {
+        this(timeLimitMinutes, null);
+    }
+
+    /**
+     * Counts down the time this attempt has left rather than the quiz's whole limit.
+     *
+     * <p>The two differ as soon as the student comes back to a quiz they already started: the
+     * attempt keeps running on the server, so starting the clock at the full limit again would
+     * promise time that is not there and then refuse the submission as late.
+     *
+     * @param timeLimitMinutes the quiz's limit in minutes; null or &lt;= 0 means no timer at all.
+     * @param remainingSeconds seconds left of this attempt, or {@code null} to count the full
+     *                         limit, which is the right thing when the attempt starts here.
+     */
+    public QuizTimerComponent(Integer timeLimitMinutes, Integer remainingSeconds) {
         this.timeLimitMinutes = timeLimitMinutes;
-        this.remainingTimeSeconds = timeLimitMinutes != null && timeLimitMinutes > 0 ? (timeLimitMinutes * 60) - 1 : 0;
+        boolean timed = timeLimitMinutes != null && timeLimitMinutes > 0;
+        int startFrom = remainingSeconds != null ? remainingSeconds : (timed ? timeLimitMinutes * 60 : 0);
+        this.remainingTimeSeconds = timed ? Math.max(startFrom - 1, 0) : 0;
         this.currentUI = UI.getCurrent();
 
         timerContainer = new Div();
         timerDisplay = new Span();
         timerContainer.addClassNames(LumoUtility.FontWeight.BOLD, LumoUtility.FontSize.LARGE, LumoUtility.TextColor.PRIMARY);
+        // The role a countdown has. It makes the remaining time available on demand without the
+        // screen reader announcing every change on its own.
+        timerContainer.getElement().setAttribute("role", "timer");
+        timerContainer.getElement().setAttribute("aria-label", text("quiz.timer.remaining"));
 
-        HorizontalLayout timerLayout = new HorizontalLayout(new Icon(VaadinIcon.CLOCK), new Span(text("quiz.timer.remaining")), timerDisplay);
+        Icon clock = new Icon(VaadinIcon.CLOCK);
+        clock.getElement().setAttribute("aria-hidden", "true");
+        HorizontalLayout timerLayout = new HorizontalLayout(clock, new Span(text("quiz.timer.remaining")), timerDisplay);
         timerLayout.setAlignItems(FlexComponent.Alignment.CENTER);
         timerLayout.setSpacing(true);
         timerContainer.add(timerLayout);
@@ -76,10 +111,8 @@ public class QuizTimerComponent extends Div implements I18nAware {
 
     /**
      * Starts the countdown timer using server push.
-     * Updates the timer display every second and handles auto-submission when time expires.
-     * Shows a warning notification 5 seconds before auto-submission.
-     * Ensures thread safety by using UI.access() for UI updates from the timer thread.
-     * If the timer expires, it calls the onTimeExpired callback and shows a final notification to the user.
+     * Ticks once a second so that auto-submission happens on time, but only rewrites the display when
+     * the whole minute changes. Warns once, a minute before the end.
      */
     private void startTimer() {
         if (!hasTimeLimit()) return;
@@ -94,8 +127,8 @@ public class QuizTimerComponent extends Div implements I18nAware {
                         remainingTimeSeconds--;
                         updateTimerDisplay();
 
-                        if (remainingTimeSeconds <= 5 && !warningShown) {
-                            showAutoSubmitWarning();
+                        if (remainingTimeSeconds <= WARNING_THRESHOLD_SECONDS && !warningShown) {
+                            showExpiryWarning();
                             warningShown = true;
                         }
 
@@ -109,23 +142,30 @@ public class QuizTimerComponent extends Div implements I18nAware {
     }
 
     /**
-     * Updates the timer display with current remaining time.
-     * Formats time as MM:SS and changes color based on remaining time thresholds.
+     * Rewrites the display only when the number of whole minutes left has changed, and colours it by
+     * how little is left. Under a minute it says so in words instead of showing a shrinking number.
      */
     private void updateTimerDisplay() {
         if (!hasTimeLimit()) return;
 
-        String timeText = String.format("%02d:%02d", remainingTimeSeconds / 60, remainingTimeSeconds % 60);
-        timerDisplay.setText(timeText);
+        int minutesLeft = (int) Math.ceil(remainingTimeSeconds / 60.0);
+        if (minutesLeft == displayedMinutes) {
+            return;
+        }
+        displayedMinutes = minutesLeft;
+
+        timerDisplay.setText(minutesLeft <= 1
+                ? text("quiz.timer.lessThanMinute")
+                : minutesLeft + " " + text("quiz.timer.minutes"));
         timerDisplay.removeClassNames(
                 LumoUtility.TextColor.PRIMARY,
                 LumoUtility.TextColor.WARNING,
                 LumoUtility.TextColor.ERROR
         );
 
-        if (remainingTimeSeconds <= 60) {
+        if (minutesLeft <= 1) {
             timerDisplay.addClassNames(LumoUtility.TextColor.ERROR);
-        } else if (remainingTimeSeconds <= 300) {
+        } else if (minutesLeft <= 5) {
             timerDisplay.addClassNames(LumoUtility.TextColor.WARNING);
         } else {
             timerDisplay.addClassNames(LumoUtility.TextColor.PRIMARY);
@@ -133,11 +173,11 @@ public class QuizTimerComponent extends Div implements I18nAware {
     }
 
     /**
-     * Shows warning notification before auto-submit.
+     * Warns that the time is nearly up, while there is still time to do something about it.
      */
-    private void showAutoSubmitWarning() {
+    private void showExpiryWarning() {
         if (currentUI != null && !currentUI.isClosing()) {
-            currentUI.access(() -> new WarningNotification(text("quiz.timer.autoSubmit.warning")));
+            currentUI.access(() -> new WarningNotification(text("quiz.timer.lastMinute.warning")));
         }
     }
 

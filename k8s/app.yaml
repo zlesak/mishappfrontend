@@ -1,0 +1,191 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mish-app
+  labels:
+    app.kubernetes.io/name: mish
+    app.kubernetes.io/component: app
+spec:
+  # Raised by the HorizontalPodAutoscaler below; two is the floor so a rolling update never leaves
+  # the application with a single instance.
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mish
+      app.kubernetes.io/component: app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mish
+        app.kubernetes.io/component: app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: ghcr.io/zlesak/mishappfrontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+          env:
+            # Every value comes from the secret; none has a default, so a missing key fails the pod
+            # rather than starting it against the wrong database.
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef: {name: mish-secrets, key: MONGO_URI}
+            - name: KEYCLOAK_CLIENT_ID
+              valueFrom:
+                secretKeyRef: {name: mish-secrets, key: KEYCLOAK_CLIENT_ID}
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef: {name: mish-secrets, key: KEYCLOAK_CLIENT_SECRET}
+            - name: KEYCLOAK_REALM
+              valueFrom:
+                configMapKeyRef: {name: mish-config, key: KEYCLOAK_REALM}
+            - name: KEYCLOAK_URL
+              valueFrom:
+                configMapKeyRef: {name: mish-config, key: KEYCLOAK_URL}
+            - name: KEYCLOAK_EXTERNAL_URL
+              valueFrom:
+                configMapKeyRef: {name: mish-config, key: KEYCLOAK_EXTERNAL_URL}
+            - name: EXTERNAL_GATEWAY_URL
+              valueFrom:
+                configMapKeyRef: {name: mish-config, key: EXTERNAL_BASE_URL}
+            - name: EXTERNAL_REDIRECT_URI
+              valueFrom:
+                configMapKeyRef: {name: mish-config, key: EXTERNAL_REDIRECT_URI}
+            - name: LOGGING_STRUCTURED_FORMAT_CONSOLE
+              value: ecs
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=75"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              memory: 1536Mi
+          # Liveness restarts a wedged process; readiness takes a pod out of rotation without
+          # killing it, which is what a rolling update needs. Both hit actuator, which is already on.
+          startupProbe:
+            httpGet: {path: /actuator/health, port: http}
+            failureThreshold: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet: {path: /actuator/health/readiness, port: http}
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /actuator/health/liveness, port: http}
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # The root filesystem is read-only; uploads are buffered here before they reach GridFS.
+        - name: tmp
+          emptyDir:
+            sizeLimit: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mish-app
+spec:
+  selector:
+    app.kubernetes.io/name: mish
+    app.kubernetes.io/component: app
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mish-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mish-app
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      # Sessions live in the pod. Draining slowly means fewer users are asked to log in again.
+      stabilizationWindowSeconds: 600
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mish-app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mish
+      app.kubernetes.io/component: app
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mish
+  annotations:
+    # Vaadin keeps UI state in the server session, so a user has to keep reaching the same pod.
+    # Without this, every request could land elsewhere and the session would appear to expire.
+    nginx.ingress.kubernetes.io/affinity: cookie
+    nginx.ingress.kubernetes.io/session-cookie-name: MISH_ROUTE
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/affinity-mode: persistent
+    # Models and their textures are large.
+    nginx.ingress.kubernetes.io/proxy-body-size: 200m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "86400"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [mish.example.org]
+      secretName: mish-tls
+  rules:
+    - host: mish.example.org
+      http:
+        paths:
+          - path: /auth
+            pathType: Prefix
+            backend:
+              service:
+                name: mish-keycloak
+                port:
+                  number: 80
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mish-app
+                port:
+                  number: 80

@@ -231,4 +231,64 @@ describe('ModelManager', () => {
     expect(createObjectURL).toHaveBeenCalledTimes(2);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:first');
   });
+  it('does not add a model to the scene when it was removed while still loading', async () => {
+    // The failure this pins: showModelById clears the scene, awaits the loader, and only then adds
+    // the result. A file removed during that await used to reappear on screen.
+    const scene = new THREE.Scene();
+    const manager = new ModelManager(scene);
+    await manager.loadModel('/models/femur.obj', 'model-1', true, null);
+
+    const model = (manager as any).findModel('model-1') as Model;
+    let finishLoading: () => void = () => undefined;
+    vi.spyOn(manager as any, 'getOrCreateModelSource')
+      .mockResolvedValue({src: '/models/femur.obj', objectUrl: 'blob:femur', isGltf: false});
+    vi.spyOn(manager as any, 'loadObjModel').mockImplementation(async () => {
+      // The real loader assigns modelLoader in its completion callback, so the object exists only
+      // once the await resolves — after the removal has already happened.
+      await new Promise<void>(resolve => {
+        finishLoading = resolve;
+      });
+      model.modelLoader = new THREE.Object3D();
+    });
+
+    const displaying = manager.showModelById('model-1', () => undefined, {});
+    await manager.removeModel('model-1', () => undefined);
+    finishLoading();
+    await displaying;
+
+    expect(scene.children).toHaveLength(0);
+  });
+
+  it('does not add a stale model when another one is asked for mid-load', async () => {
+    const scene = new THREE.Scene();
+    const manager = new ModelManager(scene);
+    await manager.loadModel('/models/first.obj', 'model-1', true, null);
+    await manager.loadModel('/models/second.obj', 'model-2', false, null);
+
+    const first = (manager as any).findModel('model-1') as Model;
+    const second = (manager as any).findModel('model-2') as Model;
+    const firstLoader = new THREE.Object3D();
+    const secondLoader = new THREE.Object3D();
+
+    let finishFirst: () => void = () => undefined;
+    vi.spyOn(manager as any, 'getOrCreateModelSource')
+      .mockResolvedValue({src: '/models/x.obj', objectUrl: 'blob:x', isGltf: false});
+    vi.spyOn(manager as any, 'loadObjModel').mockImplementation(async (target: any) => {
+      if (target === first) {
+        first.modelLoader = firstLoader;
+        await new Promise<void>(resolve => {
+          finishFirst = resolve;
+        });
+        return;
+      }
+      second.modelLoader = secondLoader;
+    });
+
+    const slow = manager.showModelById('model-1', () => undefined, {});
+    await manager.showModelById('model-2', () => undefined, {});
+    finishFirst();
+    await slow;
+
+    expect(scene.children).toEqual([secondLoader]);
+  });
 });

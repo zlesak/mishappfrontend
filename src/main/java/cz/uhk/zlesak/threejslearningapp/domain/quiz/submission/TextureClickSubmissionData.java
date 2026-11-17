@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 /**
  * Submission for texture click question type where user selects a color from given question texture on a model from clicked area.
@@ -21,6 +22,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
+@TypeAlias("TextureClickSubmissionData")
 public class TextureClickSubmissionData extends AbstractSubmissionData {
     String hexColor;
     String modelId;

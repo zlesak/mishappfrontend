@@ -9,11 +9,14 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 public class WarningNotification extends Notification {
 
     /**
-     * Constructor - Initializes the WarningNotification with a message and default duration
-     * @param message The error message to be displayed
+     * Constructor - Initializes the WarningNotification with a message and default duration.
+     * Delegates rather than constructing a second instance: the previous {@code new} created a
+     * throwaway notification and left this one empty and unopened.
+     *
+     * @param message The warning message to be displayed
      */
     public WarningNotification(String message) {
-        new WarningNotification(message, 3000);
+        this(message, 3000);
     }
 
     /**
@@ -24,6 +27,8 @@ public class WarningNotification extends Notification {
     public WarningNotification(String message, int duration) {
         super(message, duration, Position.BOTTOM_END);
         this.addThemeVariants(NotificationVariant.LUMO_WARNING);
+        // Announced over anything in progress; a warning the user misses is a warning wasted.
+        setAssertive(true);
         open();
     }
 }

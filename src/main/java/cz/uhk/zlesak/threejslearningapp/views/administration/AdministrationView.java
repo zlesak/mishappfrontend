@@ -3,10 +3,14 @@ package cz.uhk.zlesak.threejslearningapp.views.administration;
 import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.backend.service.CurrentUserProvider;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PageHeader;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
@@ -35,8 +39,11 @@ public class AdministrationView extends AbstractView<ChapterService> {
     private final ChapterService chapterService;
     private final ModelService modelService;
     private final QuizService quizService;
+    private final CurrentUserProvider currentUserProvider;
 
     private TabSheet navigationTabs;
+    private PageHeader pageHeader;
+    private Span actionAnnouncement;
 
     private Tab chaptersTab;
     private Tab modelsTab;
@@ -51,13 +58,16 @@ public class AdministrationView extends AbstractView<ChapterService> {
      * @param chapterService the chapter service
      * @param modelService the model service
      * @param quizService the quiz service
+     * @param currentUserProvider resolves which role the signed-in user holds
      */
     @Autowired
-    public AdministrationView(ChapterService chapterService, ModelService modelService, QuizService quizService) {
+    public AdministrationView(ChapterService chapterService, ModelService modelService, QuizService quizService,
+                              CurrentUserProvider currentUserProvider) {
         super("page.title.administrationView", chapterService);
         this.chapterService = chapterService;
         this.modelService = modelService;
         this.quizService = quizService;
+        this.currentUserProvider = currentUserProvider;
 
         buildLayout();
     }
@@ -78,6 +88,11 @@ public class AdministrationView extends AbstractView<ChapterService> {
         modelListingView.setAdministrationView(true);
         quizListingView.setAdministrationView(true);
 
+        // A count in the tab label, not a badge: a number of chapters is a quantity, not a state.
+        chapterListingView.setTotalListener(total -> setTabCount(chaptersTab, "administration.tab.chapters", total));
+        modelListingView.setTotalListener(total -> setTabCount(modelsTab, "administration.tab.models", total));
+        quizListingView.setTotalListener(total -> setTabCount(quizzesTab, "administration.tab.quizzes", total));
+
         navigationTabs = new TabSheet();
         navigationTabs.addClassName("admin-tabsheet");
         navigationTabs.add(chaptersTab, chapterListingView);
@@ -94,21 +109,61 @@ public class AdministrationView extends AbstractView<ChapterService> {
         navigationTabs.addSelectedChangeListener(event -> {
             Tab selectedTab = navigationTabs.getSelectedTab();
             if (selectedTab == chaptersTab) {
-                createButton.setText(text("button.createChapter"));
+                setCreateAction(createButton, "button.createChapter");
                 chapterListingView.listEntities();
             } else if (selectedTab == modelsTab) {
-                createButton.setText(text("button.createModel"));
+                setCreateAction(createButton, "button.createModel");
                 modelListingView.listEntities();
             } else if (selectedTab == quizzesTab) {
-                createButton.setText(text("button.createQuiz"));
+                setCreateAction(createButton, "button.createQuiz");
                 quizListingView.listEntities();
             }
         });
 
-        getContent().add(navigationTabs);
+        // The suffix button silently relabels itself when the tab changes. Someone listening rather
+        // than looking hears the tab name and then nothing, so the new action is announced too.
+        actionAnnouncement = new Span();
+        actionAnnouncement.getElement().setAttribute("role", "status");
+        actionAnnouncement.addClassName(LumoUtility.FontSize.SMALL);
+        actionAnnouncement.getStyle()
+                .set("position", "absolute")
+                .set("width", "1px")
+                .set("height", "1px")
+                .set("overflow", "hidden")
+                .set("clip-path", "inset(50%)");
+
+        pageHeader = new PageHeader(text("page.heading.administrationView"), signedInRole());
+
+        getContent().add(pageHeader, actionAnnouncement, navigationTabs);
         getContent().setSizeFull();
         getContent().setSpacing(true);
         getContent().setPadding(false);
+    }
+
+    private void setCreateAction(Button createButton, String labelKey) {
+        String label = text(labelKey);
+        createButton.setText(label);
+        if (actionAnnouncement != null) {
+            actionAnnouncement.setText(text("administration.action.changed", label));
+        }
+    }
+
+    private void setTabCount(Tab tab, String labelKey, long total) {
+        tab.setLabel(text(labelKey) + " (" + total + ")");
+    }
+
+    /**
+     * @return the signed-in user's role, for the header's context line, or {@code null} when it cannot
+     *         be determined.
+     */
+    private String signedInRole() {
+        if (currentUserProvider.hasRole("ADMIN")) {
+            return text("administration.role.admin");
+        }
+        if (currentUserProvider.hasRole("TEACHER")) {
+            return text("administration.role.teacher");
+        }
+        return null;
     }
 
     /**

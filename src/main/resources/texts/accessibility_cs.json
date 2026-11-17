@@ -1,0 +1,22 @@
+{
+  "page.title.accessibility": "MISH - Prohlášení o přístupnosti",
+
+  "accessibility.title": "Prohlášení o přístupnosti",
+  "accessibility.updated": "Naposledy aktualizováno: 31. 7. 2026",
+
+  "accessibility.intro": "Provozovatel aplikace MISH se zavazuje zpřístupnit tuto webovou aplikaci v souladu se směrnicí Evropského parlamentu a Rady (EU) 2019/882 o požadavcích na přístupnost produktů a služeb a se zákonem č. 424/2023 Sb. Toto prohlášení se vztahuje na aplikaci dostupnou na této adrese.",
+
+  "accessibility.state.title": "Stav souladu",
+  "accessibility.state.body": "Aplikace je částečně v souladu se standardem WCAG 2.2 na úrovni AA, a to z důvodů uvedených níže. Přístupnost byla ověřena kombinací automatizované kontroly (axe-core nad všemi obrazovkami v obou barevných režimech, součást testovací sady) a ruční kontroly klávesnicí. Rozsah ruční kontroly odečítačem obrazovky a při 400% přiblížení je uveden mezi výjimkami.",
+
+  "accessibility.exceptions.title": "Nepřístupný obsah",
+  "accessibility.exceptions.login": "Přihlašovací obrazovka patří systému Keycloak a není součástí této aplikace. Do doby, než bude nasazeno přístupné téma, nelze u jejích popisků a chybových hlášek soulad zaručit.",
+  "accessibility.exceptions.modelDescription": "3D modely nemají slovní popis preparátu. Model lze ovládat klávesnicí (šipky otáčejí, + a − přibližují, R vycentruje) a u otázek s klikáním do textury je k dispozici výběr pojmenované oblasti ze seznamu, samotný vizuální obsah modelu ale zatím textovou alternativu nemá.",
+  "accessibility.exceptions.chapterContent": "Texty kapitol vytvářejí vyučující v editoru. Aplikace při ukládání upozorní na odkazy bez popisného textu, za výsledný obsah — včetně popisů vložených obrázků — však odpovídá jeho autor.",
+
+  "accessibility.feedback.title": "Zpětná vazba a kontaktní údaje",
+  "accessibility.feedback.body": "Narazili jste na obsah, který nelze použít? Napište nám a uveďte adresu obrazovky a co se nepodařilo. Kontaktní adresu doplní provozovatel aplikace před uvedením do provozu; do té doby se obracejte na správce instance.",
+
+  "accessibility.enforcement.title": "Postup pro vymáhání práva",
+  "accessibility.enforcement.body": "Pokud na podnět nedostanete odpověď v přiměřené lhůtě, můžete se obrátit na Ministerstvo pro místní rozvoj jako na orgán dohledu nad přístupností webových stránek a mobilních aplikací."
+}

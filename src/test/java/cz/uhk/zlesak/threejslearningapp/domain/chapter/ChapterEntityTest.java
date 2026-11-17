@@ -7,53 +7,42 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class ChapterEntityTest {
 
     @Test
-    void getModelsForBackend_shouldHandleNullModelFile_returningNullFileIdWithName() {
-        QuickModelEntity modelWithNullFile = QuickModelEntity.builder()
-                .id("meta-null")
-                .metadataId("meta-null")
-                .model(null)
+    void keepsTheStoredModelReferencesApartFromTheResolvedModels() {
+        ChapterEntity chapter = ChapterEntity.builder()
+                .name("Kapitola")
+                .content("{}")
+                .modelIds(List.of("model-1", "model-2"))
                 .build();
 
-        ChapterEntity entity = ChapterEntity.builder()
-                .models(List.of(modelWithNullFile))
-                .build();
-
-        List<ChapterEntity.ModelIds> result = entity.getModelsForBackend();
-
-        assertEquals(1, result.size());
-        assertEquals("meta-null", result.getFirst().getMetadataId());
-        assertNull(result.getFirst().getModel());
+        assertEquals(List.of("model-1", "model-2"), chapter.getModelIds());
+        assertNull(chapter.getModels(), "modely se doplňují až při načtení kapitoly");
     }
 
     @Test
-    void getModelsForBackend_shouldHandleModelFileWithEmptyRelatedList() {
-        ModelFileEntity modelFile = ModelFileEntity.builder()
-                .id("mf-1")
-                .name("bone.glb")
-                .senseType(FileSenseType.MODEL)
-                .related(List.of())
-                .build();
-
+    void carriesTheResolvedModelsWithTheirFileHierarchy() {
         QuickModelEntity model = QuickModelEntity.builder()
-                .id("meta-1")
-                .metadataId("meta-1")
-                .model(modelFile)
+                .id("model-1")
+                .name("Kost")
+                .model(ModelFileEntity.builder()
+                        .id("file-1")
+                        .name("bone.glb")
+                        .senseType(FileSenseType.MODEL)
+                        .related(List.of())
+                        .build())
                 .build();
 
-        ChapterEntity entity = ChapterEntity.builder()
+        ChapterEntity chapter = ChapterEntity.builder()
+                .modelIds(List.of("model-1"))
                 .models(List.of(model))
                 .build();
 
-        List<ChapterEntity.ModelIds> result = entity.getModelsForBackend();
-
-        assertEquals(1, result.size());
-        assertEquals("mf-1", result.getFirst().getModel().getId());
-        assertTrue(result.getFirst().getModel().getRelated().isEmpty());
+        assertEquals("model-1", chapter.getModels().getFirst().getId());
+        assertEquals("file-1", chapter.getModels().getFirst().getModel().getId());
     }
 }
-

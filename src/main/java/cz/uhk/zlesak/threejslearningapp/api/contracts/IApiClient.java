@@ -1,47 +1,18 @@
 package cz.uhk.zlesak.threejslearningapp.api.contracts;
 
-import cz.uhk.zlesak.threejslearningapp.common.SpringContextUtils;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
-import cz.uhk.zlesak.threejslearningapp.security.AccessTokenProvider;
 
 /**
- * Interface for generic API Client
- * Defines CRUD operations and listing for entities of type T and returns entities of type S in paginated results.
+ * CRUD operations the UI performs on one kind of entity.
+ * This is the boundary between the Vaadin layer and the backend: the UI never touches repositories
+ * or documents directly.
  *
- * @param <E> Entity type that this API client works with
- * @param <Q> Entity type that is returned in paginated results
- * @param <F> Filter type used for filtered listing
+ * @param <E> full entity, used on detail screens
+ * @param <Q> lightweight entity, used in listings
+ * @param <F> filter type used for filtered listing
  */
-public interface IApiClient <E, Q, F> {
-    static String getBaseUrl() {
-        String envUrl = System.getenv("BACKEND_URL");
-        return (envUrl != null && !envUrl.isEmpty() ? envUrl : "http://localhost:8050") + "/api/";
-    }
-    static String getExternalAppUrl() {
-        String envUrl = System.getenv("APP_URL");
-        if(envUrl != null && !envUrl.isEmpty()){
-            return envUrl;
-        }
-        return "http://localhost:8050" + "/api/";
-    }
-
-    /**
-     * Gets the JWT token from the current OIDC user.
-     *
-     * @return JWT token string, or null if not authenticated via OIDC
-     */
-    default String getJwtToken() {
-        String asyncToken = ApiTokenContext.get();
-        if (asyncToken != null && !asyncToken.isBlank()) {
-            return asyncToken;
-        }
-        try {
-            return SpringContextUtils.getBean(AccessTokenProvider.class).getValidAccessToken();
-        } catch (RuntimeException ignored) {
-            return null;
-        }
-    }
+public interface IApiClient<E, Q, F> {
 
     /**
      * Creates a new entity.
@@ -63,6 +34,7 @@ public interface IApiClient <E, Q, F> {
 
     /**
      * Reads a quick version of an entity by its ID.
+     *
      * @param id ID of the entity to read
      * @return Quick version of the entity
      * @throws Exception if reading fails
@@ -70,11 +42,10 @@ public interface IApiClient <E, Q, F> {
     Q readQuick(String id) throws Exception;
 
     /**
-     * Reads entities in a paginated manner.
-     * Filtered by the provided FilterParameters.
+     * Reads entities in a paginated manner, filtered by the provided parameters.
      *
-     * @param pageRequest PageRequest object containing pagination info
-     * @return PageResult of entities of type S
+     * @param pageRequest paging and filtering to apply
+     * @return PageResult of entities of type Q
      * @throws Exception if reading fails
      */
     PageResult<Q> readEntities(FilterParameters<F> pageRequest) throws Exception;
@@ -97,6 +68,4 @@ public interface IApiClient <E, Q, F> {
      * @throws Exception if deletion fails
      */
     boolean delete(String id) throws Exception;
-
 }
-

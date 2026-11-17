@@ -12,7 +12,10 @@ import {
 } from './helpers';
 
 test('teacher can create, view, list and delete a model (CRUD e2e)', async ({page}) => {
-  test.setTimeout(30000);
+  // Uploading the fixture model alone takes around 20 s, and the waits below allow 60 s each, so
+  // the 30 s this used to allow could not cover the whole cycle. Matches chapter-crud and
+  // quiz-crud-execute, which do the same upload and more.
+  test.setTimeout(120000);
   const modelName = uniqueName('AAA E2E Model CRUD');
   let modelCreated = true;
 

@@ -2,7 +2,7 @@ import {expect, test} from '@playwright/test';
 import {
   chooseAnyQuizChapter,
   deleteEntityFromCurrentListing,
-  entityCardByName,
+  entityRowByName,
   loginAsTeacher,
   logStep,
   openEntityFromCurrentListing,
@@ -39,7 +39,7 @@ test('teacher can create, view, play, list and delete a quiz (CRUD + execute e2e
   await selectAdministrationTab(page, 'Kvízy');
   const quizExists = await waitForEntityCardVisible(page, quizName, 60000);
   test.skip(!quizExists, 'Create quiz flow is currently unstable in this environment.');
-  await expect(entityCardByName(page, quizName)).toBeVisible();
+  await expect(entityRowByName(page, quizName)).toBeVisible();
   await openEntityFromCurrentListing(page, quizName);
   await page.waitForURL('**/quiz/**');
   await expect(page.getByRole('button', {name: 'Spustit kvíz'})).toBeVisible();

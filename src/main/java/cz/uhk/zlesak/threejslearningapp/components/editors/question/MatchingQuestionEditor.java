@@ -18,8 +18,10 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionDat
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -118,12 +120,15 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
         if (answerData instanceof MatchingAnswerData data) {
             Map<Integer, Integer> matches = data.getCorrectMatches();
             if (matches != null) {
+                // The stored map is keyed by the left item, while the editor asks the author to
+                // pick a left item on each right one, so the pair is looked up by its value.
                 for (MatchQuestionOption answer : answers) {
                     Integer rightIdx = answer.getIndex() - 1;
-                    if (matches.containsKey(rightIdx)) {
-                        Integer leftIdx = matches.get(rightIdx);
-                        answer.getOptionSelect().setValue(leftIdx + 1);
-                    }
+                    matches.entrySet().stream()
+                            .filter(match -> rightIdx.equals(match.getValue()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .ifPresent(leftIdx -> answer.getOptionSelect().setValue(leftIdx + 1));
                 }
             }
         }
@@ -172,10 +177,13 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      */
     @Override
     public AbstractAnswerData getAnswerData() {
+        // Keyed by the left item, which is the direction the student's submission and the
+        // validator's range checks both use; the editor collects the pairs the other way round
+        // because the select sits on the right item.
         Map<Integer, Integer> correctMatches = new HashMap<>();
         answers.forEach(answer -> {
-            Integer rightIndex = answer.getOptionSelect().getValue() - 1;
-            correctMatches.put(answer.getIndex() - 1, rightIndex);
+            Integer leftIndex = answer.getOptionSelect().getValue() - 1;
+            correctMatches.put(leftIndex, answer.getIndex() - 1);
         });
 
         return MatchingAnswerData.builder()
@@ -191,25 +199,45 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      */
     @Override
     public boolean validate() {
+        return validationMessage() == null;
+    }
+
+    /**
+     * Names the first thing wrong with the question, so the author is told which rule they broke
+     * rather than only that something is wrong. The two pairing rules in particular are easy to
+     * break by accident and impossible to spot by looking.
+     */
+    @Override
+    public String validationMessage() {
         if (getQuestionText() == null || getQuestionText().isEmpty()) {
-            return false;
+            return text("quiz.validation.question.textMissing");
         }
         if (options.size() < 2 || answerIndices.size() < 2) {
-            return false;
+            return text("quiz.validation.matching.tooFewItems");
         }
         for (QuestionOption field : options) {
             if (field.getOptionField().getValue() == null || field.getOptionField().getValue().isEmpty()) {
-                return false;
+                return text("quiz.validation.matching.itemEmpty");
             }
         }
+        Set<Integer> chosenLeftItems = new HashSet<>();
         for (MatchQuestionOption field : answers) {
             if (field.getOptionField().getValue() == null || field.getOptionField().getValue().isEmpty()) {
-                return false;
+                return text("quiz.validation.matching.itemEmpty");
             }
             if(field.getOptionSelect().getValue()  == null ) {
-                return false;
+                return text("quiz.validation.matching.pairMissing");
+            }
+            // Each left item belongs to exactly one right item. Every select offers all of them, so
+            // picking one twice is an easy slip, and the answer is keyed by the left item: the
+            // second pair would overwrite the first and vanish without a word.
+            if (!chosenLeftItems.add(field.getOptionSelect().getValue())) {
+                return text("quiz.validation.matching.leftItemUsedTwice");
             }
         }
-        return true;
+        if (answers.size() != options.size()) {
+            return text("quiz.validation.matching.columnsDiffer");
+        }
+        return null;
     }
 }

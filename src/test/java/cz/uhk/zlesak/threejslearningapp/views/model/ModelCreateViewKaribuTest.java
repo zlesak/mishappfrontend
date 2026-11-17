@@ -233,7 +233,6 @@ class ModelCreateViewKaribuTest {
     @Test
     void editMode_shouldNotThrowWhenServiceReturnsEntityWithNullModel() throws Exception {
         ModelEntity modelEntity = ModelEntity.builder()
-                .metadataId("model-null-file")
                 .name("No File")
                 .model(null)
                 .otherTextures(List.of())
@@ -257,7 +256,6 @@ class ModelCreateViewKaribuTest {
 
     private ModelEntity model() {
         return ModelEntity.builder()
-                .metadataId("model-1")
                 .name("Lebka")
                 .model(ModelFileEntity.builder().id("file-1").name("Lebka").related(List.of()).build())
                 .otherTextures(List.of())

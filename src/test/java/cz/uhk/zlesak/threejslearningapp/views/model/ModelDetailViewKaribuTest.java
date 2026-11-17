@@ -111,7 +111,6 @@ class ModelDetailViewKaribuTest {
 
     private ModelEntity model() {
         return ModelEntity.builder()
-                .metadataId("model-1")
                 .model(ModelFileEntity.builder()
                         .id("file-1")
                         .name("Lebka")

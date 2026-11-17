@@ -18,6 +18,13 @@ import java.time.Instant;
 public class FilterBase {
     String Name;
     String CreatorId;
+    /**
+     * Author to filter by, matched on the recorded name rather than the id.
+     *
+     * <p>{@code CreatorId} is a Keycloak subject: it is not something a user can type, and offering it
+     * in the interface would put other people's identifiers on screen.
+     */
+    String CreatorName;
     Instant CreatedFrom;
     Instant CreatedTo;
 }

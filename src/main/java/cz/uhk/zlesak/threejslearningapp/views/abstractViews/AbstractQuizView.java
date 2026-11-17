@@ -63,7 +63,12 @@ public abstract class AbstractQuizView extends AbstractEntityView<QuizService> {
         });
         entityContent.removeAll();
         entityContent.add(backButton);
-        entityContent.add(new QuizResultContainer(result, quiz, possibleScore));
+        QuizResultContainer resultContainer = new QuizResultContainer(result, quiz, possibleScore);
+        entityContent.add(resultContainer);
         splitLayout.setSplitterPosition(100);
+        // Focus followed the submit button into oblivion when the screen was replaced. Putting it on
+        // the result heading is what tells a screen reader user that the result has arrived, and lets
+        // them read on from there.
+        resultContainer.focusHeading();
     }
 }

@@ -28,11 +28,13 @@
       --lumo-shade: rgb(51, 51, 51);
       --lumo-primary-color: rgb(204, 44, 50);
       --lumo-primary-text-color: rgb(204, 44, 50);
-      --lumo-error-color: rgb(255, 0, 0);
-      --lumo-error-text-color: rgb(255, 0, 0);
+      /* Pure red reaches only 4.0:1 against white, below the 4.5:1 a form error needs. */
+      --lumo-error-color: #C4141A;
+      --lumo-error-text-color: #C4141A;
       --lumo-success-color: hsl(159, 76%, 57%);
       --lumo-success-contrast-color: hsl(159, 29%, 10%);
-      --lumo-success-text-color: hsl(159, 61%, 40%);
+      /* 3.6:1 before; success messages are text and need 4.5:1. */
+      --lumo-success-text-color: #1C6B45;
     }
 
     [theme~="dark"] {
@@ -53,10 +55,12 @@
       --lumo-success-color-50pct: rgba(50, 183, 136, 0.5);
       --lumo-success-color-10pct: rgba(50, 183, 136, 0.1);
       --lumo-shade: rgb(30, 30, 30);
+      /* On a dark background the brand red reaches 2.3:1 as text. Buttons keep the red fill with
+         white text — the contrast there is between the label and the fill, not the page. */
       --lumo-primary-color: rgb(163, 35, 40);
-      --lumo-primary-text-color: rgb(163, 35, 40);
-      --lumo-error-color: rgb(204, 0, 0);
-      --lumo-error-text-color: rgb(204, 0, 0);
+      --lumo-primary-text-color: #FF8F95;
+      --lumo-error-color: #C4141A;
+      --lumo-error-text-color: #FF8F95;
       --lumo-success-color: hsl(159, 57%, 46%);
       --lumo-success-contrast-color: hsl(159, 29%, 10%);
       --lumo-success-text-color: hsl(159, 50%, 35%);

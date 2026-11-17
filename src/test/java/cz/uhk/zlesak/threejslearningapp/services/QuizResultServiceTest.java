@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
-import cz.uhk.zlesak.threejslearningapp.api.clients.QuizResultApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IQuizResultApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
@@ -18,12 +18,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class QuizResultServiceTest {
-    private QuizResultApiClient quizResultApiClient;
+    private IQuizResultApiClient quizResultApiClient;
     private QuizResultService quizResultService;
 
     @BeforeEach
     void setUp() {
-        quizResultApiClient = mock(QuizResultApiClient.class);
+        quizResultApiClient = mock(IQuizResultApiClient.class);
         quizResultService = new QuizResultService(quizResultApiClient);
     }
 

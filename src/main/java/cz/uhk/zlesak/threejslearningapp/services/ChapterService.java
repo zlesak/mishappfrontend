@@ -4,9 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import cz.uhk.zlesak.threejslearningapp.api.clients.ChapterApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IChapterApiClient;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.SubChapterForSelect;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,7 @@ import java.util.*;
 @Slf4j
 @Service
 @Scope("prototype")
-public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity, ChapterFilter> {
+public class ChapterService extends AbstractService<ChapterEntity, QuickChapterEntity, ChapterFilter> {
     private final ObjectMapper objectMapper;
 
     /**
@@ -37,7 +38,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * @param chapterApiClient The API client used to interact with chapter-related operations.
      */
     @Autowired
-    public ChapterService(ChapterApiClient chapterApiClient, ObjectMapper objectMapper) {
+    public ChapterService(IChapterApiClient chapterApiClient, ObjectMapper objectMapper) {
         super(chapterApiClient);
         this.objectMapper = objectMapper;
     }
@@ -75,6 +76,32 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
      * @return a list of SubChapterForComboBoxRecord objects containing sub-chapter IDs and names
      * @see SubChapterForSelect
      */
+    /**
+     * Translates the model reference stored in a heading block into the id of the model file as it
+     * exists right now.
+     *
+     * <p>Headings store the id of the model <em>document</em>, which survives a model being
+     * re-uploaded; the 3D scene addresses models by the id of their file in GridFS, and that one is
+     * reassigned on every upload. Resolving the two here is what keeps a chapter pointing at its
+     * model after the model is edited.
+     *
+     * @param storedModelId value stored in the heading block, may be {@code null} or blank.
+     * @return the current model file id, or the stored value when it cannot be resolved (chapters
+     * written before headings referenced the document already hold a file id).
+     */
+    private String currentModelFileId(String storedModelId) {
+        if (storedModelId == null || storedModelId.isBlank() || entity == null || entity.getModels() == null) {
+            return storedModelId;
+        }
+
+        for (QuickModelEntity model : entity.getModels()) {
+            if (model != null && storedModelId.equals(model.getId()) && model.getModel() != null) {
+                return model.getModel().getId();
+            }
+        }
+        return storedModelId;
+    }
+
     public List<SubChapterForSelect> getSubChaptersNames(String chapterId) {
         read(chapterId);
 
@@ -90,7 +117,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
                         String id = block.has("id") ? block.get("id").asText() : "fallback-" + java.util.UUID.randomUUID().toString().substring(0, 7);
                         String text = data.get("text").asText();
                         String modelId = data.has("modelId") ? data.get("modelId").asText() : "";
-                        subChapters.add(new SubChapterForSelect(id, text, modelId));
+                        subChapters.add(new SubChapterForSelect(id, text, currentModelFileId(modelId)));
                     }
                 }
             }
@@ -131,7 +158,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
                 String originalText = data.get("text").asText();
                 String text = originalText == null ? "" : originalText.replaceAll("<[^>]*>", "");
                 String id = block.get("id").asText();
-                String modelId = data.get("modelId") != null ? data.get("modelId").asText() : null;
+                String modelId = data.get("modelId") != null ? currentModelFileId(data.get("modelId").asText()) : null;
 
                 if (level == 1) {
                     if (currentLevel1Header != null) {
@@ -238,7 +265,11 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
                     QuickModelEntity model = chapterCreateEntity.getModelHeaderMap().getOrDefault(blockId, null);
                     if (model != null) {
                         ObjectNode dataNode = (ObjectNode) blockNode.get("data");
-                        dataNode.put("modelId", model.getModel().getId());
+                        // The document id, not the file id: re-uploading a model assigns new file
+                        // ids, and a heading that stored one would stop finding its model.
+                        dataNode.put("modelId", model.getId() != null && !model.getId().isBlank()
+                                ? model.getId()
+                                : model.getModel().getId());
                     }
                 }
             });
@@ -272,6 +303,7 @@ public class ChapterService extends AbstractService<ChapterEntity, ChapterEntity
                 .description("")
                 .content(content)
                 .models(modelsList)
+                .modelIds(modelsList.stream().map(QuickModelEntity::getId).filter(Objects::nonNull).toList())
                 .build();
     }
 

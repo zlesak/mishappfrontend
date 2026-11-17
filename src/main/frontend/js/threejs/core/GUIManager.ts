@@ -1,22 +1,37 @@
 import * as THREE from 'three';
 import type { OrbitControls } from 'three/addons';
+import { createCameraActions, type CameraActions } from './CameraActions';
 
 /**
  * GUI controls for interactive camera manipulation
- * 
+ *
  * Provides buttons for common camera operations:
- * - Rotate left/right
- * - Pan up/down/left/right
+ * - Rotate up/down/left/right
  * - Zoom in/out
  * - Reset camera
  * - Show/hide GUI
  *
- * Controls use OrbitControls for smooth camera manipulation and trigger renders after each update.
+ * Every button drives the shared {@link CameraActions}, which the keyboard bindings on the canvas use
+ * too, so the two routes cannot drift apart.
+ *
+ * The arrows and the magnifiers used to listen for mousedown, mouseup and mouseleave and nothing else.
+ * They are real <button> elements, so focus reached them, but Enter and the space bar did nothing at
+ * all: only the centring button had a click listener. They now respond to a click for one step and to
+ * a held key for a run of them.
+ *
+ * The strings here are Czech literals rather than keys from texts/*_cs.json. The panel is built in
+ * plain DOM inside the Three.js layer, with no access to the Vaadin i18n provider; unifying that means
+ * passing the strings in from Java, which is a larger change than this brief allows.
  */
 export class GUIManager {
+    /** WCAG 2.5.8: the 3 × 3 grid was 122 px wide, which left each button under 40 px. */
+    private static readonly BUTTON_SIZE = 44;
+    private static readonly GRID_GAP = 4;
+
     private gui: HTMLElement | null = null;
     private intervalId: number | null = null;
     private backgroundSyncHandler: ((ev: Event) => void) | null = null;
+    private cameraActions: CameraActions | null = null;
 
     /**
      * Create interactive GUI controls for camera manipulation
@@ -43,8 +58,14 @@ export class GUIManager {
         renderFn: () => void,
         centerCameraFn: () => void
     ): HTMLElement {
+        this.cameraActions = createCameraActions(controls, camera, renderFn, centerCameraFn);
+
         const gui = document.createElement('div');
         gui.className = 'scene-controls-gui';
+        // A named group, so a screen reader lists it as the model's controls rather than as a run of
+        // unexplained buttons.
+        gui.setAttribute('role', 'group');
+        gui.setAttribute('aria-label', 'Ovládání modelu');
         gui.style.cssText = `
             position: absolute;
             bottom: 15px;
@@ -54,7 +75,7 @@ export class GUIManager {
             flex-direction: row;
             align-items: center;
             gap: 8px;
-            background: rgba(0, 0, 0, 0.7);
+            background: #1a1a1a;
             padding: 10px;
             border-radius: 6px 0 0 6px;
             user-select: none;
@@ -70,16 +91,19 @@ export class GUIManager {
                 gui.style.transform = 'translateX(0)';
                 toggleButton.textContent = '►';
                 toggleButton.title = 'Skrýt ovládání';
+                toggleButton.setAttribute('aria-label', 'Skrýt ovládání modelu');
             } else {
                 const offset = gui.offsetWidth - 40;
                 gui.style.transform = `translateX(${offset}px)`;
                 toggleButton.textContent = '◄';
                 toggleButton.title = 'Zobrazit ovládání';
+                toggleButton.setAttribute('aria-label', 'Zobrazit ovládání modelu');
             }
+            toggleButton.setAttribute('aria-expanded', isVisible ? 'true' : 'false');
         });
         gui.appendChild(toggleButton);
 
-        const controlsContainer = this.createControlsContainer(controls, camera, renderFn, centerCameraFn);
+        const controlsContainer = this.createControlsContainer();
         const bgContainer = this.createBackgroundContainer();
 
         const opacityContainer = document.createElement('div');
@@ -96,6 +120,9 @@ export class GUIManager {
 
         const opacityLabel = document.createElement('label');
         opacityLabel.textContent = 'Průhlednost masky';
+        // The id was already set on the input, but htmlFor appeared nowhere in this file, so the label
+        // sat beside its field without being attached to it.
+        opacityLabel.htmlFor = 'threejs-mask-opacity';
         opacityLabel.style.cssText = `
             font-size: 12px;
             color: white;
@@ -137,16 +164,19 @@ export class GUIManager {
         bgContainer.style.display = 'none';
 
         const appearanceToggleButton = document.createElement('button');
+        appearanceToggleButton.type = 'button';
         appearanceToggleButton.textContent = 'Zobrazit vzhled';
+        appearanceToggleButton.setAttribute('aria-expanded', 'false');
         appearanceToggleButton.style.cssText = `
             background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.6);
             color: white;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            padding: 5px 8px;
+            padding: 8px;
+            min-height: 44px;
             width: 100%;
         `;
 
@@ -156,6 +186,7 @@ export class GUIManager {
             opacityContainer.style.display = appearanceVisible ? 'flex' : 'none';
             bgContainer.style.display = appearanceVisible ? 'flex' : 'none';
             appearanceToggleButton.textContent = appearanceVisible ? 'Skrýt vzhled' : 'Zobrazit vzhled';
+            appearanceToggleButton.setAttribute('aria-expanded', appearanceVisible ? 'true' : 'false');
         });
 
         const controlsSection = document.createElement('div');
@@ -178,6 +209,7 @@ export class GUIManager {
         `;
 
         controlStack.appendChild(controlsSection);
+        controlStack.appendChild(this.createKeyboardHint());
         controlStack.appendChild(appearanceToggleButton);
         controlStack.appendChild(opacityContainer);
         controlStack.appendChild(bgContainer);
@@ -186,6 +218,32 @@ export class GUIManager {
 
         this.gui = gui;
         return gui;
+    }
+
+    /**
+     * @returns the camera operations this panel drives, so the canvas can bind the same ones to keys.
+     */
+    getCameraActions(): CameraActions | null {
+        return this.cameraActions;
+    }
+
+    /**
+     * Says which keys work once the scene has focus. Without it the keyboard route exists but nobody
+     * finds it.
+     */
+    private createKeyboardHint(): HTMLElement {
+        const hint = document.createElement('p');
+        hint.className = 'scene-controls-hint';
+        hint.textContent = 'Klávesnice: šipky otáčejí, + a − přibližují, R vycentruje';
+        hint.style.cssText = `
+            margin: 0;
+            max-width: 150px;
+            font-size: 12px;
+            line-height: 1.35;
+            color: white;
+            text-align: center;
+        `;
+        return hint;
     }
 
     /**
@@ -198,17 +256,20 @@ export class GUIManager {
      */
     private createToggleButton(onToggle: () => void): HTMLButtonElement {
         const button = document.createElement('button');
+        button.type = 'button';
         button.textContent = '►';
         button.className = 'scene-controls-toggle';
+        button.setAttribute('aria-label', 'Skrýt ovládání modelu');
+        button.setAttribute('aria-expanded', 'true');
         button.style.cssText = `
             background: transparent;
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: bold;
-            width: 20px;
-            height: 20px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -234,104 +295,38 @@ export class GUIManager {
     /**
      * Create direction controls container
      *
-     * Creates a 3x3 grid with rotation controls (up/down/left/right) and reset button.
+     * Creates a 3x3 grid with rotation controls (up/down/left/right), zoom and the centring button.
+     * Every button drives the shared camera operations, the same ones the keyboard uses.
      *
-     * @param controls - OrbitControls for camera manipulation
-     * @param camera - PerspectiveCamera to control
-     * @param renderFn - Function to call after camera updates
-     * @param centerCameraFn - Function to center camera on current model
      * @returns HTML element containing direction control buttons
      */
-    private createControlsContainer(
-        controls: OrbitControls,
-        camera: THREE.PerspectiveCamera,
-        renderFn: () => void,
-        centerCameraFn: () => void
-    ): HTMLElement {
+    private createControlsContainer(): HTMLElement {
+        const actions = this.cameraActions!;
+        const size = GUIManager.BUTTON_SIZE;
+        const gap = GUIManager.GRID_GAP;
+        const total = size * 3 + gap * 2;
+
         const container = document.createElement('div');
         container.style.cssText = `
             display: grid;
-            grid-template-columns: repeat(3, 33%);
-            grid-template-rows: repeat(3, 33%);
-            gap: 3px;
-            width: 122px;
-            height: 122px;
+            grid-template-columns: repeat(3, ${size}px);
+            grid-template-rows: repeat(3, ${size}px);
+            gap: ${gap}px;
+            width: ${total}px;
+            height: ${total}px;
         `;
 
-        const rotateSpeed = 0.1;
+        const buttons = [
+            this.createControlButton('▲', '1 / 2 / 2 / 3', 'Otočit nahoru', actions.rotateUp),
+            this.createControlButton('▼', '3 / 2 / 4 / 3', 'Otočit dolů', actions.rotateDown),
+            this.createControlButton('◄', '2 / 1 / 3 / 2', 'Otočit vlevo', actions.rotateLeft),
+            this.createControlButton('►', '2 / 3 / 3 / 4', 'Otočit vpravo', actions.rotateRight),
+            this.createControlButton('⟲', '2 / 2 / 3 / 3', 'Vycentrovat kameru na model', actions.reset, true),
+            this.createControlButton('+', '3 / 3 / 4 / 4', 'Přiblížit', actions.zoomIn),
+            this.createControlButton('−', '3 / 1 / 4 / 2', 'Oddálit', actions.zoomOut)
+        ];
 
-        const upButton = this.createControlButton('▲', '1 / 2 / 2 / 3', () => {
-            const spherical = new THREE.Spherical();
-            const offset = new THREE.Vector3();
-            offset.copy(camera.position).sub(controls.target);
-            spherical.setFromVector3(offset);
-            spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi - rotateSpeed));
-            offset.setFromSpherical(spherical);
-            camera.position.copy(controls.target).add(offset);
-            controls.update();
-        }, renderFn);
-
-        const downButton = this.createControlButton('▼', '3 / 2 / 4 / 3', () => {
-            const spherical = new THREE.Spherical();
-            const offset = new THREE.Vector3();
-            offset.copy(camera.position).sub(controls.target);
-            spherical.setFromVector3(offset);
-            spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + rotateSpeed));
-            offset.setFromSpherical(spherical);
-            camera.position.copy(controls.target).add(offset);
-            controls.update();
-        }, renderFn);
-
-        const leftButton = this.createControlButton('◄', '2 / 1 / 3 / 2', () => {
-            const spherical = new THREE.Spherical();
-            const offset = new THREE.Vector3();
-            offset.copy(camera.position).sub(controls.target);
-            spherical.setFromVector3(offset);
-            spherical.theta -= rotateSpeed;
-            offset.setFromSpherical(spherical);
-            camera.position.copy(controls.target).add(offset);
-            controls.update();
-        }, renderFn);
-
-        const rightButton = this.createControlButton('►', '2 / 3 / 3 / 4', () => {
-            const spherical = new THREE.Spherical();
-            const offset = new THREE.Vector3();
-            offset.copy(camera.position).sub(controls.target);
-            spherical.setFromVector3(offset);
-            spherical.theta += rotateSpeed;
-            offset.setFromSpherical(spherical);
-            camera.position.copy(controls.target).add(offset);
-            controls.update();
-        }, renderFn);
-
-        const resetButton = this.createControlButton('⟲', '2 / 2 / 3 / 3', () => {
-            centerCameraFn();
-        }, renderFn, true);
-        resetButton.title = 'Vycentrovat kameru na model';
-
-        const moveSpeed = 0.5;
-
-        const zoomInButton = this.createControlButton('+', '3 / 3 / 4 / 4', () => {
-            const direction = new THREE.Vector3();
-            direction.subVectors(controls.target, camera.position).normalize();
-            camera.position.add(direction.multiplyScalar(moveSpeed));
-            controls.update();
-        }, renderFn);
-
-        const zoomOutButton = this.createControlButton('−', '3 / 1 / 4 / 2', () => {
-            const direction = new THREE.Vector3();
-            direction.subVectors(controls.target, camera.position).normalize();
-            camera.position.sub(direction.multiplyScalar(moveSpeed));
-            controls.update();
-        }, renderFn);
-
-        container.appendChild(upButton);
-        container.appendChild(downButton);
-        container.appendChild(leftButton);
-        container.appendChild(rightButton);
-        container.appendChild(resetButton);
-        container.appendChild(zoomInButton);
-        container.appendChild(zoomOutButton);
+        buttons.forEach((button) => container.appendChild(button));
 
         return container;
     }
@@ -356,9 +351,10 @@ export class GUIManager {
             width: 100%;
         `;
 
-        // Label for the background controls
+        // Label for the background controls, now actually attached to the select it names.
         const title = document.createElement('label');
         title.textContent = 'Pozadí';
+        title.htmlFor = 'threejs-bg-select';
         title.style.cssText = `
             font-size: 12px;
             color: white;
@@ -382,10 +378,23 @@ export class GUIManager {
         });
         bgSelect.style.fontSize = '16px';
 
+        // Neither of the two inputs below had an id or a label of its own: a colour picker and a file
+        // chooser announced as nothing but their type.
+        const colorLabel = document.createElement('label');
+        colorLabel.textContent = 'Barva pozadí';
+        colorLabel.htmlFor = 'threejs-bg-color';
+        colorLabel.style.cssText = 'font-size: 12px; color: white; font-weight: 600; display: block;';
+
         const colorInput = document.createElement('input');
         colorInput.type = 'color';
+        colorInput.id = 'threejs-bg-color';
         colorInput.value = '#000000';
-        colorInput.style.width = '100%';
+        colorInput.style.cssText = 'width: 100%; min-height: 44px;';
+
+        const fileLabel = document.createElement('label');
+        fileLabel.textContent = 'Obrázek pozadí';
+        fileLabel.htmlFor = 'threejs-bg-image';
+        fileLabel.style.cssText = 'font-size: 12px; color: white; font-weight: 600; display: block;';
 
         const toHexColor = (value: unknown): string | null => {
             if (typeof value === 'string') {
@@ -419,6 +428,7 @@ export class GUIManager {
 
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
+        fileInput.id = 'threejs-bg-image';
         fileInput.accept = 'image/*';
         fileInput.addEventListener('change', async (ev) => {
             const f = (ev.target as HTMLInputElement).files?.[0];
@@ -434,11 +444,21 @@ export class GUIManager {
 
         container.appendChild(title);
         container.appendChild(bgSelect);
+        container.appendChild(colorLabel);
         container.appendChild(colorInput);
+        container.appendChild(fileLabel);
         container.appendChild(fileInput);
 
-        colorInput.style.display = bgSelect.value === 'color' ? 'block' : 'none';
-        fileInput.style.display = bgSelect.value === 'image' ? 'block' : 'none';
+        // A label has to be hidden together with its field, or it names something that is not there.
+        const syncInputVisibility = () => {
+            const showColor = bgSelect.value === 'color';
+            const showImage = bgSelect.value === 'image';
+            colorInput.style.display = showColor ? 'block' : 'none';
+            colorLabel.style.display = showColor ? 'block' : 'none';
+            fileInput.style.display = showImage ? 'block' : 'none';
+            fileLabel.style.display = showImage ? 'block' : 'none';
+        };
+        syncInputVisibility();
 
          if (this.backgroundSyncHandler) {
              window.removeEventListener('threejs-background-updated', this.backgroundSyncHandler);
@@ -460,16 +480,13 @@ export class GUIManager {
                  }
               }
 
-             const v = bgSelect.value;
-             colorInput.style.display = v === 'color' ? 'block' : 'none';
-             fileInput.style.display = v === 'image' ? 'block' : 'none';
+             syncInputVisibility();
          };
          window.addEventListener('threejs-background-updated', this.backgroundSyncHandler);
 
          bgSelect.addEventListener('change', () => {
               const v = bgSelect.value;
-              colorInput.style.display = v === 'color' ? 'block' : 'none';
-              fileInput.style.display = v === 'image' ? 'block' : 'none';
+              syncInputVisibility();
               if (v === 'cube') {
                   const event = new CustomEvent('threejs-set-background', { detail: { type: 'cube', value: { files: ['px.bmp','nx.bmp','py.bmp','ny.bmp','pz.bmp','nz.bmp'], path: 'skybox/' } } });
                   window.dispatchEvent(event);
@@ -488,40 +505,46 @@ export class GUIManager {
     /**
      * Create control button
      *
-     * Creates a styled button with continuous action on mouse hold (except reset button).
-     * Supports both single-click and hold-to-repeat functionality.
+     * One step per click, whether the click came from a mouse or from Enter or the space bar, and a run
+     * of steps while the button is held down — with a pointer or with a key.
      *
-     * @param text - Button label text
+     * The arrows and magnifiers previously listened only for mousedown, mouseup and mouseleave, so
+     * Enter and the space bar did nothing on them and the scene could not be turned from a keyboard.
+     *
+     * @param text - Button glyph
      * @param gridArea - CSS grid-area value for positioning in grid layout
-     * @param action - Function to execute on button activation
-     * @param renderFn - Function to call after action to re-render scene
-     * @param isResetButton - If true, button only fires once per click; if false, repeats while held (default: false)
+     * @param label - Accessible name; a glyph in textContent is not one
+     * @param action - Camera operation to run
+     * @param singleStepOnly - true for the centring button, which has nothing to repeat
      * @returns HTMLButtonElement configured with specified behavior
      */
     private createControlButton(
         text: string,
         gridArea: string,
+        label: string,
         action: () => void,
-        renderFn: () => void,
-        isResetButton: boolean = false
+        singleStepOnly: boolean = false
     ): HTMLButtonElement {
         const button = document.createElement('button');
+        button.type = 'button';
         button.textContent = text;
+        button.title = label;
+        button.setAttribute('aria-label', label);
         button.style.cssText = `
             grid-area: ${gridArea};
             background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.85);
             color: white;
-            border-radius: 3px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: ${isResetButton ? '13px' : '11px'};
+            font-size: 16px;
             font-weight: bold;
             transition: background 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: calc(100% - 2px);
-            width: calc(100% - 2px);
+            height: 100%;
+            width: 100%;
         `;
 
         button.addEventListener('mouseenter', () => {
@@ -532,35 +555,45 @@ export class GUIManager {
             button.style.background = 'rgba(255, 255, 255, 0.2)';
         });
 
-        if (isResetButton) {
-            button.addEventListener('click', () => {
-                action();
-                renderFn();
-            });
-        } else {
-            button.addEventListener('mousedown', () => {
-                button.style.background = 'rgba(255, 255, 255, 0.4)';
-                action();
-                renderFn();
-                this.intervalId = window.setInterval(() => {
-                    action();
-                    renderFn();
-                }, 50);
-            });
+        // Fires for a mouse click and for Enter or the space bar alike, so one code path covers both.
+        button.addEventListener('click', action);
 
-            const stopAction = () => {
-                button.style.background = 'rgba(255, 255, 255, 0.3)';
-                if (this.intervalId !== null) {
-                    clearInterval(this.intervalId);
-                    this.intervalId = null;
-                }
-            };
-
-            button.addEventListener('mouseup', stopAction);
-            button.addEventListener('mouseleave', stopAction);
+        if (singleStepOnly) {
+            return button;
         }
 
+        const startRepeat = () => {
+            this.stopRepeat();
+            this.intervalId = window.setInterval(action, 50);
+        };
+
+        button.addEventListener('pointerdown', () => {
+            button.style.background = 'rgba(255, 255, 255, 0.4)';
+            startRepeat();
+        });
+        button.addEventListener('pointerup', () => this.stopRepeat());
+        button.addEventListener('pointerleave', () => this.stopRepeat());
+        button.addEventListener('pointercancel', () => this.stopRepeat());
+
+        // Holding a key repeats it through the browser's own auto-repeat; the default action is
+        // suppressed so the synthesised click does not double every step.
+        button.addEventListener('keydown', (event: KeyboardEvent) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            action();
+        });
+        button.addEventListener('blur', () => this.stopRepeat());
+
         return button;
+    }
+
+    private stopRepeat(): void {
+        if (this.intervalId !== null) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
     }
 
     /**

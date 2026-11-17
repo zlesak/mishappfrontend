@@ -1,4 +1,9 @@
 {
+  "dialog.empty.models": "Zatím není nahraný žádný 3D model. Model se nahrává ve formuláři Vytvořit model — až potom jej lze vybrat do kapitoly nebo do otázky.",
+  "dialog.empty.models.action": "Nahrát nový model",
+  "dialog.empty.chapters": "Zatím není vytvořená žádná kapitola. Kvíz lze na kapitolu navázat teprve tehdy, když nějaká existuje.",
+  "dialog.empty.chapters.action": "Vytvořit kapitolu",
+
   "dialog.delete.quiz.title": "Smazat kvíz",
   "dialog.delete.quiz.message": "Opravdu chcete smazat kvíz \"{0}\"?",
   "dialog.delete.quiz.confirm": "Smazat kvíz",

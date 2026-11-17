@@ -2,7 +2,6 @@ header nav a:any-link {
   text-decoration: none;
   padding: 0 var(--lumo-space-s);
   border-radius: var(--lumo-border-radius-m);
-  outline: 0;
 }
 
 header nav a:hover {
@@ -13,8 +12,36 @@ header nav a:active {
   background-color: var(--lumo-contrast-5pct);
 }
 
-header nav a:focus-visible {
-  box-shadow: 0 0 0 2px var(--lumo-primary-color-50pct);
+/* A translucent red ring measured about 2.3:1 against white — below the 3:1 a focus indicator
+   needs, and invisible on the red highlight of the active item. Body text colour is opaque and
+   contrasts with the page in both colour schemes by definition. */
+header nav a:focus-visible,
+a.skip-to-content:focus-visible,
+vaadin-button:focus-visible,
+vaadin-select:focus-visible,
+vaadin-text-field:focus-visible {
+  outline: 3px solid var(--lumo-body-text-color);
+  outline-offset: 2px;
+}
+
+/* Visually hidden until focused, then pinned to the top-left corner where it is expected. */
+a.skip-to-content:focus,
+a.skip-to-content:focus-visible {
+  position: fixed;
+  inset-block-start: var(--lumo-space-s);
+  inset-inline-start: var(--lumo-space-s);
+  z-index: 1000;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
+  padding: var(--lumo-space-s) var(--lumo-space-m);
+  border-radius: var(--lumo-border-radius-m);
+  background-color: var(--lumo-base-color);
+  color: var(--lumo-body-text-color);
+  box-shadow: var(--lumo-box-shadow-m);
 }
 
 header nav a[highlight] vaadin-icon {
@@ -23,4 +50,30 @@ header nav a[highlight] vaadin-icon {
 
 header nav a[highlight] {
   background-color: var(--lumo-primary-color-10pct);
+}
+
+/* The application window never scrolls; only the elements inside it do. A page-level scrollbar in a
+   single-page application means the shell has been pushed out of view — the navigation scrolls away
+   with the content, and on a split screen one half drags the other. Horizontal scrolling is never
+   wanted at all: it hides content behind an edge nobody thinks to look past. */
+html,
+body {
+  height: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* The router content is a display: contents wrapper, so this is the outermost box that can hold a
+   scroller. Anything inside it that needs to scroll does so on its own. */
+main#obsah {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Nothing may reach past the right-hand edge. Long words, wide tables and code blocks are contained
+   here rather than being allowed to widen the page. */
+vaadin-app-layout::part(content) {
+  overflow: hidden;
+  min-width: 0;
 }

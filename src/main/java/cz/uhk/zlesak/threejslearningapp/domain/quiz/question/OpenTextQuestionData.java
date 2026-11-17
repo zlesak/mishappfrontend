@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.TypeAlias;
 
 /**
  * Open text question data class - Represents an open text question with a placeholder for user input.
@@ -16,6 +17,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
+@TypeAlias("OpenTextQuestionData")
 public class OpenTextQuestionData extends AbstractQuestionData {
     String placeholder = "";
 }

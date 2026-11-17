@@ -1,5 +1,8 @@
 {
   "administration.tab.chapters": "Kapitoly",
   "administration.tab.models": "Modely",
-  "administration.tab.quizzes": "Kvízy"
+  "administration.tab.quizzes": "Kvízy",
+  "administration.role.admin": "Role: správce",
+  "administration.role.teacher": "Role: vyučující",
+  "administration.action.changed": "Hlavní akce je nyní: {0}"
 }

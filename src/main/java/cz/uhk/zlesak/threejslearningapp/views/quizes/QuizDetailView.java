@@ -4,6 +4,7 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.router.*;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PageHeader;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizDetailContainer;
 import cz.uhk.zlesak.threejslearningapp.components.containers.QuizResultsHistoryPanel;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -77,6 +78,10 @@ public class QuizDetailView extends AbstractQuizView {
         entityContent.setJustifyContentMode(FlexComponent.JustifyContentMode.START);
         entityContent.addClassName(LumoUtility.Gap.MEDIUM);
 
+        // The route had no H1 at all, so the quiz name existed only as the H2 inside the card.
+        PageHeader header = new PageHeader(data.quiz().getName(), text("quiz.detail.title"));
+        header.getStyle().set("max-width", "600px").set("margin", "0 auto");
+
         QuizDetailContainer detailContainer = new QuizDetailContainer(data.quiz());
         detailContainer.getStyle().set("margin", "0 auto");
 
@@ -84,7 +89,7 @@ public class QuizDetailView extends AbstractQuizView {
         historyPanel.renderInitialPage(data.resultsPage());
         modelSide.removeAll();
         modelSide.add(historyPanel);
-        entityContent.add(detailContainer);
+        entityContent.add(header, detailContainer);
     }
 
     /**

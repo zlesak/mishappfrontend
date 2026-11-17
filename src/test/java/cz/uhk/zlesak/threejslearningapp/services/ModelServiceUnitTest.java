@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
-import cz.uhk.zlesak.threejslearningapp.api.clients.ModelApiClient;
+import cz.uhk.zlesak.threejslearningapp.api.contracts.IModelApiClient;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
 import cz.uhk.zlesak.threejslearningapp.domain.model.*;
 import cz.uhk.zlesak.threejslearningapp.domain.texture.QuickTextureEntity;
@@ -17,41 +17,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ModelServiceUnitTest {
-    private ModelApiClient modelApiClient;
+    private IModelApiClient modelApiClient;
     private ModelService modelService;
 
     @BeforeEach
     void setUp() {
-        modelApiClient = mock(ModelApiClient.class);
+        modelApiClient = mock(IModelApiClient.class);
         modelService = spy(new ModelService(modelApiClient));
-    }
-
-    @Test
-    void readShouldExitForLoopWhenOtherTextureHasOnlyNonCsvRelatedFiles() throws Exception {
-        
-        
-        VaadinTestSupport.setCurrentUi();
-        try {
-            FileEntityRecursive nonCsvChild = FileEntityRecursive.builder()
-                    .id("model-child").name("child.glb").senseType(FileSenseType.MODEL).relatedFiles(List.of()).build();
-            FileEntityRecursive otherTexture = FileEntityRecursive.builder()
-                    .id("tex-other").name("other.jpg").senseType(FileSenseType.OTHER_TEXTURE)
-                    .relatedFiles(List.of(nonCsvChild)).build();
-            FileEntityTree tree = FileEntityTree.builder()
-                    .id("model-file").name("Model").creatorId("u1").description("desc")
-                    .created(Instant.now()).updated(Instant.now()).isAdvanced(false)
-                    .allRelatedFiles(List.of(otherTexture)).build();
-            when(modelApiClient.readFileEntityTree("meta-noc")).thenReturn(tree);
-
-            ModelEntity loaded = modelService.read("meta-noc");
-
-            assertNotNull(loaded);
-            assertNotNull(loaded.getOtherTextures());
-            assertEquals(1, loaded.getOtherTextures().size());
-            assertNull(loaded.getOtherTextures().getFirst().getCsvContent());
-        } finally {
-            VaadinTestSupport.clearCurrentUi();
-        }
     }
 
     @Test
@@ -211,80 +183,8 @@ class ModelServiceUnitTest {
         assertTrue(data.backgroundSpecJson().contains("color"));
     }
 
-    @Test
-    void readShouldPopulateMainTextureFromAllRelatedFiles() throws Exception {
-        VaadinTestSupport.setCurrentUi();
-        try {
-            FileEntityRecursive mainTex = FileEntityRecursive.builder()
-                    .id("tex-main").name("main.png").senseType(FileSenseType.MAIN_TEXTURE)
-                    .relatedFiles(List.of()).build();
-            FileEntityTree tree = FileEntityTree.builder()
-                    .id("model-main").name("Model").creatorId("u1").description("desc")
-                    .created(Instant.now()).updated(Instant.now()).isAdvanced(true)
-                    .allRelatedFiles(List.of(mainTex)).build();
-            when(modelApiClient.readFileEntityTree("model-main")).thenReturn(tree);
 
-            ModelEntity loaded = modelService.read("model-main");
 
-            assertNotNull(loaded);
-            assertNotNull(loaded.getMainTexture());
-            assertEquals("tex-main", loaded.getMainTexture().getId());
-        } finally {
-            VaadinTestSupport.clearCurrentUi();
-        }
-    }
-
-    @Test
-    void readShouldHandleEmptyRelatedFiles() throws Exception {
-        VaadinTestSupport.setCurrentUi();
-        try {
-            FileEntityTree tree = FileEntityTree.builder()
-                    .id("model-empty").name("Empty").creatorId("u1").description("desc")
-                    .created(Instant.now()).updated(Instant.now()).isAdvanced(false)
-                    .allRelatedFiles(List.of()).build();
-            when(modelApiClient.readFileEntityTree("model-empty")).thenReturn(tree);
-
-            ModelEntity loaded = modelService.read("model-empty");
-
-            assertNotNull(loaded);
-            assertNull(loaded.getMainTexture());
-            assertNull(loaded.getOtherTextures());
-        } finally {
-            VaadinTestSupport.clearCurrentUi();
-        }
-    }
-
-    @Test
-    void readShouldReturnNullWhenApiReturnsNull() throws Exception {
-        when(modelApiClient.readFileEntityTree("no-such-id")).thenReturn(null);
-        ModelEntity loaded = modelService.read("no-such-id");
-        assertNull(loaded);
-    }
-
-    @Test
-    void readShouldPopulateOtherTexturesFromAllRelatedFiles() throws Exception {
-        VaadinTestSupport.setCurrentUi();
-        try {
-            FileEntityRecursive otherTex1 = FileEntityRecursive.builder()
-                    .id("tex-o1").name("other1.png").senseType(FileSenseType.OTHER_TEXTURE)
-                    .relatedFiles(List.of()).build();
-            FileEntityRecursive otherTex2 = FileEntityRecursive.builder()
-                    .id("tex-o2").name("other2.png").senseType(FileSenseType.OTHER_TEXTURE)
-                    .relatedFiles(List.of()).build();
-            FileEntityTree tree = FileEntityTree.builder()
-                    .id("model-others").name("Model").creatorId("u1").description("desc")
-                    .created(Instant.now()).updated(Instant.now()).isAdvanced(true)
-                    .allRelatedFiles(List.of(otherTex1, otherTex2)).build();
-            when(modelApiClient.readFileEntityTree("model-others")).thenReturn(tree);
-
-            ModelEntity loaded = modelService.read("model-others");
-
-            assertNotNull(loaded.getOtherTextures());
-            assertEquals(2, loaded.getOtherTextures().size());
-        } finally {
-            VaadinTestSupport.clearCurrentUi();
-        }
-    }
 
     @Test
     void buildPrefillDataShouldReturnModelFileOnly() throws Exception {

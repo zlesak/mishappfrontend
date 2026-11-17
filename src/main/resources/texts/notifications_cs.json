@@ -15,6 +15,8 @@
   "notification.apiError.422": "Data nelze zpracovat. Zkontrolujte prosím formát nahrávaných souborů.",
   "notification.apiError.500": "Server narazil na chybu. Zkuste to prosím později.",
   "notification.apiError.gateway": "Služba je dočasně nedostupná. Zkuste to prosím později.",
-  "notification.cookieConsent": "Tato stránka používá cookies pro uložení zvoleného režimu zobrazení.",
+  "notification.cookieConsent": "Tato stránka ukládá cookie s přihlášením a volitelně také zvolený režim zobrazení, aby si jej pamatovala do příště.",
+  "notification.cookies.accept": "Přijmout",
+  "notification.cookies.decline": "Odmítnout",
   "error.chapterSaveFailed": "Uložení kapitoly selhalo: "
 }

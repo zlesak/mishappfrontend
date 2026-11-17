@@ -26,7 +26,7 @@ public class SingleChoiceQuestionEditor extends QuestionEditorBase<QuestionOptio
         super(QuestionTypeEnum.SINGLE_CHOICE);
 
         correctAnswerGroup = new Select<>();
-        correctAnswerGroup.setHelperText(text("quiz.singleChoice.correctOption"));
+        correctAnswerGroup.setLabel(text("quiz.singleChoice.correctOption"));
         correctAnswerGroup.addThemeVariants(SelectVariant.LUMO_SMALL);
         correctAnswerGroup.setItemLabelGenerator(i -> text("quiz.option.label") + " " + i);
 

@@ -40,6 +40,14 @@ public class SubchapterSelectContainer extends HorizontalLayout {
     }
 
     /**
+     * @return whether either select has anything to offer, so the caller can leave the whole row out
+     *         rather than showing two empty boxes.
+     */
+    public boolean hasNavigableItems() {
+        return subchapterListingSelect.hasAvailableItems() || headingListingSelect.hasAvailableItems();
+    }
+
+    /**
      * Overridden onAttach function to register event listeners when the component is attached.
      * @param attachEvent the attach event
      */
@@ -53,6 +61,9 @@ public class SubchapterSelectContainer extends HorizontalLayout {
                     subchapterListingSelect.handleItemAdditionIngoingChangeEventAction(e);
                     headingListingSelect.handleItemAdditionIngoingChangeEventAction(e);
                     subchapterListingSelect.showRelevantItemsBasedOnContext("","");
+                    // The chapter's structure has just arrived, so this is the moment the row either
+                    // has something to show or has nothing and should stay out of the way.
+                    setVisible(hasNavigableItems());
                 }
         ));
         registrations.add(ComponentUtil.addListener(

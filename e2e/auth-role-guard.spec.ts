@@ -12,7 +12,9 @@ test('login, route guards, cookies and theme toggle work by role', async ({page}
   await expectBlockedTeacherRoute(page);
 
   await page.goto('/');
-  const cookieConsentButton = page.getByRole('button', {name: 'Rozumím'});
+  // Accepting is what lets the theme choice be remembered; the decline path is covered in
+  // accessibility.spec.ts.
+  const cookieConsentButton = page.getByRole('button', {name: 'Přijmout'});
   await expect(cookieConsentButton).toBeVisible();
   await cookieConsentButton.click();
   await expect(cookieConsentButton).toHaveCount(0);

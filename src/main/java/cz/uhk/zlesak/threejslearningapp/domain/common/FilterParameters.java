@@ -28,13 +28,25 @@ public class FilterParameters<F> {
      * @param filter The filter object of type F.
      */
     public void setFilteredParameters(SearchEvent searchEvent, F filter) {
+        // Back to the first page — the result set has changed and page seven of the old one means
+        // nothing — but at the size the user chose, which is theirs to keep.
         this.pageRequest = PageRequest.of(
                 0,
-                10,
+                this.pageRequest == null ? 10 : this.pageRequest.getPageSize(),
                 searchEvent.getSortDirection(),
                 searchEvent.getOrderBy()
         );
         this.filter = filter;
+    }
+
+    /**
+     * Changes how many items a page holds, returning to the first page.
+     *
+     * @param pageSize number of items per page
+     */
+    public void setPageSize(int pageSize) {
+        Sort sort = this.pageRequest == null ? Sort.by(Sort.Direction.ASC, "Name") : this.pageRequest.getSort();
+        this.pageRequest = PageRequest.of(0, pageSize, sort);
     }
 
     /**

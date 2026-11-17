@@ -1,8 +1,13 @@
 package cz.uhk.zlesak.threejslearningapp.views.administration;
 
+import com.github.mvysny.kaributesting.v10.MockVaadin;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.tabs.TabSheet;
+import cz.uhk.zlesak.threejslearningapp.backend.service.CurrentUserProvider;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFileEntity;
@@ -25,6 +30,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
+import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findAll;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findButtonByText;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findFirst;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,7 +69,7 @@ class AdministrationViewKaribuTest {
 
     @Test
     void selectedTabShouldDriveCreateButtonTextAndListingRefresh() {
-        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
         UI.getCurrent().add(view);
 
         TabSheet tabSheet = findFirst(view, TabSheet.class);
@@ -90,7 +96,7 @@ class AdministrationViewKaribuTest {
 
     @Test
     void view_shouldCallChapterServiceOnInitialLoad() {
-        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
         UI.getCurrent().add(view);
 
         TabSheet tabSheet = findFirst(view, TabSheet.class);
@@ -102,7 +108,7 @@ class AdministrationViewKaribuTest {
 
     @Test
     void view_createButtonShouldBeEnabledInitially() {
-        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
         UI.getCurrent().add(view);
 
         Button createButton = findButtonByText(view, "Vytvořit kapitolu");
@@ -112,12 +118,56 @@ class AdministrationViewKaribuTest {
 
     @Test
     void view_tabSheetShouldHaveThreeTabs() {
-        AdministrationView view = new AdministrationView(chapterService, modelService, quizService);
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
         UI.getCurrent().add(view);
 
         TabSheet tabSheet = findFirst(view, TabSheet.class);
 
         assertEquals(3, tabSheet.getTabCount());
+    }
+
+    @Test
+    void theScreenHasOneHeadingAndTheListingsInsideItHaveNone() {
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
+        UI.getCurrent().add(view);
+
+        List<H1> headings = findAll(view, H1.class).stream().filter(Component::isVisible).toList();
+
+        assertEquals(1, headings.size());
+        assertEquals("Administrační centrum", headings.getFirst().getText());
+    }
+
+    @Test
+    void tabLabelsCarryTheNumberOfItems() {
+        // A count in the label, not a badge: a number of chapters is a quantity, not a state.
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
+        UI.getCurrent().add(view);
+
+        TabSheet tabSheet = findFirst(view, TabSheet.class);
+        tabSheet.setSelectedIndex(1);
+        MockVaadin.clientRoundtrip(false);
+        tabSheet.setSelectedIndex(0);
+        MockVaadin.clientRoundtrip(false);
+
+        assertEquals("Kapitoly (1)", tabSheet.getTabAt(0).getLabel());
+        assertEquals("Modely (1)", tabSheet.getTabAt(1).getLabel());
+    }
+
+    @Test
+    void relabellingTheSuffixButtonIsAlsoAnnounced() {
+        AdministrationView view = new AdministrationView(chapterService, modelService, quizService, new CurrentUserProvider());
+        UI.getCurrent().add(view);
+
+        TabSheet tabSheet = findFirst(view, TabSheet.class);
+        tabSheet.setSelectedIndex(2);
+
+        Span announcement = findAll(view, Span.class).stream()
+                .filter(span -> "status".equals(span.getElement().getAttribute("role")))
+                .filter(span -> span.getText() != null && span.getText().startsWith("Hlavní akce"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("The change of the primary action is not announced"));
+
+        assertTrue(announcement.getText().contains("Vytvořit kvíz"));
     }
 
     private ChapterEntity chapter() {
@@ -130,7 +180,6 @@ class AdministrationViewKaribuTest {
 
     private QuickModelEntity model() {
         return QuickModelEntity.builder()
-                .metadataId("model-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Lebka").build())
                 .build();
     }

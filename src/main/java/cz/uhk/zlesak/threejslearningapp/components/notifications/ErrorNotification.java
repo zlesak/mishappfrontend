@@ -9,11 +9,14 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 public class ErrorNotification extends Notification {
 
     /**
-     * Constructor - Initializes the ErrorNotification with a message and default duration
+     * Constructor - Initializes the ErrorNotification with a message and default duration.
+     * Delegates rather than constructing a second instance: the previous {@code new} created a
+     * throwaway notification and left this one empty and unopened.
+     *
      * @param message The error message to be displayed
      */
     public ErrorNotification(String message) {
-        new ErrorNotification(message, 5000);
+        this(message, 5000);
     }
 
     /**
@@ -24,6 +27,9 @@ public class ErrorNotification extends Notification {
     public ErrorNotification(String message, int duration) {
         super(message, duration, Position.BOTTOM_END);
         this.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        // Interrupts whatever a screen reader is saying. A failure the user is not told about
+        // leaves them repeating an action that cannot succeed.
+        setAssertive(true);
         open();
     }
 }

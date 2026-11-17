@@ -59,8 +59,7 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
         questionTextField.setWidthFull();
         questionTextField.setRequired(true);
 
-        pointsField = new IntegerField();
-        pointsField.setHelperText(text("quiz.question.points"));
+        pointsField = new IntegerField(text("quiz.question.points"));
         pointsField.setValue(1);
         pointsField.setMin(1);
         pointsField.setStepButtonsVisible(true);
@@ -181,6 +180,20 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
      * @return true if valid, false otherwise
      */
     public abstract boolean validate();
+
+    /**
+     * Says why {@link #validate()} refused, when the editor can be specific about it.
+     *
+     * <p>The editor checks a question before the backend ever sees it, which is what makes the
+     * feedback immediate — but it also means the backend's own wording never reaches the author.
+     * Whatever an editor can explain here is shown to them instead of the generic refusal.
+     *
+     * @return the reason in the user's language, or {@code null} when there is nothing to add
+     * beyond "this question is not filled in correctly".
+     */
+    public String validationMessage() {
+        return null;
+    }
 
     /**
      * Gets the question text.

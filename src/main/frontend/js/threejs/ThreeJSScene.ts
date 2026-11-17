@@ -5,6 +5,7 @@ import {TextureManager} from './core/TextureManager';
 import {EventManager} from './core/EventManager';
 import {DisposalManager} from './core/DisposalManager';
 import {GUIManager} from './core/GUIManager';
+import {bindKeyboardControls} from './core/CameraActions';
 import {SceneSetup} from './utils/SceneSetup';
 import {Model} from './models/Model';
 import type {
@@ -47,6 +48,7 @@ export class ThreeJSScene {
     private _resizeObserver: ResizeObserver | null = null;
     private _windowResizeHandler: (() => void) | null = null;
     private _backgroundHandler: ((ev: Event) => void) | null = null;
+    private _keyboardUnbind: (() => void) | null = null;
     private modelLoadViewById: Map<string, { cameraPosition: THREE.Vector3; controlsTarget: THREE.Vector3 }> = new Map();
 
     // Camera animation
@@ -147,6 +149,11 @@ export class ThreeJSScene {
             );
             this.guiManager.attachToCanvas(this.element);
 
+            // The canvas was a bare drawing surface: no role, no tabindex and no key handling anywhere
+            // in this layer, so the model — the point of the whole application — could only be moved
+            // with a mouse. The keys drive the same operations as the panel's buttons.
+            this.bindCanvasKeyboard();
+
             if (this._backgroundHandler) {
                 window.removeEventListener('threejs-set-background', this._backgroundHandler);
             }
@@ -171,6 +178,33 @@ export class ThreeJSScene {
                 () => this.lastSelectedTextureId
             );
         });
+    }
+
+    /**
+     * Makes the canvas reachable and operable from a keyboard.
+     *
+     * role="application" tells a screen reader to hand the arrow keys through to the page instead of
+     * using them for its own reading cursor — which is what a 3D viewer needs, and what makes the key
+     * bindings below actually arrive.
+     */
+    private bindCanvasKeyboard(): void {
+        const canvas = this.element as unknown as HTMLElement | null;
+        const actions = this.guiManager.getCameraActions();
+        if (!canvas || !actions) {
+            return;
+        }
+
+        canvas.setAttribute('role', 'application');
+        canvas.setAttribute('tabindex', '0');
+        if (!canvas.getAttribute('aria-label')) {
+            canvas.setAttribute('aria-label', 'Interaktivní 3D scéna');
+        }
+        canvas.setAttribute('aria-keyshortcuts', 'ArrowUp ArrowDown ArrowLeft ArrowRight Plus Minus R');
+
+        if (this._keyboardUnbind) {
+            this._keyboardUnbind();
+        }
+        this._keyboardUnbind = bindKeyboardControls(canvas, actions);
     }
 
     /**
@@ -405,6 +439,10 @@ export class ThreeJSScene {
                 modelId,
                 (obj) => this.disposalManager.disposeObject(obj)
             );
+            // This path is the user deleting the model's file, so the model must also stop being
+            // showable. Left registered with its source cached, any later display request reloaded
+            // it and the deleted model reappeared in the scene.
+            this.modelManager.forgetModel(modelId);
             this.modelLoadViewById.delete(modelId);
             this.render();
         });
@@ -774,6 +812,10 @@ export class ThreeJSScene {
         if (this._backgroundHandler) {
             window.removeEventListener('threejs-set-background', this._backgroundHandler);
             this._backgroundHandler = null;
+        }
+        if (this._keyboardUnbind) {
+            this._keyboardUnbind();
+            this._keyboardUnbind = null;
         }
 
         if (this._resizeObserver) {

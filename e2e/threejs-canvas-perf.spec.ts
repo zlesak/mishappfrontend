@@ -123,32 +123,22 @@ async function selectModelInDialog(page: Page, modelNameSubstring: string): Prom
   await page.waitForFunction(() => !!document.querySelector('vaadin-dialog[opened]'), {timeout: 15000});
   await page.waitForTimeout(500);
 
+  // Scoped to one listing row on purpose. The selector used to include a bare `div`, which matches the
+  // container holding every row as well — in document order that container comes first, so the search
+  // clicked whichever model happened to be at the top of the list rather than the one asked for. Both
+  // headings then got the same model and the switching this test measures had nothing to switch to.
   const clicked = await page.evaluate((namePart: string) => {
     const dialog = document.querySelector('vaadin-dialog');
     if (!dialog) return false;
 
-
-    const allCards = Array.from(dialog.querySelectorAll('[class*="card"], vaadin-card, li, div'))
+    const rows = Array.from(dialog.querySelectorAll('.entity-row, li'))
       .filter((el) => el.textContent?.includes(namePart));
 
-
-    for (const card of allCards) {
-      const btn = Array.from(card.querySelectorAll('vaadin-button, button')).find(
+    for (const row of rows) {
+      const btn = Array.from(row.querySelectorAll('vaadin-button, button')).find(
         (b) => b.textContent?.trim() === 'Vybrat',
       );
       if (btn) {
-        (btn as HTMLElement).click();
-        return true;
-      }
-    }
-
-
-    const allBtns = Array.from(dialog.querySelectorAll('vaadin-button, button')).filter(
-      (b) => b.textContent?.trim() === 'Vybrat',
-    );
-    for (const btn of allBtns) {
-      const container = btn.closest('li, [class*="card"], vaadin-card, div[class]');
-      if (container?.textContent?.includes(namePart)) {
         (btn as HTMLElement).click();
         return true;
       }
@@ -163,10 +153,23 @@ async function selectModelInDialog(page: Page, modelNameSubstring: string): Prom
 }
 
 async function addEditorJsHeading(page: Page, text: string): Promise<void> {
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(400);
-
   const plusBtn = page.locator('.ce-toolbar__plus').first();
+
+  // Editor.js only reveals the plus control while the caret sits in an empty block, and only once a
+  // caret move has opened the toolbar. One Enter is not reliably enough: if focus has slipped out of
+  // the editor the press goes nowhere and the control stays hidden. Put the caret back at the end of
+  // the last block and try again. The spare empty blocks this may leave behind do not matter — the
+  // test only needs the headings to exist.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await page.locator('.ce-block').last().click();
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(400);
+    if (await plusBtn.isVisible().catch(() => false)) {
+      break;
+    }
+  }
+
   await expect(plusBtn).toBeVisible({timeout: 5000});
   await plusBtn.click();
   await page.waitForTimeout(300);
@@ -206,7 +209,7 @@ async function findModelByPrefix(page: Page, prefix: string): Promise<string | n
 
 
   try {
-    const searchField = page.locator('input[placeholder="Hledat..."]').first();
+    const searchField = page.locator('input[placeholder="např. mozek"]').first();
     if (await searchField.isVisible({timeout: 3000}) && await searchField.isEnabled({timeout: 3000})) {
       await searchField.fill(prefix);
       await page.getByRole('button', {name: 'Hledat'}).click();
@@ -218,8 +221,7 @@ async function findModelByPrefix(page: Page, prefix: string): Promise<string | n
 
 
   const card = page
-    .locator('vaadin-vertical-layout, div')
-    .filter({has: page.getByRole('button', {name: 'Otevřít'})})
+    .locator('.entity-row')
     .filter({hasText: prefix})
     .first();
 

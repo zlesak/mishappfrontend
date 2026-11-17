@@ -27,6 +27,16 @@ export class ModelManager {
     private currentModel: Model | null = null;
     private readonly modelSourceCache = new Map<string, { src: string; objectUrl: string; isGltf: boolean }>();
 
+    /**
+     * Bumped whatever changes what should be on screen: a new display request, or a removal.
+     *
+     * Displaying a model removes the previous one, then awaits the network and the parser, and only
+     * then adds the result to the scene. Without this counter a load that started before the user
+     * removed the file would still add its result afterwards, putting a deleted model back on
+     * screen — the cause of the intermittent failure in model-assets-visibility.
+     */
+    private displayGeneration = 0;
+
     constructor(scene: THREE.Scene | null) {
         this.scene = scene;
     }
@@ -100,6 +110,8 @@ export class ModelManager {
      * @param disposeObjectFn - Disposal function from DisposalManager
      */
     async removeModel(modelId: string, disposeObjectFn: (obj: any) => void): Promise<void> {
+        // Invalidates any display still in flight, so it cannot add its result after this removal.
+        this.displayGeneration++;
         const model = this.findModel(modelId);
         if (model && model.modelLoader) {
             disposeObjectFn(model.modelLoader);
@@ -117,6 +129,28 @@ export class ModelManager {
         if (this.currentModel && this.currentModel.id === modelId) {
             this.currentModel = null;
         }
+    }
+
+    /**
+     * Forget everything that would let a model be shown again.
+     *
+     * Removing a model from the scene leaves it registered, which is what quiz questions rely on —
+     * they take a model off screen and put it back. When the user deletes the *file*, that is no
+     * longer true: the model stayed in the registry with its source still cached as a blob, so the
+     * next display request reloaded it and put the deleted model back on screen.
+     *
+     * @param modelId - Model whose registration and cached source should be dropped
+     */
+    forgetModel(modelId: string): void {
+        const model = this.findModel(modelId);
+        if (model) {
+            const cached = this.modelSourceCache.get(modelId);
+            if (cached) {
+                URL.revokeObjectURL(cached.objectUrl);
+                this.modelSourceCache.delete(modelId);
+            }
+        }
+        this.removeFromList(modelId);
     }
 
     /**
@@ -138,6 +172,7 @@ export class ModelManager {
         auth: IAuthHeaders,
         onProgress?: (percent: number, description?: string) => void
     ): Promise<IModelSwitchResult> {
+        const generation = ++this.displayGeneration;
         let targetModel = this.findModel(modelId);
 
         if (!targetModel) {
@@ -160,6 +195,12 @@ export class ModelManager {
             await this.loadGltfModel(targetModel, auth, modelSource.objectUrl, onProgress);
         } else {
             await this.loadObjModel(targetModel, auth, modelSource.objectUrl, onProgress);
+        }
+
+        // Between the removal above and here the file may have been removed, or another model asked
+        // for. Adding now would put back something the user has already taken away.
+        if (generation !== this.displayGeneration) {
+            return {model: targetModel, lastSelectedTextureId: null};
         }
 
         if (targetModel.modelLoader && this.scene) {

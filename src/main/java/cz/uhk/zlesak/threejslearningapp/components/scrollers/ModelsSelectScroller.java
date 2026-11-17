@@ -99,7 +99,7 @@ public class ModelsSelectScroller extends Scroller implements I18nAware {
         removeButton.addClickListener(e -> {
             AtomicInteger modelInstances = new AtomicInteger();
             getAllModelsMappedToChapterHeaderBlockId(false).values().forEach(model -> {
-                if (container.getSelect().getValue() != null && model.getMetadataId().equals(container.getSelect().getValue().getMetadataId())) {
+                if (container.getSelect().getValue() != null && model.getId().equals(container.getSelect().getValue().getId())) {
                     modelInstances.getAndIncrement();
                 }
             });

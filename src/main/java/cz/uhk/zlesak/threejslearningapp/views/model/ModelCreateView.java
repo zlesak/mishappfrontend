@@ -170,7 +170,7 @@ public class ModelCreateView extends AbstractModelView {
                                 String backgroundSpecJson,
                                 String dataUrl) {
         runAsync(() -> service.saveFromUpload(
-                        modelEntity != null ? modelEntity.getMetadataId() : null,
+                        modelEntity != null ? modelEntity.getId() : null,
                         modelName,
                         modelFile,
                         mainTexture,

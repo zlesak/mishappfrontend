@@ -1,6 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.domain.common;
 
-import cz.uhk.zlesak.threejslearningapp.components.inputs.FilterComponent;
+import cz.uhk.zlesak.threejslearningapp.components.inputs.ListingToolbar;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ class FilterParametersTest {
     void setFilteredParameters_shouldResetPaginationAndApplyFilter() {
         FilterParameters<ModelFilter> parameters = new FilterParameters<>();
         ModelFilter filter = ModelFilter.builder().SearchText("atlas").build();
-        SearchEvent event = new SearchEvent("atlas", Sort.Direction.DESC, "created", mock(FilterComponent.class));
+        SearchEvent event = new SearchEvent("atlas", Sort.Direction.DESC, "created", mock(ListingToolbar.class));
 
         parameters.setFilteredParameters(event, filter);
 

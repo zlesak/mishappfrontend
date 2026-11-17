@@ -16,7 +16,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import cz.uhk.zlesak.threejslearningapp.components.buttons.CreateQuizButton;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.listDialogs.ChapterListDialog;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.QuestionEditorBase;
-import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.i18n.I18nAware;
 import cz.uhk.zlesak.threejslearningapp.views.chapter.ChapterListingView;
@@ -34,7 +34,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
     private final TextField nameField;
     private final TextArea descriptionField;
     private final IntegerField timeLimitField;
-    private final Select<ChapterEntity> chapterSelect;
+    private final Select<QuickChapterEntity> chapterSelect;
     private final Button chooseChapterButton;
     private final Button addQuestionButton;
     private final Select<QuestionTypeEnum> questionTypeSelect;
@@ -62,7 +62,9 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
         descriptionField.setWidthFull();
         descriptionField.setMaxLength(500);
 
-        timeLimitField = new IntegerField();
+        // Labels, not only helper texts. A helper renders under the field and is not its accessible
+        // name, so axe reported the time limit as a form element with no label at all.
+        timeLimitField = new IntegerField(text("quiz.timeLimit.label"));
         timeLimitField.setHelperText(text("quiz.timeLimit.helper"));
         timeLimitField.setStepButtonsVisible(true);
         timeLimitField.setValue(0);
@@ -71,7 +73,8 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
 
         chapterSelect = new Select<>();
         chapterSelect.addClassName("create-quiz-chapter-select");
-        chapterSelect.setHelperText(text("quiz.chapterId.label"));
+        chapterSelect.setLabel(text("quiz.chapterId.label"));
+        chapterSelect.setHelperText(text("quiz.chapterId.helper"));
         chapterSelect.setItemLabelGenerator(ch -> ch == null ? "" : ch.getName());
         chapterSelect.setReadOnly(true);
         chapterSelect.setWidthFull();
@@ -82,7 +85,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
 
         questionTypeSelect = new Select<>();
         questionTypeSelect.addClassName("create-quiz-question-type-select");
-        questionTypeSelect.setHelperText(text("quiz.questionType.label"));
+        questionTypeSelect.setLabel(text("quiz.questionType.label"));
         questionTypeSelect.setItems(QuestionTypeEnum.values());
         questionTypeSelect.setItemLabelGenerator(this::getQuestionTypeLabel);
         questionTypeSelect.setValue(QuestionTypeEnum.SINGLE_CHOICE);
@@ -217,7 +220,7 @@ public class CreateQuizForm extends VerticalLayout implements I18nAware {
      * @param timeLimit   existing time limit in minutes
      * @param chapter     the chapter currently linked to the quiz
      */
-    public void setQuizData(String name, String description, Integer timeLimit, ChapterEntity chapter) {
+    public void setQuizData(String name, String description, Integer timeLimit, QuickChapterEntity chapter) {
         nameField.setValue(name != null ? name : "");
         descriptionField.setValue(description != null ? description : "");
         timeLimitField.setValue(timeLimit != null ? timeLimit : 0);

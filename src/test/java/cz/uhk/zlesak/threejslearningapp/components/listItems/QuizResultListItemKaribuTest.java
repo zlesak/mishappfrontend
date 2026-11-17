@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizResult;
 import cz.uhk.zlesak.threejslearningapp.testsupport.KaribuSpringTestSupport;
@@ -15,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Instant;
 import java.util.List;
 
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findAll;
@@ -46,16 +48,41 @@ class QuizResultListItemKaribuTest {
                 .map(Span::getText)
                 .toList();
 
-        assertTrue(texts.contains("10"));
-        assertTrue(texts.contains("7"));
-        assertTrue(texts.stream().anyMatch(text -> text.contains("70") && text.contains("%")));
+        assertTrue(texts.contains("7 / 10"), texts.toString());
+        assertTrue(texts.stream().anyMatch(text -> text.contains("70") && text.contains("%")), texts.toString());
         assertTrue(findAll(item, Button.class).stream().anyMatch(button -> "Otevřít".equals(button.getText())));
+    }
+
+    @Test
+    void eachAttemptIsNamedByWhenItWasTaken() {
+        // Every attempt used to be headed by the same tick glyph with no text at all, so a history of
+        // five attempts read as five identical entries.
+        QuizResultListItem item = new QuizResultListItem(result(), false, "quiz-results");
+        UI.getCurrent().add(item);
+
+        H2 heading = findAll(item, H2.class).getFirst();
+
+        assertTrue(heading.getText().startsWith("Pokus z "), heading.getText());
+        assertTrue(heading.getText().contains("2026"), heading.getText());
+    }
+
+    @Test
+    void noVerdictIsInventedForAnAttempt() {
+        // The result knows the score and the maximum, never a pass mark, so "passed" or "failed" here
+        // would be a state the domain does not have.
+        QuizResultListItem item = new QuizResultListItem(result(), false, "quiz-results");
+        UI.getCurrent().add(item);
+
+        List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
+
+        assertTrue(texts.stream().noneMatch(text -> text.contains("Splněno") || text.contains("Nesplněno")));
     }
 
     private QuickQuizResult result() {
         return QuickQuizResult.builder()
                 .id("result-1")
                 .name("Výsledky kostry")
+                .created(Instant.parse("2026-03-04T09:20:00Z"))
                 .maxScore(10)
                 .totalScore(7)
                 .percentage(70.0)

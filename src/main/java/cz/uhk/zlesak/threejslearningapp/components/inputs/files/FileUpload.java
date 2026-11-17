@@ -147,6 +147,16 @@ public class FileUpload extends Upload implements I18nAware {
      * @param file the pre-downloaded file to inject
      */
     public void addPrefilledFile(InputStreamMultipartFile file) {
+        acceptFile(file);
+    }
+
+    /**
+     * Takes in a file this component did not receive itself — one already stored in the backend, or one
+     * the combined drop zone sorted into this section — and treats it exactly as an upload.
+     *
+     * @param file the file to take over
+     */
+    public void acceptFile(InputStreamMultipartFile file) {
         uploadedFiles.add(file);
 
         if (uploadListener != null) {

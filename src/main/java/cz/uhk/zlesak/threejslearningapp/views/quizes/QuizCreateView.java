@@ -6,7 +6,7 @@ import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
-import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.chapter.QuickChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelFilter;
@@ -117,7 +117,8 @@ public class QuizCreateView extends AbstractQuizView {
             if (editor.validate()) {
                 new SuccessNotification(text("quiz.question.validated"));
             } else {
-                new ErrorNotification(text("quiz.question.validation.failed"));
+                String reason = editor.validationMessage();
+                new ErrorNotification(reason != null ? reason : text("quiz.question.validation.failed"));
             }
         });
 
@@ -177,8 +178,8 @@ public class QuizCreateView extends AbstractQuizView {
         CompletableFuture<QuickModelEntity> resolveFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 QuickModelEntity chapterModel = chapterModelsByModelId.get(modelId);
-                if (chapterModel != null && chapterModel.getMetadataId() != null && !chapterModel.getMetadataId().isBlank()) {
-                    QuickModelEntity resolved = modelService.read(chapterModel.getMetadataId());
+                if (chapterModel != null && chapterModel.getId() != null && !chapterModel.getId().isBlank()) {
+                    QuickModelEntity resolved = modelService.read(chapterModel.getId());
                     resolvedModelsByModelId.put(modelId, resolved);
                     return resolved;
                 }
@@ -228,7 +229,7 @@ public class QuizCreateView extends AbstractQuizView {
                     continue;
                 }
                 if (modelId.equals(quickModelEntity.getModel().getId())) {
-                    return quickModelEntity.getMetadataId();
+                    return quickModelEntity.getId();
                 }
             }
             if (result.elements().size() < pageSize) {
@@ -272,9 +273,10 @@ public class QuizCreateView extends AbstractQuizView {
                 throw new ApplicationContextException(text("quiz.validation.questions.required"));
             }
 
-            for (QuestionEditorBase<?> editor : questionEditors) {
+            for (int index = 0; index < questionEditors.size(); index++) {
+                QuestionEditorBase<?> editor = questionEditors.get(index);
                 if (!editor.validate()) {
-                    throw new ApplicationContextException(text("quiz.validation.question.invalid"));
+                    throw new ApplicationContextException(questionInvalidMessage(index, editor));
                 }
             }
 
@@ -321,6 +323,23 @@ public class QuizCreateView extends AbstractQuizView {
     }
 
     /**
+     * Builds what the author is told when a question will not save.
+     *
+     * <p>Naming the question matters as much as naming the fault: a quiz being written has several
+     * of them open at once, and "some question is not filled in correctly" leaves the author to
+     * find out which. The editor adds the reason where it knows one.
+     *
+     * @param index  zero-based position of the question.
+     * @param editor the editor that refused.
+     * @return the message to show.
+     */
+    private String questionInvalidMessage(int index, QuestionEditorBase<?> editor) {
+        String where = text("quiz.validation.question.at", index + 1);
+        String reason = editor.validationMessage();
+        return reason == null ? where : where + " " + reason;
+    }
+
+    /**
      * Overridden onAttach function to set up event listeners when the component is attached.
      *
      * @param attachEvent the attach event
@@ -334,7 +353,7 @@ public class QuizCreateView extends AbstractQuizView {
                 attachEvent.getUI(),
                 ModelSelectedFromDialogEvent.class,
                 event -> runAsync(
-                        () -> modelService.read(event.getSelectedModel().getMetadataId()),
+                        () -> modelService.read(event.getSelectedModel().getId()),
                         quickModelEntity -> {
                             if (quickModelEntity != null && quickModelEntity.getModel() != null && quickModelEntity.getModel().getId() != null) {
                                 resolvedModelsByModelId.put(quickModelEntity.getModel().getId(), quickModelEntity);
@@ -392,18 +411,18 @@ public class QuizCreateView extends AbstractQuizView {
                             throw new NotFoundException("Quiz not found: " + quizId);
                         }
 
-                        ChapterEntity chapterEntity = null;
+                        QuickChapterEntity chapterEntity = null;
                         Map<String, QuickModelEntity> chapterModels = Map.of();
                         Map<String, QuickModelEntity> fullModelsByModelId = new HashMap<>();
-                        if (quiz.getChapterId() != null) {
+                        if (quiz.getChapterId() != null && !quiz.getChapterId().isBlank()) {
                             chapterEntity = chapterService.read(quiz.getChapterId());
                             chapterModels = chapterService.getChaptersModels(quiz.getChapterId());
                             for (QuickModelEntity model : chapterModels.values()) {
                                 if (model == null || model.getModel() == null || model.getModel().getId() == null) {
                                     continue;
                                 }
-                                if (model.getMetadataId() != null && !model.getMetadataId().isBlank()) {
-                                    fullModelsByModelId.put(model.getModel().getId(), modelService.read(model.getMetadataId()));
+                                if (model.getId() != null && !model.getId().isBlank()) {
+                                    fullModelsByModelId.put(model.getModel().getId(), modelService.read(model.getId()));
                                 }
                             }
                         }
@@ -421,8 +440,8 @@ public class QuizCreateView extends AbstractQuizView {
                     for (QuickModelEntity model : editData.chapterModels().values()) {
                         if (model != null && model.getModel() != null && model.getModel().getId() != null) {
                             chapterModelsByModelId.put(model.getModel().getId(), model);
-                            if (model.getMetadataId() != null && !model.getMetadataId().isBlank()) {
-                                modelMetadataByModelId.put(model.getModel().getId(), model.getMetadataId());
+                            if (model.getId() != null && !model.getId().isBlank()) {
+                                modelMetadataByModelId.put(model.getModel().getId(), model.getId());
                             }
                         }
                     }
@@ -449,7 +468,7 @@ public class QuizCreateView extends AbstractQuizView {
 
     private record QuizEditData(
             QuizEntity quiz,
-            ChapterEntity chapterEntity,
+            QuickChapterEntity chapterEntity,
             Map<String, QuickModelEntity> chapterModels,
             Map<String, QuickModelEntity> fullModelsByModelId
     ) {

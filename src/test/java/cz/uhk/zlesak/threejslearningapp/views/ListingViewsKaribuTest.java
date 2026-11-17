@@ -83,7 +83,6 @@ class ListingViewsKaribuTest {
 
     private QuickModelEntity model() {
         return QuickModelEntity.builder()
-                .metadataId("model-1")
                 .model(ModelFileEntity.builder().id("file-1").name("Model").build())
                 .description("data:image/png;base64,AAA")
                 .build();

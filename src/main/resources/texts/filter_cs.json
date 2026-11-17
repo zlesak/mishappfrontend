@@ -1,5 +1,6 @@
 {
-  "filter.search.placeholder" : "Hledat...",
+  "filter.search.placeholder" : "např. mozek",
+  "filter.search.label": "Hledat výraz",
   "filter.sort.direction.asc": "Vzestupně",
   "filter.sort.direction.desc": "Sestupně",
   "filter.orderBy.label": "Řadit podle",
@@ -7,5 +8,16 @@
   "filter.name.label": "Název",
   "filter.created.label": "Datum vytvoření",
   "filter.updated.label": "Naposledy upraveno",
-  "filter.description.label": "Filtrovat na základě textu"
+  "filter.description.label": "Filtrovat na základě textu",
+  "filter.toggle.show": "Filtry (zobrazit)",
+  "filter.toggle.hide": "Filtry (skrýt)",
+  "filter.advanced.show": "Další filtry",
+  "filter.advanced.hide": "Skrýt další filtry",
+  "filter.creatorname.label": "Autor",
+  "filter.creator.label": "Autor",
+  "filter.creator.placeholder": "např. novakj",
+  "filter.createdFrom.label": "Vytvořeno od",
+  "filter.createdTo.label": "Vytvořeno do",
+  "filter.model.label": "Obsahuje model",
+  "filter.model.placeholder": "např. lebka"
 }

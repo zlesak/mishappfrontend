@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.components.listItems;
 import com.github.mvysny.kaributesting.v10.MockVaadin;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Span;
 import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConfirmDialog;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuickQuizEntity;
@@ -24,6 +25,7 @@ import java.util.List;
 import static com.github.mvysny.kaributesting.v10.LocatorJ._click;
 import static com.github.mvysny.kaributesting.v10.LocatorJ._get;
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -40,13 +42,19 @@ class QuizListItemKaribuTest {
     @AfterEach void tearDown() { KaribuSpringTestSupport.tearDown(); }
 
     @Test
-    void shouldRenderTimeLimitAndChapterSnippet() {
+    void shouldRenderTimeLimitAndChapterName() {
         QuizListItem item = new QuizListItem(quiz(), true);
         UI.getCurrent().add(item);
+        assertEquals("Procviceni kosti", findAll(item, H2.class).getFirst().getText());
+
         List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
-        assertTrue(texts.contains("Procviceni kosti"));
         assertTrue(texts.contains("3 minuty"));
-        assertTrue(texts.contains("chapter-"));
+        // Both facts carry their label even on a narrow screen; the card used to hide them.
+        assertTrue(texts.contains("Časový limit: "), texts.toString());
+        // The chapter's name, never its id: a fragment of an ObjectId told the reader nothing.
+        assertTrue(texts.contains("Kostra"));
+        assertTrue(texts.contains("Kapitola: "), texts.toString());
+        assertTrue(texts.stream().noneMatch(t -> t.contains("chapter-123456789")));
     }
 
     @Test
@@ -178,7 +186,7 @@ class QuizListItemKaribuTest {
         QuizListItem item = new QuizListItem(q, true);
         UI.getCurrent().add(item);
         List<String> texts = findAll(item, Span.class).stream().map(Span::getText).toList();
-        assertTrue(texts.stream().noneMatch(t -> t.trim().isEmpty() || "   ".equals(t)));
+        assertTrue(texts.stream().noneMatch(t -> t.startsWith("Kapitola")), texts.toString());
     }
 
     @Test
@@ -204,7 +212,8 @@ class QuizListItemKaribuTest {
     }
 
     private QuickQuizEntity quiz() {
-        return QuickQuizEntity.builder().id("quiz-1").name("Procviceni kosti").timeLimit(3).chapterId("chapter-123456789").build();
+        return QuickQuizEntity.builder().id("quiz-1").name("Procviceni kosti").timeLimit(3)
+                .chapterId("chapter-123456789").chapterName("Kostra").build();
     }
 }
 

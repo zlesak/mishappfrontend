@@ -56,8 +56,17 @@ public class ThemeModeToggleButton extends Button {
             dark = true;
         }
         String mode = dark ? "dark" : "light";
-        ui.getPage().executeJs(
-                "document.cookie = 'themeMode=' + $0 + '; path=/; max-age=31536000';", mode);
+        // Honours a declined cookie notice: the scheme still changes for this session, it is just
+        // not remembered for the next one. Offering the choice and then writing the cookie anyway
+        // would make the notice a lie.
+        ui.getPage().executeJs("""
+                const consent = document.cookie.match('(^|;) ?cookieConsent=([^;]*)(;|$)');
+                if (!consent || consent[2] !== 'rejected') {
+                  document.cookie = 'themeMode=' + $0 + '; path=/; max-age=31536000; SameSite=Lax';
+                } else {
+                  document.cookie = 'themeMode=; path=/; max-age=0';
+                }
+                """, mode);
         return dark;
     }
 

@@ -19,6 +19,7 @@ public class ModelListDialog extends AbstractListDialog<QuickModelEntity> {
      */
     public ModelListDialog(ModelListingView modelListingView) {
         super(modelListingView);
+        modelListingView.setEmptyStateAction(EmptyListingGuidance::forModels);
     }
 
     /**

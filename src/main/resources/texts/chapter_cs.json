@@ -3,6 +3,8 @@
   "chapter.creationDate": "Vytvořeno",
   "chapter.lastModified": "Upraveno",
   "chapter.title": "Název",
+  "chapter.search.label": "Hledat v kapitole",
+  "chapter.links.warning": "V obsahu jsou odkazy bez popisného textu ({0}). Pojmenujte je podle toho, kam vedou — „ZDE“ nebo „odkaz“ čtenáři odečítače nic neřekne.",
   "chapter.content": "Obsah",
   "chapter.models": "Modely",
   "chapter.content.loadError": "Nepodařilo se načíst obsah kapitoly.",

@@ -7,17 +7,35 @@
 
 ## Description
 
-This repository contains the frontend part of the MISH APP application that has been created as a part of a master thesis at the University of Hradec Kralove.  
-Provides a web-based user interface for interaction with anatomical 3D models.
-Code in this repository is based on Vaadin framework for the UI part and Three.js for 3D rendering.  
-The backend part is located in a separate repository: https://github.com/Foglas/mishprototype.
+This repository contains the MISH APP application, created as part of a master thesis at the University of Hradec Kralove.
+It provides a web-based user interface for interaction with anatomical 3D models, and it contains both the user
+interface and the backend in a single deployable application.
+
+The UI is built with the Vaadin framework and Three.js for 3D rendering. The backend stores chapters, quizzes and
+uploaded model files in MongoDB (with GridFS for the binaries) and authenticates users against Keycloak.
+
+The backend logic was originally a separate service (https://github.com/Foglas/mishprototype) deployed together with
+the UI by a separate set of scripts (https://github.com/zlesak/MISH_SCRIPTS). Both have been folded into this
+repository; see [docs/backend-migration.md](docs/backend-migration.md) for how and why.
 
 ## Running the application
 
-To run the application with back end in action, there has been made a separate repository MISH SCRIPTS making it easy to launch both front end and back end.  
-More information can be found in the MISH SCRIPTS repository.  
-Link to MISH SCRIPTS repository: https://github.com/zlesak/MISH_SCRIPTS
+Everything needed to run the application — database, identity provider and gateway — is in the `infra` directory:
+
+```bash
+cd infra && cp .env.example .env && docker compose up -d --build
+```
+
+Then open <https://localhost> and log in as `alice` / `password` (teacher) or `bart` / `password` (student).
+See [infra/README.md](infra/README.md) for configuration, the `mish` hostname used by the tests, and TLS certificates.
+For production deployment, secrets and running on a Raspberry Pi, see [docs/deployment.md](docs/deployment.md).
+
 ## Screenshots
+
+Regenerate them with `E2E_SHOTS=1 npx playwright test --project=shots` against a running stack; the
+spec writes straight into `docs/screenshots`, so they no longer go stale the moment the interface
+changes. The environment variable is the guard — a plain test run must not rewrite files in the
+repository.
 
 ### Desktop
 
@@ -57,6 +75,15 @@ npx playwright test e2e/threejs-canvas-perf.spec.ts
 
 Results are written to `test-results/threejs-perf-results.json` after each run.
 
+### Usability walkthrough
+
+```bash
+npx playwright test e2e/usability.spec.ts
+```
+
+Measures how long each user task takes and how many interactions it costs; the report lands in
+`test-results/usability-report.md`. See [docs/user-testing-plan.md](docs/user-testing-plan.md).
+
 ### Java unit and component tests (Maven)
 
 ```bash
@@ -69,9 +96,12 @@ Results are written to `test-results/threejs-perf-results.json` after each run.
 src/
 ├── main/
 │   ├── java/cz/uhk/zlesak/threejslearningapp/
-│   │   ├── api/
-│   │   │   ├── clients/              # REST API clients (chapter, model, quiz, quiz result, documentation)
-│   │   │   └── contracts/            # API definitions
+│   │   ├── api/                      # Boundary between the UI and the backend
+│   │   │   └── contracts/            # Interfaces the UI depends on
+│   │   ├── backend/                  # Backend
+│   │   │   ├── persistence/          # MongoDB repositories, queries and GridFS storage
+│   │   │   ├── service/              # Chapter, model, file, quiz and grading services
+│   │   │   └── web/                  # Model file download endpoint used by the 3D viewer
 │   │   ├── common/                   # Shared utilities
 │   │   ├── components/               # Reusable Vaadin UI components
 │   │   │   ├── buttons/              # Action buttons
