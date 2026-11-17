@@ -61,6 +61,38 @@ class QuizTimerComponentTest {
     }
 
     @Test
+    void countsDownWhatIsLeftOfTheAttemptRatherThanTheWholeLimit() throws Exception {
+        // A twenty minute quiz reopened with five minutes to go. Starting from the limit again
+        // would promise time the server will not honour and then refuse the submission as late.
+        QuizTimerComponent timer = new QuizTimerComponent(20, 5 * 60);
+        UI.getCurrent().add(timer);
+
+        assertEquals("5 min", getTimerDisplay(timer).getText());
+
+        timer.stopTimer();
+    }
+
+    @Test
+    void countsDownTheWholeLimitWhenTheAttemptStartsHere() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(20, null);
+        UI.getCurrent().add(timer);
+
+        assertEquals("20 min", getTimerDisplay(timer).getText());
+
+        timer.stopTimer();
+    }
+
+    @Test
+    void showsNoTimeLeftForAnAttemptThatHasAlreadyRunOut() throws Exception {
+        QuizTimerComponent timer = new QuizTimerComponent(20, 0);
+        UI.getCurrent().add(timer);
+
+        assertEquals("méně než minuta", getTimerDisplay(timer).getText());
+
+        timer.stopTimer();
+    }
+
+    @Test
     void theTimerAnnouncesItselfAsOne() {
         QuizTimerComponent timer = new QuizTimerComponent(10);
         UI.getCurrent().add(timer);

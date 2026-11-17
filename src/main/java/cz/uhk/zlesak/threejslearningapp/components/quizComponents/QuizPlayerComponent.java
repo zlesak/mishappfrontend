@@ -52,13 +52,27 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
      * @param timeLimitMinutes Time limit for the quiz in minutes. If null or <= 0, no timer is shown.
      */
     public QuizPlayerComponent(List<AbstractQuestionData> questions, Integer timeLimitMinutes) {
+        this(questions, timeLimitMinutes, null);
+    }
+
+    /**
+     * Constructor - Initializes the QuizPlayerComponent with a list of questions and an optional time limit.
+     *
+     * @param questions        List of questions to be displayed in the quiz
+     * @param timeLimitMinutes Time limit for the quiz in minutes. If null or <= 0, no timer is shown.
+     * @param remainingSeconds Seconds left of the student's attempt, or {@code null} to count the
+     *                         full limit. They differ once the student returns to a quiz they
+     *                         already started.
+     */
+    public QuizPlayerComponent(List<AbstractQuestionData> questions, Integer timeLimitMinutes,
+                               Integer remainingSeconds) {
         super();
         this.questions = questions;
 
         setSpacing(true);
         setPadding(true);
 
-        timerComponent = new QuizTimerComponent(timeLimitMinutes);
+        timerComponent = new QuizTimerComponent(timeLimitMinutes, remainingSeconds);
 
         questionsContainer = new VerticalLayout();
         questionsContainer.setSpacing(true);

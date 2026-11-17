@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.bson.Document;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -63,11 +64,30 @@ class QuizAttemptServiceTest {
         // Every field is written under $setOnInsert and nothing is written outright, so reopening
         // the player finds the attempt already there and cannot push its deadline further out.
         ArgumentCaptor<Update> update = ArgumentCaptor.forClass(Update.class);
-        Mockito.verify(mongoTemplate).upsert(Mockito.any(Query.class), update.capture(),
-                Mockito.eq(QuizAttemptDocument.class));
+        Mockito.verify(mongoTemplate).findAndModify(Mockito.any(Query.class), update.capture(),
+                Mockito.any(FindAndModifyOptions.class), Mockito.eq(QuizAttemptDocument.class));
         Mockito.verify(mongoTemplate, Mockito.never()).save(Mockito.any(QuizAttemptDocument.class));
 
         assertThat(update.getValue().getUpdateObject().keySet()).containsExactly("$setOnInsert");
+    }
+
+    @Test
+    void reportsTheDeadlineOfTheAttemptThatIsActuallyRunning() {
+        // Started ten minutes ago with a fifteen minute limit: what comes back is the original
+        // deadline, so the player counts down the five minutes left and not another fifteen.
+        Instant runningDeadline = Instant.now().plus(5, ChronoUnit.MINUTES);
+        attemptFound(QuizAttemptDocument.builder()
+                .id("bart:quiz-1").hasTimeLimit(true).deadline(runningDeadline).build());
+
+        assertThat(quizAttemptService.start("quiz-1", 15)).isEqualTo(runningDeadline);
+    }
+
+    @Test
+    void reportsNoDeadlineForAQuizWithoutALimit() {
+        attemptFound(QuizAttemptDocument.builder()
+                .id("bart:quiz-1").hasTimeLimit(false).deadline(Instant.now()).build());
+
+        assertThat(quizAttemptService.start("quiz-1", 0)).isNull();
     }
 
     @Test
@@ -105,9 +125,16 @@ class QuizAttemptServiceTest {
                 .hasMessageContaining("Časový limit");
     }
 
+    private void attemptFound(QuizAttemptDocument attempt) {
+        Mockito.when(mongoTemplate.findAndModify(Mockito.any(Query.class), Mockito.any(Update.class),
+                        Mockito.any(FindAndModifyOptions.class), Mockito.eq(QuizAttemptDocument.class)))
+                .thenReturn(attempt);
+    }
+
     private List<String> startedKeys() {
         ArgumentCaptor<Query> query = ArgumentCaptor.forClass(Query.class);
-        Mockito.verify(mongoTemplate, Mockito.atLeastOnce()).upsert(query.capture(), Mockito.any(Update.class),
+        Mockito.verify(mongoTemplate, Mockito.atLeastOnce()).findAndModify(query.capture(),
+                Mockito.any(Update.class), Mockito.any(FindAndModifyOptions.class),
                 Mockito.eq(QuizAttemptDocument.class));
         return query.getAllValues().stream()
                 .map(captured -> String.valueOf(captured.getQueryObject().get("_id")))
@@ -116,8 +143,8 @@ class QuizAttemptServiceTest {
 
     private Document insertedFields() {
         ArgumentCaptor<Update> update = ArgumentCaptor.forClass(Update.class);
-        Mockito.verify(mongoTemplate).upsert(Mockito.any(Query.class), update.capture(),
-                Mockito.eq(QuizAttemptDocument.class));
+        Mockito.verify(mongoTemplate).findAndModify(Mockito.any(Query.class), update.capture(),
+                Mockito.any(FindAndModifyOptions.class), Mockito.eq(QuizAttemptDocument.class));
         return (Document) update.getValue().getUpdateObject().get("$setOnInsert");
     }
 

@@ -68,7 +68,8 @@ public class QuizPlayerView extends AbstractQuizView {
         loadedQuiz = quiz;
         loadedQuizPossibleScore = quiz.getQuestions().stream().mapToInt(AbstractQuestionData::getPoints).sum();
         modelDiv.modelTextureAreaSelectContainer.setEnabled(false);
-        playerComponent = new QuizPlayerComponent(quiz.getQuestions(), quiz.getTimeLimit());
+        playerComponent = new QuizPlayerComponent(quiz.getQuestions(), quiz.getTimeLimit(),
+                quiz.getRemainingSeconds());
         playerComponent.setSubmitListener(this::submitQuiz);
 
         Scroller scroller = new Scroller(playerComponent, Scroller.ScrollDirection.VERTICAL);

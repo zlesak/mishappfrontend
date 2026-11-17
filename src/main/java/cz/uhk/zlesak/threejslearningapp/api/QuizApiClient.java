@@ -11,6 +11,9 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.time.Instant;
+
 /**
  * Quiz access for the UI.
  */
@@ -60,8 +63,25 @@ public class QuizApiClient implements IQuizApiClient {
     @Override
     public QuizEntity readQuizStudent(String quizId) {
         QuizEntity quiz = quizBackendService.require(quizId);
-        quizAttemptService.start(quizId, quiz.getTimeLimit() == null ? 0 : quiz.getTimeLimit());
+        Instant deadline = quizAttemptService.start(quizId,
+                quiz.getTimeLimit() == null ? 0 : quiz.getTimeLimit());
+        // What the player counts down is the attempt's remaining time, not the quiz's limit. Those
+        // are the same thing only on the first visit; after a reload the attempt has been running
+        // for a while and the limit would promise time the server will not honour.
+        quiz.setRemainingSeconds(remainingSecondsUntil(deadline));
         return quiz;
+    }
+
+    /**
+     * @param deadline when the attempt runs out, or {@code null} for an untimed quiz.
+     * @return whole seconds left, never negative; {@code null} when there is no deadline.
+     */
+    private static Integer remainingSecondsUntil(Instant deadline) {
+        if (deadline == null) {
+            return null;
+        }
+        long remaining = Duration.between(Instant.now(), deadline).toSeconds();
+        return (int) Math.max(remaining, 0);
     }
 
     @Override

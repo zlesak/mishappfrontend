@@ -126,6 +126,8 @@
   "quiz.result.attempt.heading": "Pokus z {0}",
   "quiz.result.attempt.unknownDate": "Pokus bez data",
   "quiz.create.success" : "Kvíz byl úspěšně vytvořen",
+  "quiz.create.error": "Kvíz se nepodařilo vytvořit",
+  "quiz.update.error": "Kvíz se nepodařilo uložit",
   "quiz.choose.color" : "Vybrat barvu",
   "quiz.textureClick.area.label": "Nebo vyberte oblast ze seznamu",
   "quiz.textureClick.area.helper": "Alternativa ke kliknutí do modelu, ovladatelná klávesnicí",

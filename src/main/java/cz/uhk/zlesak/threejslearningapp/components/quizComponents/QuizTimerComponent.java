@@ -57,8 +57,25 @@ public class QuizTimerComponent extends Div implements I18nAware {
      * @param timeLimitMinutes The time limit for the quiz in minutes. If null or <= 0, timer is not started.
      */
     public QuizTimerComponent(Integer timeLimitMinutes) {
+        this(timeLimitMinutes, null);
+    }
+
+    /**
+     * Counts down the time this attempt has left rather than the quiz's whole limit.
+     *
+     * <p>The two differ as soon as the student comes back to a quiz they already started: the
+     * attempt keeps running on the server, so starting the clock at the full limit again would
+     * promise time that is not there and then refuse the submission as late.
+     *
+     * @param timeLimitMinutes the quiz's limit in minutes; null or &lt;= 0 means no timer at all.
+     * @param remainingSeconds seconds left of this attempt, or {@code null} to count the full
+     *                         limit, which is the right thing when the attempt starts here.
+     */
+    public QuizTimerComponent(Integer timeLimitMinutes, Integer remainingSeconds) {
         this.timeLimitMinutes = timeLimitMinutes;
-        this.remainingTimeSeconds = timeLimitMinutes != null && timeLimitMinutes > 0 ? (timeLimitMinutes * 60) - 1 : 0;
+        boolean timed = timeLimitMinutes != null && timeLimitMinutes > 0;
+        int startFrom = remainingSeconds != null ? remainingSeconds : (timed ? timeLimitMinutes * 60 : 0);
+        this.remainingTimeSeconds = timed ? Math.max(startFrom - 1, 0) : 0;
         this.currentUI = UI.getCurrent();
 
         timerContainer = new Div();

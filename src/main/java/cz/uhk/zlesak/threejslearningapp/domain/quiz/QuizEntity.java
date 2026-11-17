@@ -4,6 +4,7 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.answer.AbstractAnswerData;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionData;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -30,6 +31,15 @@ public class QuizEntity extends QuickQuizEntity {
     List<AbstractQuestionData> questions;
 
     List<AbstractAnswerData> answers;
+
+    /**
+     * Seconds left of the reader's own attempt, filled in when a student opens the quiz to take it.
+     * Attempt state rather than quiz state, and so never stored: it is carried here because the
+     * player needs the time this student has left, which is not the quiz's time limit once the
+     * attempt has been running for a while.
+     */
+    @Transient
+    Integer remainingSeconds;
 
     /**
      * @return points obtainable when every question is answered correctly.

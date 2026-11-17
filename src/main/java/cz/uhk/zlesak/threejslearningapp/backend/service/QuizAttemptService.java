@@ -3,6 +3,7 @@ package cz.uhk.zlesak.threejslearningapp.backend.service;
 import cz.uhk.zlesak.threejslearningapp.backend.BackendException;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.QuizAttemptDocument;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -26,20 +27,25 @@ public class QuizAttemptService {
     private final CurrentUserProvider currentUserProvider;
 
     /**
-     * Records that the current user has started a quiz.
+     * Records that the current user has started a quiz, or finds the attempt they already have.
      *
      * @param quizId    id of the quiz.
      * @param timeLimit minutes allowed; zero or less means no limit.
+     * @return when the attempt runs out, or {@code null} when the quiz is untimed. This is the
+     * deadline of the attempt that is actually in flight, so re-entering the player reports the
+     * time left rather than the full limit.
      */
-    public void start(String quizId, int timeLimit) {
+    public Instant start(String quizId, int timeLimit) {
         String userId = currentUserProvider.requireUserId();
         Instant now = Instant.now();
 
         // Insert-only: the player view starts an attempt every time it is entered, so a plain save
         // would let a student reset their own deadline by reloading the page. Writing every field
-        // under $setOnInsert leaves an attempt that is already running exactly as it was, and the
-        // upsert keeps that decision atomic rather than reading first and racing with itself.
-        mongoTemplate.upsert(
+        // under $setOnInsert leaves an attempt that is already running exactly as it was, and
+        // doing it as one findAndModify keeps that decision atomic rather than reading first and
+        // racing with itself. The document comes back either way, which is what lets the caller
+        // tell the student how long they have left rather than how long the quiz allows.
+        QuizAttemptDocument attempt = mongoTemplate.findAndModify(
                 byKey(userId, quizId),
                 new Update()
                         .setOnInsert("userId", userId)
@@ -47,7 +53,10 @@ public class QuizAttemptService {
                         .setOnInsert("hasTimeLimit", timeLimit > 0)
                         .setOnInsert("deadline", now.plus(Math.max(timeLimit, 0), ChronoUnit.MINUTES))
                         .setOnInsert("startedAt", now),
+                FindAndModifyOptions.options().upsert(true).returnNew(true),
                 QuizAttemptDocument.class);
+
+        return attempt != null && attempt.isHasTimeLimit() ? attempt.getDeadline() : null;
     }
 
     /**
