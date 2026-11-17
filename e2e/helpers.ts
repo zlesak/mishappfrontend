@@ -50,24 +50,88 @@ export async function acceptCookiesIfVisible(page: Page): Promise<void> {
   }
 }
 
-export async function login(page: Page, username: string, password: string): Promise<void> {
-  await page.goto('/');
-  await page.getByRole('button', {name: 'Přihlásit se'}).click();
+/**
+ * Where the sign-in form can end up. `pending` means it has not got anywhere yet.
+ *
+ * `expired` is Keycloak answering a stale authentication session: it re-renders the sign-in form
+ * carrying "Your login attempt timed out. Login will start from the beginning." and logs
+ * `error=expired_code`. It happens when Keycloak restarts underneath a running application, which
+ * in CI is whenever the stack comes up unevenly. The page then never changes on its own, so a
+ * poll that does not know this state waits out its whole timeout and reports only that the
+ * predicate never came true -- which looks like slowness and is not. Submitting the same form
+ * once more gets straight in.
+ */
+export type LoginOutcome = 'profile' | 'denied' | 'expired' | 'pending';
+
+const EXPIRED_SESSION_TEXT = /login attempt timed out|login will start from the beginning/i;
+
+/** How long to wait for the sign-in form to reach any of its end states. */
+const LOGIN_OUTCOME_TIMEOUT_MS = 15_000;
+
+/**
+ * Reads which end state the page is in right now, without waiting.
+ * Order matters: the access-denied screen is part of the signed-in shell, so it is looked for
+ * before the user menu that also renders there.
+ */
+export async function readLoginOutcome(page: Page): Promise<LoginOutcome> {
+  if (await page.getByRole('heading', {name: 'Přístup odepřen'}).isVisible().catch(() => false)) {
+    return 'denied';
+  }
+  if (await page.getByRole('menuitem').first().isVisible().catch(() => false)) {
+    return 'profile';
+  }
+  if (await page.getByText(EXPIRED_SESSION_TEXT).first().isVisible().catch(() => false)) {
+    return 'expired';
+  }
+  return 'pending';
+}
+
+async function waitForLoginOutcome(page: Page): Promise<LoginOutcome> {
+  const deadline = Date.now() + LOGIN_OUTCOME_TIMEOUT_MS;
+  for (;;) {
+    const outcome = await readLoginOutcome(page);
+    if (outcome !== 'pending') {
+      return outcome;
+    }
+    if (Date.now() >= deadline) {
+      return 'pending';
+    }
+    await page.waitForTimeout(100);
+  }
+}
+
+async function submitCredentials(page: Page, username: string, password: string): Promise<LoginOutcome> {
   await page.getByRole('textbox', {name: 'Username or email'}).fill(username);
   await page.getByRole('textbox', {name: 'Password'}).fill(password);
   await page.getByRole('button', {name: /sign in/i}).click();
+  return waitForLoginOutcome(page);
+}
 
-  await expect
-    .poll(async () => {
-      if (await page.getByRole('heading', {name: 'Přístup odepřen'}).isVisible().catch(() => false)) {
-        return 'denied';
-      }
-      if (await page.getByRole('menuitem').first().isVisible().catch(() => false)) {
-        return 'profile';
-      }
-      return 'pending';
-    })
-    .not.toBe('pending');
+export async function login(page: Page, username: string, password: string): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', {name: 'Přihlásit se'}).click();
+
+  let outcome = await submitCredentials(page, username, password);
+  if (outcome === 'expired') {
+    // Keycloak discarded the authentication session rather than rejecting the credentials, so the
+    // same credentials are worth sending once more. Measured as enough: three restarts out of
+    // three let the second attempt through, each inside two seconds.
+    console.warn('[E2E][LOGIN] Keycloak discarded the login attempt, submitting once more');
+    outcome = await submitCredentials(page, username, password);
+  }
+
+  if (outcome === 'expired') {
+    throw new Error(
+      'Keycloak discarded the login attempt twice in a row ("login attempt timed out"). ' +
+      'It is most likely still restarting; waiting longer would not have helped.',
+    );
+  }
+  if (outcome === 'pending') {
+    throw new Error(
+      `Login did not reach the application or an access-denied screen within ${LOGIN_OUTCOME_TIMEOUT_MS} ms. ` +
+      `Last URL: ${page.url()}`,
+    );
+  }
 
   await acceptCookiesIfVisible(page);
 }

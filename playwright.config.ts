@@ -8,6 +8,9 @@ const baseURL =
 
 export default defineConfig({
   testDir: './e2e',
+  // Browser specs are named *.spec.ts. The *.test.ts files beside them are Vitest unit tests of
+  // the helpers themselves, which Playwright's default pattern would otherwise try to run.
+  testMatch: /.*\.(spec|setup)\.ts/,
   // Specs name every entity they create with a unique suffix and pick fixtures by name, so they no
   // longer collide when run at the same time. Files spread across workers; tests inside one file
   // still run in order, because the CRUD specs build up state step by step.
