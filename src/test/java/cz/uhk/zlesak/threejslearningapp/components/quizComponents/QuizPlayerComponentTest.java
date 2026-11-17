@@ -180,6 +180,8 @@ class QuizPlayerComponentTest {
         // does not move focus the way a real one does. Without the blur the answer that was being
         // written is never sent and is graded as unanswered. The script cannot be executed here --
         // there is no browser -- so what is pinned is that the blur is in it and comes first.
+        // That the sequence does commit the value was measured separately in a browser; see the
+        // note on AUTO_SUBMIT_SCRIPT. This test guards the ordering that measurement relied on.
         int blur = QuizPlayerComponent.AUTO_SUBMIT_SCRIPT.indexOf("blur()");
         int click = QuizPlayerComponent.AUTO_SUBMIT_SCRIPT.indexOf("click()");
 

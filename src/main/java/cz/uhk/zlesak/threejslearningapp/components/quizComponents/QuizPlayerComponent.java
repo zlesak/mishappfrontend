@@ -33,6 +33,17 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
      * Commits the field the student is in before pressing submit for them.
      * Exposed for the test that pins this ordering, which is the whole point of the script: a
      * server-side test cannot run it, so it checks that the blur is there and comes first.
+     *
+     * <p>{@code document.activeElement} is the answer's own {@code <textarea>}, not the
+     * {@code <vaadin-text-area>} around it: Vaadin slots the field into light DOM, so nothing here
+     * crosses a shadow boundary and the blur needs no walk through shadow roots to find its
+     * target. Measured in the browser, with the caret in the field: active element
+     * {@code TEXTAREA[slot=textarea]} before, {@code BODY} after.
+     *
+     * <p>That the sequence also commits the value was measured rather than assumed. On a quiz with
+     * no time limit, running this script 39 ms after the last keystroke -- well inside the delay
+     * the field waits out before reporting on its own -- stored all 26 characters that had been
+     * typed.
      */
     static final String AUTO_SUBMIT_SCRIPT = "document.activeElement?.blur(); this.click();";
 
