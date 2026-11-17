@@ -54,8 +54,12 @@ public class QuizResultView extends AbstractQuizView {
                     String targetQuizId = redirect == null ? quizId : redirect;
                     // Deliberately not getQuizForStudent: that one starts an attempt, and opening a
                     // past result would then reset the timer of a quiz the student has open.
-                    QuizEntity quiz = service.getQuiz(targetQuizId);
-                    return new QuizResultViewData(result, quiz, QuizService.maxScoreOf(quiz));
+                    QuizEntity quiz = quizIfStillThere(targetQuizId);
+                    // A result records its own score and every question it was graded on, so it
+                    // stays readable once the quiz behind it is gone. Insisting on the live quiz
+                    // turned every past attempt at a deleted quiz into an error screen.
+                    int possibleScore = quiz != null ? QuizService.maxScoreOf(quiz) : result.getMaxScore();
+                    return new QuizResultViewData(result, quiz, possibleScore);
                 },
                 data -> displayQuizResultDetails(data.result(), data.quiz(), data.possibleScore()),
                 error -> {
@@ -63,6 +67,21 @@ public class QuizResultView extends AbstractQuizView {
                     showErrorNotification(text("quiz.error.loading"), error);
                 }
         );
+    }
+
+    /**
+     * Reads the quiz a result belongs to, tolerating its absence.
+     *
+     * @param targetQuizId id of the quiz.
+     * @return the quiz, or {@code null} when it has been deleted since the attempt was graded.
+     */
+    private QuizEntity quizIfStillThere(String targetQuizId) {
+        try {
+            return service.getQuiz(targetQuizId);
+        } catch (RuntimeException e) {
+            log.info("Kvíz {} k výsledku {} už neexistuje, zobrazuji uložený výsledek.", targetQuizId, quizId);
+            return null;
+        }
     }
 
     /**

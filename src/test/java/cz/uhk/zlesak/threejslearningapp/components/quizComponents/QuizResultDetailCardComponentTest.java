@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class QuizResultDetailCardComponentTest {
@@ -101,6 +102,38 @@ class QuizResultDetailCardComponentTest {
 
         QuizEntity quiz = quizWithQuestions(List.of());
         assertDoesNotThrow(() -> new QuizResultDetailCardComponent(result, quiz));
+    }
+
+    @Test
+    void shouldRenderTheStoredBreakdown_whenTheQuizHasBeenDeleted() {
+        QuizValidationResult result = QuizValidationResult.builder()
+                .totalScore(3)
+                .maxScore(8)
+                .percentage(37.5)
+                .questionResults(List.of(
+                        new QuizValidationQuestion("Question A", true, 3, null),
+                        new QuizValidationQuestion("Question B", false, 0, null)))
+                .build();
+
+        // Grading records every question of the quiz, so a result read back after the quiz was
+        // deleted still has a full breakdown to show.
+        QuizResultDetailCardComponent card = new QuizResultDetailCardComponent(result, null);
+
+        List<QuizQuestionResultCardComponent> questionCards =
+                VaadinTestSupport.findAll(card, QuizQuestionResultCardComponent.class);
+        assertEquals(2, questionCards.size(), "Expected a card for each graded question");
+    }
+
+    @Test
+    void shouldRender_whenBothTheQuizAndTheBreakdownAreGone() {
+        QuizValidationResult result = QuizValidationResult.builder()
+                .totalScore(0)
+                .maxScore(0)
+                .percentage(0.0)
+                .questionResults(null)
+                .build();
+
+        assertDoesNotThrow(() -> new QuizResultDetailCardComponent(result, null));
     }
 
     private QuizEntity quizWithQuestions(List<String> questionTexts) {
