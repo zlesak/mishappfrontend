@@ -114,6 +114,37 @@ Všech šest vyřešeno, viz [user-testing-findings.md](user-testing-findings.md
 
 ### Zbývá udělat
 
+- **Osm nedefinovaných překladových klíčů.** `CustomI18NProvider` vrací u neznámého klíče samotný
+  klíč, takže uživatel místo hlášky uvidí jeho název. Najity při opravě `quiz.create.error`
+  a `quiz.update.error` (ty už doplněné) porovnáním všech literálových volání `text("…")` proti
+  `src/main/resources/texts/`:
+
+  | Klíč | Kde se používá |
+  |---|---|
+  | `chapter.delete.failed` | `ChapterListItem` |
+  | `model.delete.failed` | `ModelListItem` |
+  | `quiz.delete.failed` | `QuizListItem` |
+  | `error.modelLoadFailed` | `ChapterCreateView`, `ChapterDetailView`, `QuizCreateView` |
+  | `error.editorDataRetrievalFailed` | `ChapterCreateView` |
+  | `error.editorInitializationFailed` | `ChapterCreateView` |
+  | `error.unexpectedChapterCreationError` | `ChapterCreateView` |
+  | `notification.loading` | `DocumentationView` |
+
+  První tři jsou na cestě mazání, tedy snadno dosažitelné. Spolu s doplněním textů má smysl přidat
+  test, který projde literálové klíče proti textům — dokud těchto osm existuje, takový test by
+  neprošel, což je důvod, proč zatím napsaný není.
+
+- **Zahřívací přihlášení v CI.** Workflow čeká na bránu a na realm Keycloaku, jenže obojí odpoví
+  dřív, než je přihlašovací cesta použitelná, a healthcheck míří na `/actuator/health`, který se do
+  Vaadin ani do bezpečnostní cesty netrefí. Krok, který jednou projde celým přihlášením a teprve
+  pak pustí sadu, by tu cestu zahřál. Je to změna CI, ne testu, proto zvlášť; samotný flake už
+  řeší helper, který umí rozpoznat vypršelý pokus a jednou ho zopakovat.
+
+- **Chybné heslo vypadá v e2e jako timeout.** Keycloak na něj překreslí formulář s vlastní chybovou
+  hláškou, která není ani `denied`, ani `profile`, ani text o vypršení, takže `login()` dojede do
+  limitu. Specy heslo nikdy nepletou, takže to dnes nikoho netrápí; záchytný bod by byl chybový
+  element Keycloaku.
+
 - **Ruční ověření Z-2 až Z-4.** Průchod klávesnicí je automatizovaný jen u 3D scény a ovládacího
   panelu. Chybí plný průchod odečítačem (NVDA nebo VoiceOver) na dvou scénářích a kontrola při 400%
   přiblížení. Rozsah, který ověřen nebyl, je poctivě přiznaný v prohlášení.
