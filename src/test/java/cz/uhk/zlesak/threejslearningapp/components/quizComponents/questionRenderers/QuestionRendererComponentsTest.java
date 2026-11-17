@@ -7,6 +7,7 @@ import com.vaadin.flow.component.checkbox.CheckboxGroup;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import cz.uhk.zlesak.threejslearningapp.components.commonComponents.ThreeJsComponent;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuestionTypeEnum;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.*;
@@ -85,6 +86,21 @@ class QuestionRendererComponentsTest {
         OpenTextSubmissionData submission = component.getSubmissionData();
         assertEquals("Ulna", submission.getText());
         assertEquals("Ulna", captured.get().getText());
+    }
+
+    @Test
+    void openTextRendererSendsTheAnswerWhileItIsBeingTypedAndNotOnlyOnLeaving() {
+        // A text field's default is to tell the server its value when it loses focus. An answer
+        // still being written when the clock runs out never loses focus, so the automatic
+        // submission sent nothing and the student was told they had answered nothing. Every other
+        // question type is a select or a checkbox and reports immediately; this is the one input
+        // in the player where the mode decides whether the answer survives.
+        OpenTextQuestionRendererComponent component = new OpenTextQuestionRendererComponent(openTextQuestion());
+
+        TextArea textArea = VaadinTestSupport.findFirst(component, TextArea.class);
+
+        assertNotEquals(ValueChangeMode.ON_CHANGE, textArea.getValueChangeMode());
+        assertNotEquals(ValueChangeMode.ON_BLUR, textArea.getValueChangeMode());
     }
 
     @Test

@@ -175,6 +175,19 @@ class QuizPlayerComponentTest {
     }
 
     @Test
+    void theAutomaticSubmissionCommitsTheFieldBeingTypedInBeforePressingSubmit() {
+        // The student who runs out of time has their caret in the answer, and a synthetic click
+        // does not move focus the way a real one does. Without the blur the answer that was being
+        // written is never sent and is graded as unanswered. The script cannot be executed here --
+        // there is no browser -- so what is pinned is that the blur is in it and comes first.
+        int blur = QuizPlayerComponent.AUTO_SUBMIT_SCRIPT.indexOf("blur()");
+        int click = QuizPlayerComponent.AUTO_SUBMIT_SCRIPT.indexOf("click()");
+
+        assertTrue(blur >= 0, "The automatic submission does not commit the focused field");
+        assertTrue(click > blur, "The field has to be committed before the submit button is pressed");
+    }
+
+    @Test
     void constructorWithTimeLimitShouldExposeTimerContainer() {
         QuizPlayerComponent player = new QuizPlayerComponent(singleQuestion(), 1);
         assertNotNull(player.getTimerContainer());

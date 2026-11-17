@@ -29,6 +29,13 @@ import java.util.List;
  * Uses QuizTimerComponent for time limit functionality.
  */
 public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
+    /**
+     * Commits the field the student is in before pressing submit for them.
+     * Exposed for the test that pins this ordering, which is the whole point of the script: a
+     * server-side test cannot run it, so it checks that the blur is there and comes first.
+     */
+    static final String AUTO_SUBMIT_SCRIPT = "document.activeElement?.blur(); this.click();";
+
     @Getter
     private final List<AbstractQuestionData> questions;
     private final VerticalLayout questionsContainer;
@@ -92,9 +99,15 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
         setWidthFull();
 
         // Time is up: submit whatever is there, without stopping to summarise what is missing.
+        //
+        // The field being typed in is blurred first. A click the user performs moves focus to the
+        // button on its own, which is what makes a hand-submitted answer arrive complete; this
+        // click is synthetic and leaves focus where it was, so without the blur the last thing
+        // the student wrote would not be sent and would be graded as unanswered. Both run in one
+        // script so the value reaches the server in the same request as the click.
         timerComponent.setOnTimeExpired(() -> {
             submitConfirmed = true;
-            submitButton.getElement().callJsFunction("click");
+            submitButton.getElement().executeJs(AUTO_SUBMIT_SCRIPT);
         });
     }
 
