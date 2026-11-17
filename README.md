@@ -41,8 +41,6 @@ repository.
 
 ![Main page — desktop](docs/screenshots/main-pc.png)
 
-![Chapter listing — desktop](docs/screenshots/chapters-pc.png)
-
 ![3D model viewer — desktop](docs/screenshots/model-pc.png)
 
 ![Chapter detail — desktop](docs/screenshots/chapter-pc.png)
@@ -51,9 +49,9 @@ repository.
 
 ### Mobile
 
-| Main page | Chapter listing | 3D Model viewer | Chapter detail | Quiz detail |
-|-----------|-----------------|-----------------|----------------|-------------|
-| ![Main page — mobile](docs/screenshots/main-mobile.png) | ![Chapter listing — mobile](docs/screenshots/chapters-mobile.png) | ![3D model viewer — mobile](docs/screenshots/model-mobile.png) | ![Chapter detail — mobile](docs/screenshots/chapter-mobile.png) | ![Quiz detail — mobile](docs/screenshots/quiz-mobile.png) |
+| Main page | 3D Model viewer | Chapter detail | Quiz detail |
+|-----------|-----------------|----------------|-------------|
+| ![Main page — mobile](docs/screenshots/main-mobile.png) | ![3D model viewer — mobile](docs/screenshots/model-mobile.png) | ![Chapter detail — mobile](docs/screenshots/chapter-mobile.png) | ![Quiz detail — mobile](docs/screenshots/quiz-mobile.png) |
 
 ## Testing
 
