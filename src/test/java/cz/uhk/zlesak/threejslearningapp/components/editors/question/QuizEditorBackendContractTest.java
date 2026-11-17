@@ -134,6 +134,9 @@ class QuizEditorBackendContractTest {
         rightItemSelects.get(2).setValue(1);
 
         assertThat(editor.validate()).isFalse();
+        // The backend's wording never reaches the author, because the editor refuses first; what
+        // the editor says has to stand on its own.
+        assertThat(editor.validationMessage()).contains("jen jednou");
 
         AbstractQuestionData question = editor.getQuestionData();
         AbstractAnswerData answer = editor.getAnswerData();
@@ -152,12 +155,36 @@ class QuizEditorBackendContractTest {
         rightItemSelects.get(1).setValue(2);
 
         assertThat(editor.validate()).isFalse();
+        assertThat(editor.validationMessage()).contains("stejný počet položek");
 
         AbstractQuestionData question = editor.getQuestionData();
         AbstractAnswerData answer = editor.getAnswerData();
         assertThatThrownBy(() -> validate(question, answer))
                 .isInstanceOf(BackendException.Validation.class)
                 .hasMessageContaining("levého sloupce právě jednou");
+    }
+
+    @Test
+    void saysNothingMoreWhenAMatchingQuestionIsFine() {
+        MatchingQuestionEditor editor = matchingEditor(List.of("L0", "L1", "L2"), List.of("R0", "R1", "R2"));
+        List<Select<Integer>> rightItemSelects = editorSelects(editor);
+        rightItemSelects.get(0).setValue(3);
+        rightItemSelects.get(1).setValue(1);
+        rightItemSelects.get(2).setValue(2);
+
+        assertThat(editor.validationMessage()).isNull();
+    }
+
+    @Test
+    void tellsTheAuthorWhichPairingRuleWasBroken() {
+        // Every message the editor can give is a sentence the author can act on, not a key and
+        // not the word "invalid".
+        MatchingQuestionEditor missingPair = matchingEditor(List.of("L0", "L1"), List.of("R0", "R1"));
+
+        assertThat(missingPair.validationMessage())
+                .isNotNull()
+                .doesNotStartWith("quiz.")
+                .contains("vyberte položku vlevo");
     }
 
     @Test

@@ -199,32 +199,45 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      */
     @Override
     public boolean validate() {
+        return validationMessage() == null;
+    }
+
+    /**
+     * Names the first thing wrong with the question, so the author is told which rule they broke
+     * rather than only that something is wrong. The two pairing rules in particular are easy to
+     * break by accident and impossible to spot by looking.
+     */
+    @Override
+    public String validationMessage() {
         if (getQuestionText() == null || getQuestionText().isEmpty()) {
-            return false;
+            return text("quiz.validation.question.textMissing");
         }
         if (options.size() < 2 || answerIndices.size() < 2) {
-            return false;
+            return text("quiz.validation.matching.tooFewItems");
         }
         for (QuestionOption field : options) {
             if (field.getOptionField().getValue() == null || field.getOptionField().getValue().isEmpty()) {
-                return false;
+                return text("quiz.validation.matching.itemEmpty");
             }
         }
         Set<Integer> chosenLeftItems = new HashSet<>();
         for (MatchQuestionOption field : answers) {
             if (field.getOptionField().getValue() == null || field.getOptionField().getValue().isEmpty()) {
-                return false;
+                return text("quiz.validation.matching.itemEmpty");
             }
             if(field.getOptionSelect().getValue()  == null ) {
-                return false;
+                return text("quiz.validation.matching.pairMissing");
             }
             // Each left item belongs to exactly one right item. Every select offers all of them, so
             // picking one twice is an easy slip, and the answer is keyed by the left item: the
             // second pair would overwrite the first and vanish without a word.
             if (!chosenLeftItems.add(field.getOptionSelect().getValue())) {
-                return false;
+                return text("quiz.validation.matching.leftItemUsedTwice");
             }
         }
-        return answers.size() == options.size();
+        if (answers.size() != options.size()) {
+            return text("quiz.validation.matching.columnsDiffer");
+        }
+        return null;
     }
 }

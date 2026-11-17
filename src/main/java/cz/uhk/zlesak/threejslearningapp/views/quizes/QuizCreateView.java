@@ -117,7 +117,8 @@ public class QuizCreateView extends AbstractQuizView {
             if (editor.validate()) {
                 new SuccessNotification(text("quiz.question.validated"));
             } else {
-                new ErrorNotification(text("quiz.question.validation.failed"));
+                String reason = editor.validationMessage();
+                new ErrorNotification(reason != null ? reason : text("quiz.question.validation.failed"));
             }
         });
 
@@ -272,9 +273,10 @@ public class QuizCreateView extends AbstractQuizView {
                 throw new ApplicationContextException(text("quiz.validation.questions.required"));
             }
 
-            for (QuestionEditorBase<?> editor : questionEditors) {
+            for (int index = 0; index < questionEditors.size(); index++) {
+                QuestionEditorBase<?> editor = questionEditors.get(index);
                 if (!editor.validate()) {
-                    throw new ApplicationContextException(text("quiz.validation.question.invalid"));
+                    throw new ApplicationContextException(questionInvalidMessage(index, editor));
                 }
             }
 
@@ -318,6 +320,23 @@ public class QuizCreateView extends AbstractQuizView {
             service.clearQuestionsAndAnswers();
             new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + e.getMessage());
         }
+    }
+
+    /**
+     * Builds what the author is told when a question will not save.
+     *
+     * <p>Naming the question matters as much as naming the fault: a quiz being written has several
+     * of them open at once, and "some question is not filled in correctly" leaves the author to
+     * find out which. The editor adds the reason where it knows one.
+     *
+     * @param index  zero-based position of the question.
+     * @param editor the editor that refused.
+     * @return the message to show.
+     */
+    private String questionInvalidMessage(int index, QuestionEditorBase<?> editor) {
+        String where = text("quiz.validation.question.at", index + 1);
+        String reason = editor.validationMessage();
+        return reason == null ? where : where + " " + reason;
     }
 
     /**

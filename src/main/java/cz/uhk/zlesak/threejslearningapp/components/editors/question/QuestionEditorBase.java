@@ -182,6 +182,20 @@ public abstract class QuestionEditorBase<QO extends AbstractOption> extends Vert
     public abstract boolean validate();
 
     /**
+     * Says why {@link #validate()} refused, when the editor can be specific about it.
+     *
+     * <p>The editor checks a question before the backend ever sees it, which is what makes the
+     * feedback immediate — but it also means the backend's own wording never reaches the author.
+     * Whatever an editor can explain here is shown to them instead of the generic refusal.
+     *
+     * @return the reason in the user's language, or {@code null} when there is nothing to add
+     * beyond "this question is not filled in correctly".
+     */
+    public String validationMessage() {
+        return null;
+    }
+
+    /**
      * Gets the question text.
      *
      * @return question text as String
