@@ -50,10 +50,19 @@ public class QuizResultBackendService {
         }
 
         String userId = currentUserProvider.requireUserId();
-        quizAttemptService.consume(submission.getQuizId());
+        // Checked first so a submission with no attempt behind it is refused before any work is
+        // done, but only spent once the result is about to be written. Consuming it up front made
+        // every later failure — a quiz that cannot be read, a grading error, a database hiccup —
+        // destroy the attempt of a student who had submitted in time, leaving them unable to
+        // submit at all. There is no transaction to lean on here: the store is a single Mongo
+        // node, so the marker is removed immediately before the write rather than after it, which
+        // keeps a single attempt from being graded twice.
+        quizAttemptService.requireInFlight(submission.getQuizId());
 
         QuizEntity quiz = quizBackendService.load(submission.getQuizId(), true);
         QuizGradingService.Graded graded = quizGradingService.grade(quiz, submission.getAnswers());
+
+        quizAttemptService.consume(submission.getQuizId());
 
         QuizValidationResult stored = quizResultRepository.save(QuizValidationResult.builder()
                 .userId(userId)
