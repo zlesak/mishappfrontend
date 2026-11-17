@@ -124,6 +124,7 @@ v lokální síti (`https://mish.local`), nebo veřejnou doménu.
 | **Certifikát** | `cert-init` vyrobí self-signed certifikát, u kterého bude prohlížeč varovat. Pro reálný provoz použijte Let's Encrypt (viz níže). |
 | **Porty** | Pokud Pi visí na veřejné IP, propusťte jen 80 a 443. Mongo ani Keycloak se ven nepublikují. |
 | **Zálohy** | Vše podstatné je ve volume `mongo-data`. Zálohujte jej (`docker run --rm -v mish_mongo-data:/data -v $PWD:/backup alpine tar czf /backup/mongo.tgz /data`). |
+| **Obnova samotné aplikace** | `docker compose up -d --force-recreate app` nechá stack na 502. Nový kontejner dostane jinou adresu v síti, ale nginx si tu původní drží z doby, kdy startoval, a sám ji nepřeloží znovu. Restartujte proto i bránu: `docker compose restart gateway`. |
 
 ### Skutečný certifikát
 
