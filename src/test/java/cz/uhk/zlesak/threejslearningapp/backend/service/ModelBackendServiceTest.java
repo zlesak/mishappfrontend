@@ -29,6 +29,7 @@ class ModelBackendServiceTest {
     private FileStorageService fileStorageService;
     private ChapterBackendService chapterBackendService;
     private ModelBackendService modelBackendService;
+    private CurrentUserProvider currentUserProvider;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -36,8 +37,10 @@ class ModelBackendServiceTest {
         modelRepository = Mockito.mock(ModelRepository.class);
         fileStorageService = Mockito.mock(FileStorageService.class);
         chapterBackendService = Mockito.mock(ChapterBackendService.class);
-        CurrentUserProvider currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        currentUserProvider = Mockito.mock(CurrentUserProvider.class);
         Mockito.when(currentUserProvider.requireUserId()).thenReturn("alice");
+        Mockito.doCallRealMethod().when(currentUserProvider)
+                .requireAuthorOrTeacher(Mockito.any(), Mockito.anyString());
 
         ObjectProvider<ChapterBackendService> chapterLookup = Mockito.mock(ObjectProvider.class);
         Mockito.when(chapterLookup.getObject()).thenReturn(chapterBackendService);
@@ -135,6 +138,38 @@ class ModelBackendServiceTest {
 
         Mockito.verify(fileStorageService).deleteTree(root);
         Mockito.verify(modelRepository).deleteById("model-1");
+    }
+
+    @Test
+    void letsOnlyTheAuthorOrATeacherDeleteAModel() {
+        ModelFileEntity root = file("f", "m.glb", FileSenseType.MODEL);
+        Mockito.when(modelRepository.findById("model-1")).thenReturn(Optional.of(
+                QuickModelEntity.builder().id("model-1").model(root).creatorId("someone-else").build()));
+        Mockito.when(currentUserProvider.hasRole("TEACHER")).thenReturn(false);
+
+        assertThatThrownBy(() -> modelBackendService.delete("model-1"))
+                .isInstanceOf(BackendException.Forbidden.class);
+
+        Mockito.verify(modelRepository, Mockito.never()).deleteById(Mockito.anyString());
+        Mockito.verify(fileStorageService, Mockito.never()).deleteTree(Mockito.any());
+    }
+
+    @Test
+    void letsOnlyTheAuthorOrATeacherReplaceAModelsFiles() {
+        Mockito.when(modelRepository.findById("model-1")).thenReturn(Optional.of(
+                QuickModelEntity.builder().id("model-1")
+                        .model(file("f", "m.glb", FileSenseType.MODEL))
+                        .creatorId("someone-else").build()));
+        Mockito.when(currentUserProvider.hasRole("TEACHER")).thenReturn(false);
+
+        InputFileDesc metadata = new InputFileDesc("m.glb", "Lebka", "", FileSenseType.MODEL, List.of(), null);
+
+        assertThatThrownBy(() -> modelBackendService.update("model-1", List.of(), metadata, "popis", false))
+                .isInstanceOf(BackendException.Forbidden.class);
+
+        // The replacement files must not be stored for a change that is going to be refused.
+        Mockito.verify(fileStorageService, Mockito.never()).store(Mockito.any(), Mockito.any());
+        Mockito.verify(modelRepository, Mockito.never()).save(Mockito.any());
     }
 
     @Test

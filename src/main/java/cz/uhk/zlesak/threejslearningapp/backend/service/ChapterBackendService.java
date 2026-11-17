@@ -83,10 +83,8 @@ public class ChapterBackendService {
         validate(chapter);
 
         String editorId = currentUserProvider.requireUserId();
-        if (existing.getCreatorId() != null && !existing.getCreatorId().equals(editorId)
-                && !currentUserProvider.hasRole("TEACHER")) {
-            throw new BackendException.Forbidden("Kapitolu může upravit pouze její autor.");
-        }
+        currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
+                "Kapitolu může upravit pouze její autor.");
 
         chapter.setCreatorId(existing.getCreatorId() != null ? existing.getCreatorId() : editorId);
         chapter.setCreatorName(existing.getCreatorName() != null
@@ -122,6 +120,8 @@ public class ChapterBackendService {
     @PreAuthorize("hasRole('CREATE_CHAPTER')")
     public void delete(String chapterId) {
         ChapterEntity chapter = load(chapterId);
+        currentUserProvider.requireAuthorOrTeacher(chapter.getCreatorId(),
+                "Kapitolu může smazat pouze její autor.");
         quizLookup.getObject().detachFromChapter(chapter.getId());
         chapterRepository.deleteById(chapter.getId());
         fullTextSearchService.remove(chapter.getId());

@@ -98,6 +98,8 @@ public class ModelBackendService {
                                    boolean advanced) {
         requireModelRoot(metadata);
         QuickModelEntity existing = require(modelId);
+        currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
+                "Model může upravit pouze jeho autor.");
         ModelFileEntity obsolete = existing.getModel();
 
         ModelFileEntity root = fileStorageService.store(index(files), metadata);
@@ -159,6 +161,8 @@ public class ModelBackendService {
     @PreAuthorize("hasRole('CREATE_CHAPTER')")
     public void delete(String modelId) {
         QuickModelEntity model = require(modelId);
+        currentUserProvider.requireAuthorOrTeacher(model.getCreatorId(),
+                "Model může smazat pouze jeho autor.");
 
         List<String> usedBy = chapterLookup.getObject().usingModel(modelId).stream()
                 .map(chapter -> chapter.getName() == null ? chapter.getId() : chapter.getName())

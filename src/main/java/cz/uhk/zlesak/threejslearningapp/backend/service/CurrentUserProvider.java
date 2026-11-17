@@ -95,4 +95,26 @@ public class CurrentUserProvider {
         return authentication.getAuthorities().stream()
                 .anyMatch(granted -> authority.equals(granted.getAuthority()));
     }
+
+    /**
+     * Lets a change through only for the author of the thing being changed, or for a teacher.
+     *
+     * <p>Whether this ever refuses anybody depends on how the realm is set up. With the bundled
+     * demo realm every account that can author content is a teacher, so it does not; a realm that
+     * hands out the authoring roles separately — which a deployment is free to do, and which
+     * {@code infra/.env.production.example} tells the operator to build for themselves — is
+     * exactly the case this guards. It is applied to every write that changes or removes existing
+     * content, so the rule does not depend on which screen the request came from.
+     *
+     * @param creatorId id of the account that created the thing, may be {@code null} for content
+     *                  that predates authorship being recorded.
+     * @param message   what to tell the user when they may not do this.
+     * @throws BackendException.Forbidden when the current user is neither the author nor a teacher.
+     */
+    public void requireAuthorOrTeacher(String creatorId, String message) {
+        String userId = requireUserId();
+        if (creatorId != null && !creatorId.equals(userId) && !hasRole("TEACHER")) {
+            throw new BackendException.Forbidden(message);
+        }
+    }
 }

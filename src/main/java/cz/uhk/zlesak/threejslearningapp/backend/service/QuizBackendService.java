@@ -70,6 +70,8 @@ public class QuizBackendService {
         }
         QuizEntity existing = load(quiz.getId(), true);
         validate(quiz);
+        currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
+                "Kvíz může upravit pouze jeho autor.");
 
         quiz.setCreatorId(existing.getCreatorId() != null ? existing.getCreatorId() : currentUserProvider.requireUserId());
         quiz.setCreatorName(existing.getCreatorName() != null
@@ -137,12 +139,22 @@ public class QuizBackendService {
     }
 
     /**
+     * Removes a quiz.
+     * The quiz is read first so that deleting one that is not there is reported as such rather
+     * than passing silently, and so the audit trail records the name that was removed instead of
+     * claiming a success for a request that changed nothing.
+     *
      * @param quizId id of the quiz.
+     * @throws BackendException.NotFound when no such quiz exists.
      */
     @PreAuthorize("hasRole('CREATE_QUIZ')")
     public void delete(String quizId) {
-        quizRepository.deleteById(quizId);
-        auditLog.success(AuditLog.Action.DELETE, "quiz", quizId, null);
+        QuizEntity existing = load(quizId, false);
+        currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
+                "Kvíz může smazat pouze jeho autor.");
+
+        quizRepository.deleteById(existing.getId());
+        auditLog.success(AuditLog.Action.DELETE, "quiz", existing.getId(), existing.getName());
     }
 
     /**

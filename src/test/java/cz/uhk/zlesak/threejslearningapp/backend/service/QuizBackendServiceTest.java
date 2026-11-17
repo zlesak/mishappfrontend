@@ -26,19 +26,25 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class QuizBackendServiceTest {
 
     private MongoTemplate mongoTemplate;
+    private QuizRepository quizRepository;
+    private CurrentUserProvider currentUserProvider;
+    private AuditLog auditLog;
     private QuizBackendService quizBackendService;
 
     @BeforeEach
     void setUp() {
         mongoTemplate = Mockito.mock(MongoTemplate.class);
+        quizRepository = Mockito.mock(QuizRepository.class);
+        currentUserProvider = Mockito.mock(CurrentUserProvider.class);
+        auditLog = Mockito.mock(AuditLog.class);
         quizBackendService = new QuizBackendService(
-                Mockito.mock(QuizRepository.class),
+                quizRepository,
                 mongoTemplate,
                 Mockito.mock(QuizAuthoringValidator.class),
                 Mockito.mock(ChapterBackendService.class),
                 Mockito.mock(ListingQueries.class),
-                Mockito.mock(CurrentUserProvider.class),
-                Mockito.mock(AuditLog.class));
+                currentUserProvider,
+                auditLog);
 
         Mockito.when(mongoTemplate.findOne(Mockito.any(), Mockito.eq(QuizEntity.class), Mockito.anyString()))
                 .thenReturn(QuizEntity.builder().name("Kvíz").build());
@@ -94,6 +100,39 @@ class QuizBackendServiceTest {
     void detachingIgnoresABlankChapterId() {
         assertThat(quizBackendService.detachFromChapter(" ")).isZero();
         Mockito.verifyNoInteractions(mongoTemplate);
+    }
+
+    @Test
+    void deletingAQuizChecksWhoAuthoredIt() {
+        Mockito.when(mongoTemplate.findOne(Mockito.any(), Mockito.eq(QuizEntity.class), Mockito.anyString()))
+                .thenReturn(QuizEntity.builder().id("quiz-1").name("Kvíz").creatorId("alice").build());
+
+        quizBackendService.delete("quiz-1");
+
+        Mockito.verify(currentUserProvider).requireAuthorOrTeacher(Mockito.eq("alice"), Mockito.anyString());
+        Mockito.verify(quizRepository).deleteById("quiz-1");
+    }
+
+    @Test
+    void deletingAQuizThatIsNotThereIsReportedRatherThanAuditedAsASuccess() {
+        Mockito.when(mongoTemplate.findOne(Mockito.any(), Mockito.eq(QuizEntity.class), Mockito.anyString()))
+                .thenReturn(null);
+
+        assertThatThrownBy(() -> quizBackendService.delete("gone"))
+                .isInstanceOf(BackendException.NotFound.class);
+
+        Mockito.verify(quizRepository, Mockito.never()).deleteById(Mockito.anyString());
+        Mockito.verifyNoInteractions(auditLog);
+    }
+
+    @Test
+    void deletingAQuizRecordsTheNameThatWasRemoved() {
+        Mockito.when(mongoTemplate.findOne(Mockito.any(), Mockito.eq(QuizEntity.class), Mockito.anyString()))
+                .thenReturn(QuizEntity.builder().id("quiz-1").name("Kvíz o mozku").build());
+
+        quizBackendService.delete("quiz-1");
+
+        Mockito.verify(auditLog).success(AuditLog.Action.DELETE, "quiz", "quiz-1", "Kvíz o mozku");
     }
 
     private Query capturedQuery() {

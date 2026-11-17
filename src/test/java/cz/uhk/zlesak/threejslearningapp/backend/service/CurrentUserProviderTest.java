@@ -76,6 +76,50 @@ class CurrentUserProviderTest {
         assertThat(currentUserProvider.hasRole("ADMIN")).isFalse();
     }
 
+    @Test
+    void letsAnAuthorChangeTheirOwnContent() {
+        authenticateAs("alice-sub", "ROLE_CREATE_CHAPTER");
+
+        currentUserProvider.requireAuthorOrTeacher("alice-sub", "Nesmíš.");
+    }
+
+    @Test
+    void letsATeacherChangeSomebodyElsesContent() {
+        authenticateAs("alice-sub", "ROLE_CREATE_CHAPTER", "ROLE_TEACHER");
+
+        currentUserProvider.requireAuthorOrTeacher("bart-sub", "Nesmíš.");
+    }
+
+    @Test
+    void refusesAnAuthorWhoIsNeitherTheOwnerNorATeacher() {
+        // A realm that hands out the authoring role without making everyone a teacher: the demo
+        // realm does not do this, a deployment's own realm may.
+        authenticateAs("alice-sub", "ROLE_CREATE_CHAPTER");
+
+        assertThatThrownBy(() -> currentUserProvider.requireAuthorOrTeacher("bart-sub", "Nesmíš."))
+                .isInstanceOf(BackendException.Forbidden.class)
+                .hasMessage("Nesmíš.");
+    }
+
+    @Test
+    void letsAnyoneChangeContentThatRecordsNoAuthor() {
+        authenticateAs("alice-sub", "ROLE_CREATE_CHAPTER");
+
+        currentUserProvider.requireAuthorOrTeacher(null, "Nesmíš.");
+    }
+
+    @Test
+    void refusesAnAnonymousCallerOutright() {
+        assertThatThrownBy(() -> currentUserProvider.requireAuthorOrTeacher("alice-sub", "Nesmíš."))
+                .isInstanceOf(BackendException.Forbidden.class);
+    }
+
+    private void authenticateAs(String subject, String... authorities) {
+        OidcUser oidcUser = Mockito.mock(OidcUser.class);
+        Mockito.when(oidcUser.getSubject()).thenReturn(subject);
+        authenticate(oidcUser, authorities);
+    }
+
     private void authenticate(Object principal, String... authorities) {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                 principal, "n/a", List.of(authorities).stream().map(SimpleGrantedAuthority::new).toList()));
