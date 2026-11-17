@@ -11,6 +11,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.Location;
+import cz.uhk.zlesak.threejslearningapp.components.commonComponents.PaginationComponent;
 import cz.uhk.zlesak.threejslearningapp.components.inputs.ListingToolbar;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
@@ -38,6 +39,7 @@ import java.util.List;
 
 import static cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport.findAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -148,6 +150,32 @@ class ChapterListingViewKaribuTest {
 
         assertTrue(findAll(view, H2.class).stream()
                 .anyMatch(heading -> "Nebyly nalezeny žádné položky.".equals(heading.getText())));
+    }
+
+    @Test
+    void aPageThatCameBackEmptyStillOffersAWayBackToTheItemsThatRemain() {
+        // Deleting the last chapter on the last page leaves the listing asking for a page past the
+        // end: no rows, but eleven chapters still there. Without the pager the screen says nothing
+        // was found and offers nothing to click.
+        when(chapterService.readEntities(any())).thenReturn(new PageResult<>(List.of(), 11L, 2));
+        ChapterListingView view = new ChapterListingView(chapterService);
+        UI.getCurrent().add(view);
+        view.afterNavigation(mockNavigationEvent("chapters"));
+        MockVaadin.clientRoundtrip(false);
+
+        assertFalse(findAll(view, PaginationComponent.class).isEmpty(),
+                "An empty page of a non-empty listing is a dead end without the pager");
+    }
+
+    @Test
+    void aTrulyEmptyListingHasNothingToPageThrough() {
+        when(chapterService.readEntities(any())).thenReturn(new PageResult<>(List.of(), 0L, 0));
+        ChapterListingView view = new ChapterListingView(chapterService);
+        UI.getCurrent().add(view);
+        view.afterNavigation(mockNavigationEvent("chapters"));
+        MockVaadin.clientRoundtrip(false);
+
+        assertTrue(findAll(view, PaginationComponent.class).isEmpty());
     }
 
     @Test

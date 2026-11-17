@@ -6,6 +6,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextField;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.ListingQueries;
 import cz.uhk.zlesak.threejslearningapp.events.threejs.SearchEvent;
 import cz.uhk.zlesak.threejslearningapp.testsupport.VaadinTestSupport;
 import org.junit.jupiter.api.AfterEach;
@@ -213,6 +214,43 @@ class ListingToolbarTest {
     @SuppressWarnings("unchecked")
     private Select<String> orderBySelect(ListingToolbar toolbar) {
         return (Select<String>) read(toolbar, "orderBySelect");
+    }
+
+    @Test
+    void everySortTheToolbarOffersIsOneTheBackendCanActuallyApply() throws Exception {
+        // The options come from reflection over the entity, the backend's allowlist is written out
+        // by hand, and a sort that is on one list but not the other is dropped without a word --
+        // the control moves, the listing does not. Tying the two together is what notices that.
+        ListingToolbar toolbar = new ListingToolbar();
+        ListingQueries listingQueries = new ListingQueries(null);
+        Method normalise = ListingQueries.class.getDeclaredMethod("normaliseSortField", String.class);
+        normalise.setAccessible(true);
+
+        for (String offered : offeredSortFields(toolbar)) {
+            assertNotNull(normalise.invoke(listingQueries, offered),
+                    "Sorting by '" + offered + "' is offered in the toolbar but the backend drops it");
+        }
+    }
+
+    @Test
+    void everySortTheToolbarOffersIsNamedInTheUsersLanguage() {
+        ListingToolbar toolbar = new ListingToolbar();
+        Select<String> select = orderBySelect(toolbar);
+
+        for (String offered : select.getListDataView().getItems().toList()) {
+            String label = select.getItemLabelGenerator().apply(offered);
+            // An unknown key comes back as the key itself, which is what the user would then read.
+            assertFalse(label.startsWith("filter."),
+                    "Sorting by '" + offered + "' shows the untranslated key '" + label + "'");
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> offeredSortFields(ListingToolbar toolbar) throws Exception {
+        Method method = ListingToolbar.class.getDeclaredMethod("extractFieldNames", Class.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(toolbar,
+                cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity.class);
     }
 
     private Button directionButton(ListingToolbar toolbar) {

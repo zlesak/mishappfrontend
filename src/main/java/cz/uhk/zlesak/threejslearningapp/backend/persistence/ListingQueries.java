@@ -32,7 +32,8 @@ public class ListingQueries {
      * so a stale or hand-crafted sort parameter cannot reach arbitrary document fields.
      */
     private static final Set<String> SORTABLE_FIELDS =
-            Set.of("name", "created", "updated", "description", "creatorId", "totalScore", "percentage");
+            Set.of("name", "created", "updated", "description", "creatorId", "creatorName", "totalScore",
+                    "percentage");
 
     private final MongoTemplate mongoTemplate;
 

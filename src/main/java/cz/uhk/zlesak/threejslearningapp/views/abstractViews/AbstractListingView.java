@@ -268,6 +268,10 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
             listMessages.add(new NoItemInfoComponent(additionalInfo[0]));
         }
 
+        // The real count, even when this particular page came back empty. Reporting zero told the
+        // rest of the screen the listing was empty when it was not, which is a different thing.
+        long total = pageResult == null ? 0 : pageResult.total();
+
         if (entities.isEmpty()) {
             listMessages.add(new NoItemInfoComponent("page.info.noItemsFound"));
             if (emptyStateAction != null) {
@@ -277,27 +281,32 @@ public abstract class AbstractListingView<Q extends AbstractEntity, F extends Fi
                 }
             }
             pageHeader.setMeta(text("listing.meta.empty"));
-            notifyTotal(0);
+        } else {
+            for (Q entity : entities) {
+                EntityRow row = createListItem(entity);
+                row.setSelectButtonClickListener(e -> {
+                    if (entitySelectedListener != null) {
+                        entitySelectedListener.accept(entity);
+                    }
+                });
+                ListItem item = new ListItem(row);
+                item.getStyle().set("width", "100%");
+                entityList.add(item);
+            }
+
+            // Announced through the header's live region: a filter that silently swaps the rows leaves a
+            // screen reader user with no way of knowing whether anything happened.
+            pageHeader.setMeta(text("listing.meta.shown", entities.size(), total));
+        }
+
+        notifyTotal(total);
+
+        // Drawn whenever the listing holds anything at all, including on a page that came back
+        // empty: deleting the last item of the last page leaves the user past the end, and
+        // without the pager there is nothing on screen that leads back to the items that remain.
+        if (total <= 0) {
             return;
         }
-
-        for (Q entity : entities) {
-            EntityRow row = createListItem(entity);
-            row.setSelectButtonClickListener(e -> {
-                if (entitySelectedListener != null) {
-                    entitySelectedListener.accept(entity);
-                }
-            });
-            ListItem item = new ListItem(row);
-            item.getStyle().set("width", "100%");
-            entityList.add(item);
-        }
-
-        long total = pageResult.total();
-        // Announced through the header's live region: a filter that silently swaps the rows leaves a
-        // screen reader user with no way of knowing whether anything happened.
-        pageHeader.setMeta(text("listing.meta.shown", entities.size(), total));
-        notifyTotal(total);
 
         PaginationComponent pagination = new PaginationComponent(
                 filterParameters.getPageRequest().getPageNumber(),

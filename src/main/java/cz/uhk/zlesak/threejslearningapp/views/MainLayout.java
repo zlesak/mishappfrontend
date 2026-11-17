@@ -129,7 +129,11 @@ public class MainLayout extends AppLayout implements I18nAware {
         UI.getCurrent().getPage().executeJs(
                 "const match = document.cookie.match('(^|;) ?cookieConsent=([^;]*)(;|$)'); return match ? match[2] : null;"
         ).then(String.class, value -> {
-            if (!"accepted".equals(value)) {
+            // Asking again only while no answer has been recorded. Testing for "accepted" alone
+            // meant a recorded refusal counted as no answer, so the bar came back on every load
+            // and took the focus with it -- which is worse for the person who declined than for
+            // the one who agreed.
+            if (value == null || value.isBlank()) {
                 showCookieNotification();
             }
         });

@@ -13,6 +13,7 @@
   "filter.toggle.hide": "Filtry (skrýt)",
   "filter.advanced.show": "Další filtry",
   "filter.advanced.hide": "Skrýt další filtry",
+  "filter.creatorname.label": "Autor",
   "filter.creator.label": "Autor",
   "filter.creator.placeholder": "např. novakj",
   "filter.createdFrom.label": "Vytvořeno od",

@@ -1,5 +1,6 @@
 package cz.uhk.zlesak.threejslearningapp.components.inputs;
 
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.ComponentUtil;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
@@ -57,6 +58,8 @@ public class ListingToolbar extends HorizontalLayout implements I18nAware {
     private final TextField modelNameField;
     private Sort.Direction sortDirection = Sort.Direction.ASC;
     private boolean advancedVisible = false;
+    /** The browser's zone once it is known; the server's until then. See {@link #onAttach}. */
+    private ZoneId viewerZone = ZoneId.systemDefault();
 
     /**
      * Constructs the toolbar without the chapter-only model filter.
@@ -292,13 +295,33 @@ public class ListingToolbar extends HorizontalLayout implements I18nAware {
     }
 
     /** The whole of the chosen day counts, so "from" starts at midnight in the viewer's own zone. */
-    private static Instant startOfDay(LocalDate date) {
-        return date == null ? null : date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+    private Instant startOfDay(LocalDate date) {
+        return date == null ? null : date.atStartOfDay(viewerZone).toInstant();
     }
 
     /** And "to" runs to the last moment of that day, not to its beginning. */
-    private static Instant endOfDay(LocalDate date) {
-        return date == null ? null : date.atTime(LocalTime.MAX).atZone(ZoneId.systemDefault()).toInstant();
+    private Instant endOfDay(LocalDate date) {
+        return date == null ? null : date.atTime(LocalTime.MAX).atZone(viewerZone).toInstant();
+    }
+
+    /**
+     * Picks up the browser's time zone, so a chosen day means that day where the user is.
+     *
+     * <p>The JVM's own zone is the server's -- UTC in the container -- which quietly dropped the
+     * early hours of a day for anyone east of it: an item created at 00:30 in Prague is still the
+     * previous day in UTC, so filtering "created from today" lost it. Vaadin caches the client
+     * details after the first round trip, so the zone is known well before anyone has finished
+     * picking a date; until then the server's zone stands in, as it did before.
+     */
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        attachEvent.getUI().getPage().retrieveExtendedClientDetails(details -> {
+            String timeZoneId = details.getTimeZoneId();
+            if (timeZoneId != null && ZoneId.getAvailableZoneIds().contains(timeZoneId)) {
+                viewerZone = ZoneId.of(timeZoneId);
+            }
+        });
     }
 
     /**
