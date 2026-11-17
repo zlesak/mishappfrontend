@@ -60,7 +60,7 @@ class QuestionRendererComponentsTest {
     }
 
     @Test
-    void multipleChoiceRendererShouldConvertToOneBasedIndices() {
+    void multipleChoiceRendererShouldSubmitTheOptionsOwnZeroBasedIndices() {
         MultipleChoiceQuestionRendererComponent component = new MultipleChoiceQuestionRendererComponent(multipleChoiceQuestion());
         AtomicReference<MultipleChoiceSubmissionData> captured = new AtomicReference<>();
         component.setAnswerChangedListener(data -> captured.set((MultipleChoiceSubmissionData) data));
@@ -69,8 +69,8 @@ class QuestionRendererComponentsTest {
         checkboxGroup.setValue(java.util.Set.of(0, 2));
 
         MultipleChoiceSubmissionData submission = component.getSubmissionData();
-        assertEquals(List.of(1, 3), submission.getSelectedItems().stream().sorted().toList());
-        assertEquals(List.of(1, 3), captured.get().getSelectedItems().stream().sorted().toList());
+        assertEquals(List.of(0, 2), submission.getSelectedItems().stream().sorted().toList());
+        assertEquals(List.of(0, 2), captured.get().getSelectedItems().stream().sorted().toList());
     }
 
     @Test

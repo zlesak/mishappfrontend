@@ -6,7 +6,6 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.submission.MultipleChoiceSub
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Renderer for multiple choice questions during quiz taking.
@@ -41,7 +40,9 @@ public class MultipleChoiceQuestionRendererComponent extends AbstractQuestionRen
         return MultipleChoiceSubmissionData.builder()
                 .questionId(question.getQuestionId())
                 .type(question.getType())
-                .selectedItems(checkboxGroup.getValue().stream().map(i -> i + 1).collect(Collectors.toList()))  // +1 to convert from 0-based to 1-based index as answer is stored with 1-based index
+                // The checkbox group is keyed by the option's own 0-based index, which is the
+                // convention the stored answer key uses too, so the submission needs no shift.
+                .selectedItems(new ArrayList<>(checkboxGroup.getValue()))
                 .build();
     }
 

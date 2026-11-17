@@ -29,7 +29,7 @@ class QuizAuthoringValidatorTest {
     private final QuizAuthoringValidator validator = new QuizAuthoringValidator(fileStorageService);
 
     @Test
-    void linksEachQuestionToItsAnswerWithAFreshSharedId() {
+    void linksEachQuestionToItsAnswerWithASharedId() {
         AbstractQuestionData first = singleChoiceQuestion(2);
         AbstractQuestionData second = singleChoiceQuestion(3);
         AbstractAnswerData firstAnswer = singleChoiceAnswer(0);
@@ -40,6 +40,32 @@ class QuizAuthoringValidatorTest {
         assertThat(first.getQuestionId()).isNotBlank().isEqualTo(firstAnswer.getQuestionId());
         assertThat(second.getQuestionId()).isNotBlank().isEqualTo(secondAnswer.getQuestionId());
         assertThat(first.getQuestionId()).isNotEqualTo(second.getQuestionId());
+    }
+
+    @Test
+    void keepsTheIdsOfQuestionsThatAlreadyHaveOne() {
+        AbstractQuestionData question = singleChoiceQuestion(2);
+        question.setQuestionId("otazka-1");
+        AbstractAnswerData answer = singleChoiceAnswer(0);
+
+        validator.validate(new ArrayList<>(List.of(question)), new ArrayList<>(List.of(answer)));
+
+        assertThat(question.getQuestionId()).isEqualTo("otazka-1");
+        assertThat(answer.getQuestionId()).isEqualTo("otazka-1");
+    }
+
+    @Test
+    void mintsAFreshIdWhenTwoQuestionsArriveUnderTheSameOne() {
+        AbstractQuestionData first = singleChoiceQuestion(2);
+        AbstractQuestionData second = singleChoiceQuestion(3);
+        first.setQuestionId("duplicitni");
+        second.setQuestionId("duplicitni");
+
+        validator.validate(new ArrayList<>(List.of(first, second)),
+                new ArrayList<>(List.of(singleChoiceAnswer(0), singleChoiceAnswer(1))));
+
+        assertThat(first.getQuestionId()).isEqualTo("duplicitni");
+        assertThat(second.getQuestionId()).isNotBlank().isNotEqualTo("duplicitni");
     }
 
     @Test
@@ -117,7 +143,7 @@ class QuizAuthoringValidatorTest {
     }
 
     @Test
-    void normalisesAcceptedOpenTextAnswersSoGradingCanCompareThemDirectly() {
+    void tidiesAcceptedOpenTextAnswersWithoutLosingTheAuthorsCapitalisation() {
         OpenTextQuestionData question = new OpenTextQuestionData();
         question.setQuestionText("Otázka");
         question.setType(QuestionTypeEnum.OPEN_TEXT);
@@ -129,7 +155,7 @@ class QuizAuthoringValidatorTest {
 
         validator.validate(new ArrayList<>(List.of(question)), new ArrayList<>(List.of(answer)));
 
-        assertThat(answer.getAcceptableAnswers()).containsExactly("mozek", "mozeček");
+        assertThat(answer.getAcceptableAnswers()).containsExactly("Mozek", "mozeček");
     }
 
     @Test

@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -83,15 +82,35 @@ public class QuizGradingService {
             case OrderingAnswerData expected -> submission instanceof OrderingSubmissionData actual
                     && Objects.equals(expected.getCorrectOrder(), actual.getOrder());
             case OpenTextAnswerData expected -> submission instanceof OpenTextSubmissionData actual
-                    && expected.getAcceptableAnswers() != null
-                    && expected.getAcceptableAnswers().stream()
-                    .map(QuizGradingService::normalise)
-                    .anyMatch(accepted -> accepted.equals(normalise(actual.getText())));
+                    && matchesAnAcceptedAnswer(expected, actual.getText());
             case TextureClickAnswerData expected -> submission instanceof TextureClickSubmissionData actual
                     && expected.getHexColor() != null
                     && expected.getHexColor().equalsIgnoreCase(actual.getHexColor());
             default -> false;
         };
+    }
+
+    /**
+     * Compares a typed answer with the ones the author accepted.
+     * Surrounding space is always ignored, because it is never what the author meant to test.
+     * Case is only ignored when the author cleared "exact match"; leaving it on is what lets a
+     * question about spelling or capitalisation be marked as such.
+     *
+     * @param expected the accepted answers and the author's matching preference.
+     * @param typed    what the student wrote, may be {@code null}.
+     * @return whether the typed text counts as correct.
+     */
+    private boolean matchesAnAcceptedAnswer(OpenTextAnswerData expected, String typed) {
+        if (expected.getAcceptableAnswers() == null) {
+            return false;
+        }
+        boolean exact = Boolean.TRUE.equals(expected.getExactMatch());
+        String actual = typed == null ? "" : typed.trim();
+
+        return expected.getAcceptableAnswers().stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .anyMatch(accepted -> exact ? accepted.equals(actual) : accepted.equalsIgnoreCase(actual));
     }
 
     private Map<String, AbstractQuestionData> indexQuestions(QuizEntity quiz) {
@@ -132,10 +151,6 @@ public class QuizGradingService {
 
     private static Set<Integer> asSet(List<Integer> values) {
         return values == null ? Set.of() : new HashSet<>(values);
-    }
-
-    private static String normalise(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
     /**

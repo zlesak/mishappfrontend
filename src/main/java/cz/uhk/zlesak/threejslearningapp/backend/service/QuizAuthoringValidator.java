@@ -19,9 +19,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -50,6 +53,7 @@ public class QuizAuthoringValidator {
             throw new BackendException.Validation("Kvíz musí obsahovat odpověď ke každé otázce.");
         }
 
+        Set<String> assignedIds = new HashSet<>();
         for (int index = 0; index < questions.size(); index++) {
             AbstractQuestionData question = questions.get(index);
             AbstractAnswerData answer = answers.get(index);
@@ -57,13 +61,31 @@ public class QuizAuthoringValidator {
                 throw new BackendException.Validation("Otázka i odpověď musí být vyplněny.");
             }
 
-            String questionId = UUID.randomUUID().toString();
+            String questionId = keepOrMint(question.getQuestionId(), assignedIds);
             question.setQuestionId(questionId);
             answer.setQuestionId(questionId);
 
             validateCommon(question, answer, index);
             validateByType(question, answer, index);
         }
+    }
+
+    /**
+     * Keeps a question's existing id across edits, because an attempt that is already open was
+     * handed those ids and is graded by them: re-minting on every save would silently score a
+     * quiz edited mid-attempt as zero. A fresh id is minted only when there is none yet, or when
+     * the quiz carries the same id twice, which would otherwise collapse two questions into one.
+     *
+     * @param existing    id the question arrived with, may be {@code null}.
+     * @param assignedIds ids already used by earlier questions of this quiz.
+     * @return the id to use, recorded as taken.
+     */
+    private String keepOrMint(String existing, Set<String> assignedIds) {
+        String questionId = existing != null && !existing.isBlank() && !assignedIds.contains(existing)
+                ? existing
+                : UUID.randomUUID().toString();
+        assignedIds.add(questionId);
+        return questionId;
     }
 
     private void validateCommon(AbstractQuestionData question, AbstractAnswerData answer, int index) {
@@ -124,11 +146,7 @@ public class QuizAuthoringValidator {
             case OpenTextQuestionData ignored -> {
                 OpenTextAnswerData typed = (OpenTextAnswerData) answer;
                 requireNotEmpty(typed.getAcceptableAnswers(), at(index) + " musí mít alespoň jednu uznávanou odpověď.");
-                typed.setAcceptableAnswers(typed.getAcceptableAnswers().stream()
-                        .filter(text -> text != null && !text.isBlank())
-                        .map(text -> text.trim().toLowerCase(Locale.ROOT))
-                        .distinct()
-                        .toList());
+                typed.setAcceptableAnswers(trimmedDistinctAnswers(typed.getAcceptableAnswers()));
                 requireNotEmpty(typed.getAcceptableAnswers(), at(index) + " musí mít alespoň jednu uznávanou odpověď.");
             }
             case TextureClickQuestionData typed -> {
@@ -160,6 +178,25 @@ public class QuizAuthoringValidator {
             case ORDERING -> question instanceof OrderingQuestionData && answer instanceof OrderingAnswerData;
             case TEXTURE_CLICK -> question instanceof TextureClickQuestionData && answer instanceof TextureClickAnswerData;
         };
+    }
+
+    /**
+     * Tidies the accepted answers of an open question without destroying them: surrounding space
+     * goes, blanks go, and spellings that differ only in case collapse onto the first one the
+     * author wrote. The case itself is kept, because an answer marked as an exact match is graded
+     * against it literally.
+     *
+     * @param answers accepted answers as the author typed them.
+     * @return the tidied answers, in the author's order.
+     */
+    private List<String> trimmedDistinctAnswers(List<String> answers) {
+        Map<String, String> byComparisonKey = new LinkedHashMap<>();
+        for (String text : answers) {
+            if (text != null && !text.isBlank()) {
+                byComparisonKey.putIfAbsent(text.trim().toLowerCase(Locale.ROOT), text.trim());
+            }
+        }
+        return List.copyOf(byComparisonKey.values());
     }
 
     private int requireOptions(List<String> options, int index) {

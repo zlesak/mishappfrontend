@@ -118,12 +118,15 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
         if (answerData instanceof MatchingAnswerData data) {
             Map<Integer, Integer> matches = data.getCorrectMatches();
             if (matches != null) {
+                // The stored map is keyed by the left item, while the editor asks the author to
+                // pick a left item on each right one, so the pair is looked up by its value.
                 for (MatchQuestionOption answer : answers) {
                     Integer rightIdx = answer.getIndex() - 1;
-                    if (matches.containsKey(rightIdx)) {
-                        Integer leftIdx = matches.get(rightIdx);
-                        answer.getOptionSelect().setValue(leftIdx + 1);
-                    }
+                    matches.entrySet().stream()
+                            .filter(match -> rightIdx.equals(match.getValue()))
+                            .map(Map.Entry::getKey)
+                            .findFirst()
+                            .ifPresent(leftIdx -> answer.getOptionSelect().setValue(leftIdx + 1));
                 }
             }
         }
@@ -172,10 +175,13 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
      */
     @Override
     public AbstractAnswerData getAnswerData() {
+        // Keyed by the left item, which is the direction the student's submission and the
+        // validator's range checks both use; the editor collects the pairs the other way round
+        // because the select sits on the right item.
         Map<Integer, Integer> correctMatches = new HashMap<>();
         answers.forEach(answer -> {
-            Integer rightIndex = answer.getOptionSelect().getValue() - 1;
-            correctMatches.put(answer.getIndex() - 1, rightIndex);
+            Integer leftIndex = answer.getOptionSelect().getValue() - 1;
+            correctMatches.put(leftIndex, answer.getIndex() - 1);
         });
 
         return MatchingAnswerData.builder()
