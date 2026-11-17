@@ -2,8 +2,9 @@ name: E2E
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * *'
+  # The nightly run is deliberately off (#32); the suite runs on pull requests and on demand.
+  #schedule:
+  #  - cron: '0 3 * * *'
   pull_request:
     branches: [ main, monolith ]
 
