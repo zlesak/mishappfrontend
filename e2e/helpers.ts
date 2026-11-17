@@ -116,7 +116,11 @@ export async function login(page: Page, username: string, password: string): Pro
     // Keycloak discarded the authentication session rather than rejecting the credentials, so the
     // same credentials are worth sending once more. Measured as enough: three restarts out of
     // three let the second attempt through, each inside two seconds.
-    console.warn('[E2E][LOGIN] Keycloak discarded the login attempt, submitting once more');
+    // On stdout with the [E2E] prefix the rest of the suite uses, so a CI log tells apart a run
+    // where this never happened from one where the retry quietly saved it. Those look identical
+    // from the result alone, and a single clean run has already been read as "the flake is gone"
+    // once, wrongly.
+    console.info('[E2E][LOGIN] Keycloak discarded the login attempt, submitting once more');
     outcome = await submitCredentials(page, username, password);
   }
 
