@@ -6,6 +6,7 @@ import com.vaadin.flow.component.combobox.MultiSelectComboBox;
 import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.TextArea;
+import cz.uhk.zlesak.threejslearningapp.backend.BackendException;
 import cz.uhk.zlesak.threejslearningapp.backend.service.FileStorageService;
 import cz.uhk.zlesak.threejslearningapp.backend.service.QuizAuthoringValidator;
 import cz.uhk.zlesak.threejslearningapp.backend.service.QuizGradingService;
@@ -29,6 +30,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Drives a question from the real editor, through the real validator, into the real grading
@@ -119,6 +121,66 @@ class QuizEditorBackendContractTest {
         leftItemSelects.get(2).setValue(0);
 
         assertThat(score(question, answer, renderer.getSubmissionData())).isEqualTo(5);
+    }
+
+    @Test
+    void refusesAMatchingQuestionThatUsesTheSameLeftItemTwice() {
+        // The answer key is keyed by the left item, so a left item chosen for two right items
+        // would overwrite its own earlier pair and leave a question nobody can answer correctly.
+        MatchingQuestionEditor editor = matchingEditor(List.of("L0", "L1", "L2"), List.of("R0", "R1", "R2"));
+        List<Select<Integer>> rightItemSelects = editorSelects(editor);
+        rightItemSelects.get(0).setValue(1);
+        rightItemSelects.get(1).setValue(2);
+        rightItemSelects.get(2).setValue(1);
+
+        assertThat(editor.validate()).isFalse();
+
+        AbstractQuestionData question = editor.getQuestionData();
+        AbstractAnswerData answer = editor.getAnswerData();
+        assertThatThrownBy(() -> validate(question, answer))
+                .isInstanceOf(BackendException.Validation.class)
+                .hasMessageContaining("levého sloupce právě jednou");
+    }
+
+    @Test
+    void refusesAMatchingQuestionWhoseColumnsAreOfDifferentLengths() {
+        // Three left items but two right ones: the student is asked for three pairs and the key
+        // can only hold two, so the question can never be answered correctly.
+        MatchingQuestionEditor editor = matchingEditor(List.of("L0", "L1", "L2"), List.of("R0", "R1"));
+        List<Select<Integer>> rightItemSelects = editorSelects(editor);
+        rightItemSelects.get(0).setValue(1);
+        rightItemSelects.get(1).setValue(2);
+
+        assertThat(editor.validate()).isFalse();
+
+        AbstractQuestionData question = editor.getQuestionData();
+        AbstractAnswerData answer = editor.getAnswerData();
+        assertThatThrownBy(() -> validate(question, answer))
+                .isInstanceOf(BackendException.Validation.class)
+                .hasMessageContaining("levého sloupce právě jednou");
+    }
+
+    @Test
+    void acceptsAMatchingQuestionThatPairsEveryItemExactlyOnce() {
+        MatchingQuestionEditor editor = matchingEditor(List.of("L0", "L1", "L2"), List.of("R0", "R1", "R2"));
+        List<Select<Integer>> rightItemSelects = editorSelects(editor);
+        rightItemSelects.get(0).setValue(3);
+        rightItemSelects.get(1).setValue(1);
+        rightItemSelects.get(2).setValue(2);
+
+        assertThat(editor.validate()).isTrue();
+    }
+
+    private MatchingQuestionEditor matchingEditor(List<String> leftItems, List<String> rightItems) {
+        MatchingQuestionEditor editor = new MatchingQuestionEditor();
+        editor.initialize(MatchingQuestionData.builder()
+                .questionText("Spoj dvojice")
+                .type(QuestionTypeEnum.MATCHING)
+                .points(5)
+                .leftItems(leftItems)
+                .rightItems(rightItems)
+                .build());
+        return editor;
     }
 
     @Test

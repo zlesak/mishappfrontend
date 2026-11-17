@@ -29,6 +29,7 @@
   "pagination.label": "Stránkování",
   "pagination.pageSize": "Na stránku",
   "pagination.range": "Zobrazeno {0}–{1} z {2}",
+  "pagination.rangeEmptyPage": "Na této stránce nic není, celkem {0}",
   "pagination.previous": "Předchozí stránka",
   "pagination.next": "Následující stránka",
   "pagination.page": "Stránka {0}",

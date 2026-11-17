@@ -127,11 +127,21 @@ public class QuizAuthoringValidator {
                 if (matches == null || matches.isEmpty()) {
                     throw new BackendException.Validation(at(index) + " musí mít vyplněné správné dvojice.");
                 }
-                if (matches.size() > Math.min(left, right)) {
-                    throw new BackendException.Validation(at(index) + " má více dvojic, než kolik je položek.");
-                }
                 requireInRange(matches.keySet(), left, index);
                 requireInRange(matches.values(), right, index);
+                // The student answers by choosing a partner for every left item, and grading
+                // compares the two maps whole. So the answer key has to name every left item
+                // exactly once: a key short of that is a question nobody can get right, however
+                // the gap arose -- a left item picked twice in the editor, or columns of
+                // different lengths.
+                if (matches.size() != left) {
+                    throw new BackendException.Validation(
+                            at(index) + " musí spojit každou položku levého sloupce právě jednou.");
+                }
+                if (matches.values().stream().distinct().count() != matches.size()) {
+                    throw new BackendException.Validation(
+                            at(index) + " má jednu položku pravého sloupce přiřazenou k více položkám levého.");
+                }
             }
             case OrderingQuestionData typed -> {
                 int items = requireOptions(typed.getItems(), index);

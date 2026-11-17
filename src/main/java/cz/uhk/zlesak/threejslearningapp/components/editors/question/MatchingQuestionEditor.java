@@ -18,8 +18,10 @@ import cz.uhk.zlesak.threejslearningapp.domain.quiz.question.AbstractQuestionDat
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -208,6 +210,7 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
                 return false;
             }
         }
+        Set<Integer> chosenLeftItems = new HashSet<>();
         for (MatchQuestionOption field : answers) {
             if (field.getOptionField().getValue() == null || field.getOptionField().getValue().isEmpty()) {
                 return false;
@@ -215,7 +218,13 @@ public class MatchingQuestionEditor extends QuestionEditorBase<QuestionOption> {
             if(field.getOptionSelect().getValue()  == null ) {
                 return false;
             }
+            // Each left item belongs to exactly one right item. Every select offers all of them, so
+            // picking one twice is an easy slip, and the answer is keyed by the left item: the
+            // second pair would overwrite the first and vanish without a word.
+            if (!chosenLeftItems.add(field.getOptionSelect().getValue())) {
+                return false;
+            }
         }
-        return true;
+        return answers.size() == options.size();
     }
 }

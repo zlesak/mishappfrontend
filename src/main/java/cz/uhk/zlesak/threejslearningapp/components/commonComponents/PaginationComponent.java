@@ -131,6 +131,12 @@ public class PaginationComponent extends Nav implements I18nAware {
             return text("listing.meta.empty");
         }
         long first = (long) (currentPage - 1) * pageSize + 1;
+        // Deleting the last item of the last page leaves the listing on a page that is now past
+        // the end. There is no range to state there, and stating one anyway read backwards --
+        // "21-11 of 11" -- so the count is given on its own instead.
+        if (first > totalItems) {
+            return text("pagination.rangeEmptyPage", totalItems);
+        }
         long last = Math.min((long) currentPage * pageSize, totalItems);
         return text("pagination.range", first, last, totalItems);
     }

@@ -144,3 +144,14 @@ databází.
 Původní data z běžícího nasazení nejsou s novým schématem přímo kompatibilní (kapitoly nesou
 `modelIds` místo kopie stromu souborů, modely nesou vlastní strom místo kolekce `files`). Pokud je
 potřeba je zachovat, je nutné napsat převodní skript; pro nové nasazení to neplatí.
+
+Takový skript musí ošetřit i kvízy uložené touto aplikací před sjednocením konvencí v odpovědích:
+
+| Pole | Dřív | Teď |
+|---|---|---|
+| `correctItems` u výběru z více možností | 1-based | 0-based |
+| `correctMatches` u spojovačky | `{pravý → levý}` | `{levý → pravý}`, bijekce přes celý levý sloupec |
+| `acceptableAnswers` u otevřené odpovědi | uložené malými písmeny | zachovaná velikost písmen autora |
+
+Bez převodu se starý výběr z více možností hodnotí o jedna vedle, staré spojovačky nelze zodpovědět
+správně a otázky s `exactMatch` neuznají ani původní správnou odpověď.

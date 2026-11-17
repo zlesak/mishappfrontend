@@ -149,6 +149,16 @@ class PaginationComponentTest {
     }
 
     @Test
+    void aPagePastTheEndGivesTheCountInsteadOfABackwardsRange() {
+        // Page index 2 of a listing that now holds only 11 items: the range would read "21-11".
+        PaginationComponent component = new PaginationComponent(2, 10, 11, ignored -> {
+        });
+
+        assertTrue(rangeTexts(component).contains("Na této stránce nic není, celkem 11"),
+                rangeTexts(component).toString());
+    }
+
+    @Test
     void theUserChoosesHowManyItemsAPageHolds() {
         PaginationComponent component = new PaginationComponent(0, 10, 42, ignored -> {
         });
