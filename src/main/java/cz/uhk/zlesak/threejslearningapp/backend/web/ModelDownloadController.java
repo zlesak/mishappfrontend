@@ -5,6 +5,7 @@ import cz.uhk.zlesak.threejslearningapp.backend.service.FileStorageService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Serves stored model and texture files over HTTP.
@@ -44,17 +46,36 @@ public class ModelDownloadController {
         }
 
         GridFsResource resource = fileStorageService.requireResource(fileId);
-        String filename = resource.getFilename();
 
         response.setContentType(resource.getContentType() != null
                 ? resource.getContentType()
                 : MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.setContentLengthLong(resource.contentLength());
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, contentDisposition(resource.getFilename()));
 
         try (InputStream input = resource.getInputStream()) {
             input.transferTo(response.getOutputStream());
         }
+    }
+
+    /**
+     * Builds the {@code Content-Disposition} header for a stored file.
+     *
+     * <p>The name comes from whoever uploaded the model and was pasted into the header as it
+     * stood. A quotation mark in it ended the quoted string early, so the browser saved the file
+     * under a truncated name, and a Czech name was sent as raw bytes with no encoding declared.
+     * Spring's builder escapes the quoted form and adds the RFC 5987 {@code filename*} parameter
+     * beside it, which is what makes a name with diacritics arrive intact.
+     *
+     * @param filename name the file was stored under, may be {@code null}.
+     * @return the header value.
+     */
+    private static String contentDisposition(String filename) {
+        ContentDisposition.Builder disposition = ContentDisposition.attachment();
+        if (filename != null && !filename.isBlank()) {
+            disposition = disposition.filename(filename, StandardCharsets.UTF_8);
+        }
+        return disposition.build().toString();
     }
 
     /**
