@@ -71,6 +71,8 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
     private final Div quizHeader = new Div();
     private Runnable onSubmit;
     private boolean submitConfirmed = false;
+    /** Numbers of the questions the summary currently lists, so it is rebuilt only when they change. */
+    private List<Integer> shownUnanswered = List.of();
     @Getter
     private HashMap<String, AbstractSubmissionData> answers = new HashMap<>();
 
@@ -187,7 +189,39 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
         questionsContainer.removeAll();
         for (int i = 0; i < questions.size(); i++) {
             questionsContainer.add(new QuestionCardDivComponent(
-                    questions.get(i), i + 1, questions.size(), answers, this::updateProgress));
+                    questions.get(i), i + 1, questions.size(), answers, this::onAnswersChanged));
+        }
+    }
+
+    /**
+     * Brings everything that depends on the answers up to date after one of them changes.
+     *
+     * <p>The unanswered summary is only kept current while it is on screen. When nothing is missing
+     * any more it goes away, the button reads "submit" again and the confirmation is dropped with
+     * it: the press it authorised was "send despite these gaps", and there are no gaps left.
+     * Dropping it is a safeguard rather than a flow the student can reach today -- answers are
+     * only ever added, a cleared field still counts as answered -- but it keeps the button label
+     * and the confirmation saying the same thing, should a question ever become unanswered again.
+     * A summary that is not showing is left alone; the next press builds it fresh anyway.
+     *
+     * <p>The list is rebuilt only when the set of missing questions actually changed. The summary
+     * is a {@code role="status"} live region and an open-text answer reports itself on every pause
+     * in typing, so rebuilding it unconditionally would have a screen reader read the same list out
+     * again and again while the student writes.
+     */
+    private void onAnswersChanged() {
+        updateProgress();
+        if (!unansweredSummary.isVisible()) {
+            return;
+        }
+        if (isComplete()) {
+            unansweredSummary.setVisible(false);
+            unansweredSummary.removeAll();
+            shownUnanswered = List.of();
+            submitButton.setText(text("quiz.submit"));
+            submitConfirmed = false;
+        } else if (!getUnansweredQuestionNumbers().equals(shownUnanswered)) {
+            renderUnansweredSummary();
         }
     }
 
@@ -231,7 +265,24 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
         }
     }
 
+    /**
+     * Shows the summary in answer to a submit press and moves focus to it, so a screen reader
+     * announces what is missing.
+     */
     private void showUnansweredSummary() {
+        renderUnansweredSummary();
+        unansweredSummary.setVisible(true);
+        unansweredSummary.getElement().callJsFunction("focus");
+
+        submitButton.setText(text("quiz.submit.anyway"));
+    }
+
+    /**
+     * (Re)builds the list of unanswered questions without touching focus. It runs while the student
+     * is typing -- an open-text answer reports itself after each pause, not on blur -- so taking
+     * focus here would pull the caret out of the field mid-sentence.
+     */
+    private void renderUnansweredSummary() {
         unansweredSummary.removeAll();
 
         H2 heading = new H2(text("quiz.submit.unanswered.heading"));
@@ -240,21 +291,14 @@ public class QuizPlayerComponent extends VerticalLayout implements I18nAware {
         UnorderedList list = new UnorderedList();
         list.getStyle().set("margin", "var(--lumo-space-s) 0 0").set("padding-left", "1.2em");
 
-        for (int i = 0; i < questions.size(); i++) {
-            if (answers.containsKey(questions.get(i).getQuestionId())) {
-                continue;
-            }
-            int number = i + 1;
+        shownUnanswered = getUnansweredQuestionNumbers();
+        for (int number : shownUnanswered) {
             Anchor link = new Anchor("#" + QuestionCardDivComponent.QUESTION_ID_PREFIX + number,
                     text("quiz.question.number") + " " + number);
             list.add(new ListItem(link));
         }
 
         unansweredSummary.add(heading, new StatusBadge(text("quiz.submit.unanswered.badge"), StatusBadge.Tone.WARNING), list);
-        unansweredSummary.setVisible(true);
-        unansweredSummary.getElement().callJsFunction("focus");
-
-        submitButton.setText(text("quiz.submit.anyway"));
     }
 
     /**
