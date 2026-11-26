@@ -37,3 +37,9 @@ release.properties
 
 # Local infra secrets
 infra/.env
+
+# Bug team (.claude/bug-team): per-machine settings, per-bug reports and worktrees stay local
+.claude/bug-team/local/
+.claude/bug-team/runs/
+.claude/worktrees/
+.claude/settings.local.json

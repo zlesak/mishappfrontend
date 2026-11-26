@@ -1,0 +1,210 @@
+#!/usr/bin/env bash
+# bt — the bug team's toolbox. One entry point for everything DEV, DEVCR and QA run, so the
+# commands are the same every time and machine quirks live in one place (local/env.sh), not in
+# each agent's head.
+#
+#   bt paths                         where things are (worktree, main checkout, runs)
+#   bt wt-new <issue> <slug>         worktree + branch fix/<issue>-<slug> from origin/main
+#   bt wt-rm <issue>                 remove that worktree (branch is kept)
+#   bt java [--replace path=file]... [TestClass ...]
+#                                    Maven tests; no class = full suite. --replace swaps a repo file
+#                                    for another one in a throwaway copy (mutants) — the repo is untouched
+#   bt vitest                        Vitest
+#   bt image <tag>                   build the app image mish-app:<tag> from this worktree
+#   bt qa-up <tag> [--wait]          fresh QA stack (own volumes = empty DB) on https://localhost:8443
+#   bt qa-restart-app                restart the QA app container (restart probe) and the gateway
+#   bt qa-down                       remove the QA stack and its data, release the lock
+#   bt qa-status                     who holds the QA stack
+#   bt e2e [playwright args]         Playwright against the QA stack (default --project=e2e)
+#   bt node <script.mjs> [args]      run a Node/Playwright script with this machine's settings
+#                                    (extra CA, E2E_CHANNEL) and QA_URL set — for QA's own checks
+#   bt restart-probe                 restart the QA app, then open a chapter, model and quiz written
+#                                    by the previous process (catches bugs like #96)
+#
+# Run it from inside the checkout or worktree you are working on.
+set -euo pipefail
+
+die() { echo "bt: $*" >&2; exit 2; }
+
+TOP=$(git rev-parse --show-toplevel 2>/dev/null) || die "run me inside the repository"
+MAIN=$(dirname "$(git -C "$TOP" rev-parse --path-format=absolute --git-common-dir)")
+BT_MAIN="$MAIN/.claude/bug-team"
+RUNS="$BT_MAIN/runs"
+LOCAL="$BT_MAIN/local"
+LOCK="$RUNS/.qa-lock"
+mkdir -p "$RUNS"
+# shellcheck disable=SC1091
+[ -f "$LOCAL/env.sh" ] && . "$LOCAL/env.sh"
+
+BT_JAVA_IN_DOCKER=${BT_JAVA_IN_DOCKER:-0}
+BT_QA_HTTP_PORT=${BT_QA_HTTP_PORT:-8080}
+BT_QA_HTTPS_PORT=${BT_QA_HTTPS_PORT:-8443}
+QA_URL="https://localhost:$BT_QA_HTTPS_PORT"
+QA_COMPOSE=(docker compose --progress quiet -p mish-qa --env-file "$LOCK/qa.env" -f "$TOP/infra/docker-compose.yml" -f "$TOP/.claude/bug-team/compose.qa.yml")
+
+wait_healthy() { # services...
+  for _ in $(seq 1 90); do
+    local states
+    states=$("${QA_COMPOSE[@]}" ps --format '{{.Health}}' "$@" 2>/dev/null | sort -u | tr '\n' ' ')
+    [ "$states" = "healthy " ] && return 0
+    sleep 5
+  done
+  "${QA_COMPOSE[@]}" ps -a
+  die "QA services did not become healthy: $*"
+}
+
+wait_url() {
+  for _ in $(seq 1 60); do
+    [ "$(curl -sk -o /dev/null -w '%{http_code}' "$QA_URL/")" = "200" ] && return 0
+    sleep 3
+  done
+  die "$QA_URL did not answer 200"
+}
+
+restart_gateway() { # nginx resolves the app once; a recreated app container gets a new address
+  "${QA_COMPOSE[@]}" restart gateway >/dev/null
+  wait_url
+}
+
+cmd=${1:-help}; shift || true
+case "$cmd" in
+  paths)
+    echo "worktree: $TOP"
+    echo "main:     $MAIN"
+    echo "runs:     $RUNS"
+    echo "qa url:   $QA_URL"
+    ;;
+
+  wt-new)
+    [ $# -eq 2 ] || die "usage: bt wt-new <issue> <slug>"
+    wt="$MAIN/.claude/worktrees/bug-$1"
+    git -C "$MAIN" fetch -q origin main
+    git -C "$MAIN" worktree add -q -b "fix/$1-$2" "$wt" origin/main
+    (cd "$wt" && npm ci --prefer-offline --no-audit --no-fund --silent)
+    mkdir -p "$RUNS/$1"
+    echo "$wt"
+    ;;
+
+  wt-rm)
+    [ $# -eq 1 ] || die "usage: bt wt-rm <issue>"
+    git -C "$MAIN" worktree remove --force "$MAIN/.claude/worktrees/bug-$1"
+    ;;
+
+  java)
+    stage=$(mktemp -d "$RUNS/.stage.XXXXXX"); trap 'rm -rf "$stage"' EXIT
+    tests=()
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --replace)
+          [ $# -ge 2 ] || die "--replace needs path=file"
+          rel=${2%%=*}; file=${2#*=}
+          [ -f "$TOP/$rel" ] || die "no such repo file: $rel"
+          [ -f "$file" ] || die "no such replacement: $file"
+          mkdir -p "$stage/$(dirname "$rel")"; cp "$file" "$stage/$rel"; shift 2 ;;
+        *) tests+=("$1"); shift ;;
+      esac
+    done
+    dtest=""
+    [ ${#tests[@]} -gt 0 ] && dtest="-Dtest=$(IFS=,; echo "${tests[*]}") -Dsurefire.failIfNoSpecifiedTests=false"
+    log="$RUNS/java-$(date +%Y%m%d-%H%M%S).log"
+    set +e
+    if [ "$BT_JAVA_IN_DOCKER" = "1" ]; then
+      # The checkout is mounted read-only and copied inside; replacements travel as a tar on stdin,
+      # because bind mounts of temp directories are not reliable on every Docker host.
+      (cd "$stage" && COPYFILE_DISABLE=1 tar -cf - .) | docker run --rm -i \
+        -v "$TOP":/src:ro -v mish-m2:/root/.m2 maven:3.9-eclipse-temurin-21 \
+        bash -c "cp -r /src /w && cd /w && rm -rf node_modules target && tar -xf - -C /w 2>/dev/null; mvn -B test $dtest" >"$log" 2>&1
+    else
+      copy=$(mktemp -d); cp -R "$TOP/." "$copy"; cp -R "$stage/." "$copy"
+      (cd "$copy" && rm -rf target && ./mvnw -B test $dtest) >"$log" 2>&1
+      rm -rf "$copy"
+    fi
+    rc=$?
+    set -e
+    grep -E '^\[(ERROR|WARNING)\] Tests run:|<<< (FAIL|ERROR)' "$log" | head -40 || true
+    grep -E '^\[INFO\] Tests run: [0-9]+, Failures|^\[(INFO|ERROR)\] Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+$' "$log" | tail -1 || true
+    grep -E 'BUILD (SUCCESS|FAILURE)' "$log" | tail -1 || true
+    echo "log: $log"
+    exit $rc
+    ;;
+
+  vitest)
+    cd "$TOP" && npx vitest run
+    ;;
+
+  image)
+    [ $# -eq 1 ] || die "usage: bt image <tag>"
+    if [ -n "${BT_EXTRA_CA:-}" ]; then
+      # Same Dockerfile as the repo's, plus the extra root CA right after the build stage's FROM,
+      # generated each time so it cannot drift from the real one.
+      ctx=$(mktemp -d); cp "$BT_EXTRA_CA" "$ctx/extra-ca.pem"
+      awk 'NR==1 && /^FROM/ {print; print "COPY --from=extraca extra-ca.pem /usr/local/share/ca-certificates/extra-ca.crt"; print "RUN keytool -importcert -noprompt -cacerts -storepass changeit -alias extraca -file /usr/local/share/ca-certificates/extra-ca.crt && update-ca-certificates"; print "ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/extra-ca.crt"; next} {print}' "$TOP/Dockerfile" >"$ctx/Dockerfile"
+      docker build -q -f "$ctx/Dockerfile" --build-context extraca="$ctx" -t "mish-app:$1" "$TOP"
+      rm -rf "$ctx"
+    else
+      docker build -q -t "mish-app:$1" "$TOP"
+    fi
+    ;;
+
+  qa-up)
+    [ $# -ge 1 ] || die "usage: bt qa-up <tag> [--wait]"
+    tag=$1; waitlock=${2:-}
+    until mkdir "$LOCK" 2>/dev/null; do
+      [ "$waitlock" = "--wait" ] || die "QA stack is in use: $(cat "$LOCK/owner" 2>/dev/null) (use --wait, or bt qa-down if it is stale)"
+      sleep 20
+    done
+    echo "image mish-app:$tag, worktree $TOP, since $(date '+%F %T')" >"$LOCK/owner"
+    sed -e "s|^EXTERNAL_BASE_URL=.*|EXTERNAL_BASE_URL=$QA_URL|" \
+        -e "s|^HTTP_PORT=.*|HTTP_PORT=$BT_QA_HTTP_PORT|" \
+        -e "s|^HTTPS_PORT=.*|HTTPS_PORT=$BT_QA_HTTPS_PORT|" "$TOP/infra/.env.example" >"$LOCK/qa.env"
+    echo "MISH_APP_IMAGE=mish-app:$tag" >>"$LOCK/qa.env"
+    "${QA_COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+    "${QA_COMPOSE[@]}" up -d >/dev/null
+    wait_healthy app keycloak mongo
+    restart_gateway
+    echo "QA stack up: $QA_URL (empty database, image mish-app:$tag)"
+    ;;
+
+  qa-restart-app)
+    [ -d "$LOCK" ] || die "no QA stack"
+    "${QA_COMPOSE[@]}" restart app >/dev/null
+    wait_healthy app
+    restart_gateway
+    echo "QA app restarted: $QA_URL"
+    ;;
+
+  qa-down)
+    if [ -d "$LOCK" ]; then
+      "${QA_COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
+      rm -rf "$LOCK"
+    fi
+    echo "QA stack removed"
+    ;;
+
+  qa-status)
+    if [ -d "$LOCK" ]; then echo "in use: $(cat "$LOCK/owner")"; "${QA_COMPOSE[@]}" ps; else echo "free"; fi
+    ;;
+
+  e2e)
+    [ -d "$LOCK" ] || die "no QA stack — bt qa-up <tag> first"
+    [ $# -gt 0 ] || set -- --project=e2e
+    cd "$TOP" && E2E_BASE_URL="$QA_URL" npx playwright test "$@"
+    ;;
+
+  node)
+    [ $# -ge 1 ] || die "usage: bt node <script.mjs> [args]"
+    script=$(cd "$(dirname "$1")" && pwd)/$(basename "$1"); shift
+    case "$script" in "$MAIN"/*|"$TOP"/*) ;; *) die "keep scripts inside the checkout (runs/<n>/qa/) so @playwright/test resolves";; esac
+    cd "$TOP" && QA_URL="$QA_URL" node "$script" "$@"
+    ;;
+
+  restart-probe)
+    [ -d "$LOCK" ] || die "no QA stack — bt qa-up <tag> and bt e2e first"
+    "$0" qa-restart-app
+    cd "$TOP" && QA_URL="$QA_URL" node "$TOP/.claude/bug-team/restart-probe.mjs"
+    ;;
+
+  *)
+    awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"
+    ;;
+esac
