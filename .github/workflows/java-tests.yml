@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   test:
+    # Unique check name: both this suite and the other one used the job id `test`, so a
+    # required status check named `test` could be satisfied by either of them.
+    name: java-tests
     runs-on: ubuntu-latest
 
     steps:
