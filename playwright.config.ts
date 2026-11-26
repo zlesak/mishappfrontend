@@ -33,6 +33,9 @@ export default defineConfig({
     baseURL,
     ignoreHTTPSErrors: true,
     headless: process.env.E2E_HEADLESS !== 'false',
+    // `E2E_CHANNEL=chromium` runs full Chromium instead of the headless shell. On macOS the shell
+    // cannot create a WebGL context, so Three.js never starts and model uploads fail without a word.
+    channel: process.env.E2E_CHANNEL || undefined,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

@@ -1,0 +1,7 @@
+# QA stack override, used by `bt qa-up` with `-p mish-qa`: the app runs from an image built by
+# `bt image` instead of being built by compose. The project name gives QA its own containers,
+# network and volumes — a fresh, empty database every time — next to the developer's stack.
+services:
+  app:
+    image: ${MISH_APP_IMAGE:?set MISH_APP_IMAGE}
+    build: !reset null
