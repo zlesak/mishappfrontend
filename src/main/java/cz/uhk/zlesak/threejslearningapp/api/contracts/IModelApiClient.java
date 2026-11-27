@@ -18,4 +18,11 @@ public interface IModelApiClient extends IApiClient<ModelEntity, QuickModelEntit
      * @throws Exception if the file cannot be read.
      */
     InputStreamMultipartFile downloadFile(String fileId) throws Exception;
+
+    /**
+     * @param fileId id of a stored file.
+     * @return the name the file was uploaded under, without reading its contents.
+     * @throws Exception if the file cannot be found.
+     */
+    String fileName(String fileId) throws Exception;
 }

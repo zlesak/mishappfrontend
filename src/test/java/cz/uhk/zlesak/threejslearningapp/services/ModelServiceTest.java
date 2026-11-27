@@ -33,7 +33,7 @@ class ModelServiceTest {
                 .thenReturn(QuickModelEntity.builder().id("meta-1").build());
 
         String id = modelService.saveFromUpload(
-                null,
+                null, null,
                 "  Femur  ",
                 file("model.glb", "model"),
                 file("main.png", "main"),
@@ -63,7 +63,7 @@ class ModelServiceTest {
                 .thenReturn(ModelEntity.builder().id("updated-id").build());
 
         String id = modelService.saveFromUpload(
-                "meta-1",
+                "meta-1", null,
                 "Atlas",
                 file("model.glb", "model"),
                 null,
@@ -74,6 +74,20 @@ class ModelServiceTest {
         );
 
         assertEquals("updated-id", id);
+    }
+
+    @Test
+    void saveFromUpload_sendsTheVersionTheEditWasLoadedFrom() throws Exception {
+        java.time.Instant loaded = java.time.Instant.parse("2026-11-01T10:00:00.123Z");
+        when(modelApiClient.update(any(), any())).thenReturn(ModelEntity.builder().id("meta-1").build());
+
+        modelService.saveFromUpload("meta-1", loaded, "Atlas", file("model.glb", "model"),
+                null, null, null, "thumb", null);
+
+        org.mockito.ArgumentCaptor<ModelEntity> sent = org.mockito.ArgumentCaptor.forClass(ModelEntity.class);
+        verify(modelApiClient).update(org.mockito.ArgumentMatchers.eq("meta-1"), sent.capture());
+        assertEquals(loaded, sent.getValue().getUpdated());
+        assertEquals("meta-1", sent.getValue().getId());
     }
 
     @Test
@@ -339,7 +353,7 @@ class ModelServiceTest {
                 .thenReturn(QuickModelEntity.builder().id("id-no-csv").build());
 
         String id = modelService.saveFromUpload(
-                null, "Pelvis",
+                null, null, "Pelvis",
                 file("model.glb", "data"),
                 null, null, null,
                 "thumb", null
@@ -357,7 +371,7 @@ class ModelServiceTest {
                 .thenReturn(QuickModelEntity.builder().id("id-empty-other").build());
 
         String id = modelService.saveFromUpload(
-                null, "Scapula",
+                null, null, "Scapula",
                 file("model.glb", "data"),
                 null, List.of(), null,
                 "thumb", null
@@ -375,7 +389,7 @@ class ModelServiceTest {
                 .thenReturn(ModelEntity.builder().id("updated-trimmed").build());
 
         modelService.saveFromUpload(
-                "existing-meta", "  Tibia  ",
+                "existing-meta", null, "  Tibia  ",
                 file("model.glb", "data"),
                 null, null, null,
                 "thumb", null

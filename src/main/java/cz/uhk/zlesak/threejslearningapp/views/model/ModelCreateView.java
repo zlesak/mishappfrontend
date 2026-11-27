@@ -6,9 +6,12 @@ import com.vaadin.flow.component.Tag;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.router.*;
 import cz.uhk.zlesak.threejslearningapp.common.InputStreamMultipartFile;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionFlow;
 import cz.uhk.zlesak.threejslearningapp.domain.model.ModelEntity;
+import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelCreateEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
+import cz.uhk.zlesak.threejslearningapp.services.conflict.ModelConflictResolution;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractModelView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
@@ -171,6 +174,7 @@ public class ModelCreateView extends AbstractModelView {
                                 String dataUrl) {
         runAsync(() -> service.saveFromUpload(
                         modelEntity != null ? modelEntity.getId() : null,
+                        modelEntity != null ? modelEntity.getUpdated() : null,
                         modelName,
                         modelFile,
                         mainTexture,
@@ -179,13 +183,41 @@ public class ModelCreateView extends AbstractModelView {
                         dataUrl,
                         backgroundSpecJson
                 ),
-                savedEntityId -> {
-                                showSuccessNotification();
-                                navigateToModelDetailView(savedEntityId);
-                },
+                this::modelSaved,
                 error -> {
-                    log.error("Unexpected error while saving model", error);
-                    showErrorNotification(text("notification.uploadError"), error);
+                    if (modelEntity != null && conflictFlow().handle(error)) {
+                        return;
+                    }
+                    modelSaveFailed(error);
+                });
+    }
+
+    private void modelSaved(String savedEntityId) {
+        showSuccessNotification();
+        navigateToModelDetailView(savedEntityId);
+    }
+
+    private void modelSaveFailed(Throwable error) {
+        log.error("Unexpected error while saving model", error);
+        showErrorNotification(text("notification.uploadError"), error);
+    }
+
+    /**
+     * Someone else saved the model after this editor loaded it. The user compares the name and the
+     * files of both versions and decides, instead of the later upload silently replacing the other.
+     */
+    private ConflictResolutionFlow<QuickModelEntity> conflictFlow() {
+        return new ConflictResolutionFlow<>(
+                QuickModelEntity.class,
+                "conflict.model.title",
+                new ModelConflictResolution(this::text, service::extractThumbnailDataUrl, service::fileName),
+                combined -> service.saveResolved((ModelEntity) combined),
+                this::runAsync,
+                this::modelSaved,
+                this::modelSaveFailed,
+                () -> {
+                    skipBeforeLeaveDialog = true;
+                    UI.getCurrent().getPage().reload();
                 });
     }
 

@@ -300,6 +300,9 @@ public class ChapterService extends AbstractService<ChapterEntity, QuickChapterE
                 .id(chapterCreateEntity.getId())
                 .name(chapterCreateEntity.getName())
                 .created(chapterCreateEntity.getCreated() != null ? chapterCreateEntity.getCreated() : Instant.now())
+                // The version the edit started from; the backend refuses the save if it is no
+                // longer the stored one.
+                .updated(chapterCreateEntity.getUpdated())
                 .description("")
                 .content(content)
                 .models(modelsList)
@@ -318,6 +321,8 @@ public class ChapterService extends AbstractService<ChapterEntity, QuickChapterE
      * @param loadedChapter the currently loaded ChapterEntity (required for update operations, can be null for create operations)
      * @return the ID of the saved chapter
      * @throws ApplicationContextException if validation fails or if update is attempted without loaded chapter data
+     * @throws cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict when the chapter was saved by
+     *                                     someone else after {@code loadedChapter} was read; it carries both versions
      * @throws RuntimeException            if any error occurs during the save operation
      * @see ChapterEntity
      */
@@ -346,7 +351,7 @@ public class ChapterService extends AbstractService<ChapterEntity, QuickChapterE
                             .description(loadedChapter.getDescription())
                             .creatorId(loadedChapter.getCreatorId())
                             .created(loadedChapter.getCreated())
-                            .updated(Instant.now())
+                            .updated(loadedChapter.getUpdated())
                             .subChapters(loadedChapter.getSubChapters())
                             .modelHeaderMap(allModels)
                             .content(bodyData)

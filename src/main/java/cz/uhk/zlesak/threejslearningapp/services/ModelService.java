@@ -114,6 +114,19 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
     }
 
     /**
+     * @param fileId id of a stored file.
+     * @return the name it was uploaded under, or {@code null} when it cannot be looked up.
+     */
+    public String fileName(String fileId) {
+        try {
+            return modelApiClient.fileName(fileId);
+        } catch (Exception e) {
+            log.warn("Název souboru {} se nepodařilo zjistit: {}", fileId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Downloads all files associated with a model entity and packages them for form pre-filling.
      *
      * @param modelEntity model entity whose files should be downloaded.
@@ -165,6 +178,8 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
      * Determines create vs update based on whether {@code existingMetadataId} is present.
      *
      * @param existingMetadataId existing model metadata ID for update, or {@code null} for create.
+     * @param basedOn            for an update, {@code updated} of the version the edit was loaded
+     *                           from; the backend refuses the save if someone else saved since.
      * @param name               model display name.
      * @param modelFile          uploaded 3D model file.
      * @param mainTextureFile    optional main texture file.
@@ -173,9 +188,12 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
      * @param thumbnailDataUrl   base64-encoded thumbnail data URL.
      * @param backgroundSpecJson JSON describing the background spec.
      * @return saved model metadata ID.
+     * @throws cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict when the model was saved by someone
+     *                                     else in the meantime; it carries both versions.
      */
     public String saveFromUpload(
             String existingMetadataId,
+            java.time.Instant basedOn,
             String name,
             InputStreamMultipartFile modelFile,
             InputStreamMultipartFile mainTextureFile,
@@ -215,7 +233,7 @@ public class ModelService extends AbstractService<ModelEntity, QuickModelEntity,
         }
 
         if (existingMetadataId != null && !existingMetadataId.isBlank()) {
-            return update(existingMetadataId, builder.build());
+            return update(existingMetadataId, builder.id(existingMetadataId).updated(basedOn).build());
         }
         return create(builder.build());
     }

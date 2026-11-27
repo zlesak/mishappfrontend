@@ -2,6 +2,7 @@ package cz.uhk.zlesak.threejslearningapp.views.quizes;
 
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.router.*;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionFlow;
 import cz.uhk.zlesak.threejslearningapp.components.editors.question.*;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateQuizForm;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
@@ -23,6 +24,7 @@ import cz.uhk.zlesak.threejslearningapp.events.threejs.ThreeJsActions;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
 import cz.uhk.zlesak.threejslearningapp.services.QuizService;
+import cz.uhk.zlesak.threejslearningapp.services.conflict.QuizConflictResolution;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractQuizView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
@@ -298,21 +300,13 @@ public class QuizCreateView extends AbstractQuizView {
                             questionData,
                             answerData
                     ),
-                    savedQuizId -> {
-                        if (isEditMode) {
-                            new SuccessNotification(text("quiz.update.success"));
-                            log.info("Quiz updated with ID: {}", savedQuizId);
-                        } else {
-                            new SuccessNotification(text("quiz.create.success"));
-                            log.info("Quiz created with ID: {}", savedQuizId);
-                        }
-                        skipBeforeLeaveDialog = true;
-                        UI.getCurrent().navigate(QuizListingView.class);
-                    },
+                    this::quizSaved,
                     error -> {
-                        log.error("Error saving quiz", error);
                         service.clearQuestionsAndAnswers();
-                        new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + error.getMessage());
+                        if (isEditMode && conflictFlow().handle(error)) {
+                            return;
+                        }
+                        quizSaveFailed(error);
                     });
 
         } catch (Exception e) {
@@ -320,6 +314,42 @@ public class QuizCreateView extends AbstractQuizView {
             service.clearQuestionsAndAnswers();
             new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + e.getMessage());
         }
+    }
+
+    private void quizSaved(String savedQuizId) {
+        if (isEditMode) {
+            new SuccessNotification(text("quiz.update.success"));
+            log.info("Quiz updated with ID: {}", savedQuizId);
+        } else {
+            new SuccessNotification(text("quiz.create.success"));
+            log.info("Quiz created with ID: {}", savedQuizId);
+        }
+        skipBeforeLeaveDialog = true;
+        UI.getCurrent().navigate(QuizListingView.class);
+    }
+
+    private void quizSaveFailed(Throwable error) {
+        log.error("Error saving quiz", error);
+        new ErrorNotification(text(isEditMode ? "quiz.update.error" : "quiz.create.error") + ": " + error.getMessage());
+    }
+
+    /**
+     * Someone else saved the quiz after this editor loaded it. The user compares the two versions
+     * and decides, instead of one of the edits silently disappearing.
+     */
+    private ConflictResolutionFlow<QuizEntity> conflictFlow() {
+        return new ConflictResolutionFlow<>(
+                QuizEntity.class,
+                "conflict.quiz.title",
+                new QuizConflictResolution(this::text),
+                service::saveResolved,
+                this::runAsync,
+                this::quizSaved,
+                this::quizSaveFailed,
+                () -> {
+                    skipBeforeLeaveDialog = true;
+                    UI.getCurrent().getPage().reload();
+                });
     }
 
     /**

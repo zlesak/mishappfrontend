@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class QuizServiceTest {
@@ -152,6 +153,42 @@ class QuizServiceTest {
         );
 
         assertEquals("quiz-1", id);
+    }
+
+    @Test
+    void saveQuiz_sendsTheVersionTheEditWasLoadedFrom() throws Exception {
+        Instant loadedVersion = Instant.parse("2026-11-01T10:00:00.123Z");
+        QuizEntity loadedQuiz = QuizEntity.builder().id("quiz-1").updated(loadedVersion).build();
+        when(quizApiClient.update(any(String.class), any(QuizEntity.class)))
+                .thenReturn(QuizEntity.builder().id("quiz-1").build());
+
+        quizService.saveQuiz("quiz-1", true, loadedQuiz, "Updated", "Description", 40, null,
+                List.of(SingleChoiceQuestionData.builder().points(1).build()),
+                List.of(SingleChoiceAnswerData.builder().correctIndex(0).build()));
+
+        ArgumentCaptor<QuizEntity> sent = ArgumentCaptor.forClass(QuizEntity.class);
+        verify(quizApiClient).update(eq("quiz-1"), sent.capture());
+        assertEquals(loadedVersion, sent.getValue().getUpdated());
+    }
+
+    @Test
+    void saveQuiz_aConflictCarriesTheUsersQuestionsIntact() throws Exception {
+        QuizEntity stored = QuizEntity.builder().id("quiz-1").name("Jejich").build();
+        when(quizApiClient.update(any(String.class), any(QuizEntity.class)))
+                .thenThrow(new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("konflikt", stored));
+        SingleChoiceQuestionData question = SingleChoiceQuestionData.builder().questionId("q-1").points(1).build();
+
+        var conflict = assertThrows(cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict.class,
+                () -> quizService.saveQuiz("quiz-1", true, QuizEntity.builder().id("quiz-1").build(),
+                        "Moje", "Description", 40, null, List.of(question),
+                        List.of(SingleChoiceAnswerData.builder().questionId("q-1").correctIndex(0).build())));
+
+        // The service clears its working lists after every save; the user's version shown in the
+        // comparison must not lose its questions with them.
+        QuizEntity mine = (QuizEntity) conflict.getAttempted();
+        assertEquals(List.of(question), mine.getQuestions());
+        assertEquals(1, mine.getAnswers().size());
+        assertSame(stored, conflict.getCurrent());
     }
 
     @Test

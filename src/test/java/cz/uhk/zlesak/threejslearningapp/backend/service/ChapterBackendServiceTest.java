@@ -5,6 +5,9 @@ import cz.uhk.zlesak.threejslearningapp.common.logging.AuditLog;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ChapterRepository;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.FullTextDocument;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ListingQueries;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.MongoCollections;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.VersionedWrites;
+import cz.uhk.zlesak.threejslearningapp.testsupport.VersionedCollectionFake;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.quiz.QuizEntity;
@@ -29,6 +32,9 @@ class ChapterBackendServiceTest {
     private CurrentUserProvider currentUserProvider;
     private QuizBackendService quizBackendService;
     private ChapterBackendService chapterBackendService;
+    private MongoTemplate mongoTemplate;
+    private AuditLog auditLog;
+    private VersionedCollectionFake<ChapterEntity> chapters;
 
     @BeforeEach
     @SuppressWarnings("unchecked")
@@ -44,7 +50,15 @@ class ChapterBackendServiceTest {
         // top of the stubbed id and role above.
         Mockito.doCallRealMethod().when(currentUserProvider)
                 .requireAuthorOrTeacher(Mockito.any(), Mockito.anyString());
-        Mockito.when(chapterRepository.save(Mockito.any())).thenAnswer(call -> call.getArgument(0));
+        mongoTemplate = Mockito.mock(MongoTemplate.class);
+        auditLog = Mockito.mock(AuditLog.class);
+        chapters = new VersionedCollectionFake<>(mongoTemplate, ChapterEntity.class, MongoCollections.CHAPTER);
+        Mockito.when(chapterRepository.findById(Mockito.anyString()))
+                .thenAnswer(call -> chapters.find(call.getArgument(0)));
+        Mockito.when(chapterRepository.save(Mockito.any())).thenAnswer(call -> {
+            chapters.put(call.getArgument(0));
+            return call.getArgument(0);
+        });
         Mockito.when(modelBackendService.findAll(Mockito.any())).thenReturn(List.of());
         Mockito.when(quizBackendService.byChapter(Mockito.any())).thenReturn(List.of());
 
@@ -53,7 +67,7 @@ class ChapterBackendServiceTest {
 
         chapterBackendService = new ChapterBackendService(chapterRepository, modelBackendService,
                 fullTextSearchService, Mockito.mock(ListingQueries.class), currentUserProvider,
-                Mockito.mock(MongoTemplate.class), Mockito.mock(AuditLog.class), quizLookup);
+                mongoTemplate, auditLog, new VersionedWrites(mongoTemplate), quizLookup);
     }
 
     @Test
@@ -93,7 +107,7 @@ class ChapterBackendServiceTest {
         existing.setId("ch-1");
         existing.setCreatorId("alice");
         existing.setCreated(Instant.parse("2020-01-01T00:00:00Z"));
-        Mockito.when(chapterRepository.findById("ch-1")).thenReturn(Optional.of(existing));
+        chapters.put(existing);
 
         ChapterEntity incoming = chapter("Mozek upraveno", "nový obsah", List.of("model-1"));
         incoming.setId("ch-1");
@@ -111,7 +125,7 @@ class ChapterBackendServiceTest {
         ChapterEntity existing = chapter("Mozek", "obsah", List.of("model-1"));
         existing.setId("ch-1");
         existing.setCreatorId("someone-else");
-        Mockito.when(chapterRepository.findById("ch-1")).thenReturn(Optional.of(existing));
+        chapters.put(existing);
         Mockito.when(currentUserProvider.hasRole("TEACHER")).thenReturn(false);
 
         ChapterEntity incoming = chapter("Mozek", "obsah", List.of("model-1"));
@@ -194,6 +208,88 @@ class ChapterBackendServiceTest {
                 .isInstanceOf(BackendException.NotFound.class);
         assertThatThrownBy(() -> chapterBackendService.require(""))
                 .isInstanceOf(BackendException.Validation.class);
+    }
+
+    @Test
+    void aSaveBasedOnTheStoredVersionGoesThrough() {
+        chapters.put(storedChapter("Mozek", T1));
+
+        ChapterEntity saved = chapterBackendService.update(edit("Mozek upraveno", T1));
+
+        assertThat(chapters.get("ch-1").getName()).isEqualTo("Mozek upraveno");
+        // The new version is what the next save from this editor must quote, so it has to be the
+        // value Mongo keeps: a finer one would make that save conflict with itself.
+        assertThat(saved.getUpdated()).isAfter(T1).isEqualTo(saved.getUpdated().truncatedTo(java.time.temporal.ChronoUnit.MILLIS));
+        assertThat(chapters.get("ch-1").getUpdated()).isEqualTo(saved.getUpdated());
+    }
+
+    @Test
+    void aStaleSaveIsRejectedAndTheOtherEditStays() {
+        chapters.put(storedChapter("Mozek", T1));
+        chapterBackendService.update(edit("Okno A", T1));
+
+        assertThatThrownBy(() -> chapterBackendService.update(edit("Okno B", T1)))
+                .isInstanceOfSatisfying(BackendException.Conflict.class, conflict ->
+                        assertThat(conflict.getCurrent().getName()).isEqualTo("Okno A"));
+
+        assertThat(chapters.get("ch-1").getName()).isEqualTo("Okno A");
+    }
+
+    @Test
+    void aRejectedSaveReportsNoSuccess() {
+        chapters.put(storedChapter("Mozek", T1));
+        chapterBackendService.update(edit("Okno A", T1));
+        Mockito.clearInvocations(fullTextSearchService, auditLog);
+
+        assertThatThrownBy(() -> chapterBackendService.update(edit("Okno B", T1)))
+                .isInstanceOf(BackendException.Conflict.class);
+
+        Mockito.verify(auditLog, Mockito.never()).success(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(fullTextSearchService, Mockito.never()).index(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    void checkAndWriteAreOneConditionalOperation() {
+        chapters.put(storedChapter("Mozek", T1));
+
+        chapterBackendService.update(edit("Mozek upraveno", T1));
+
+        // Loading, comparing and then saving would leave a window in which a second save passes the
+        // same check; only a write whose filter carries the version closes it.
+        Mockito.verify(chapterRepository, Mockito.never()).save(Mockito.any());
+        org.mockito.ArgumentCaptor<org.springframework.data.mongodb.core.query.Query> query =
+                org.mockito.ArgumentCaptor.forClass(org.springframework.data.mongodb.core.query.Query.class);
+        Mockito.verify(mongoTemplate).findAndReplace(query.capture(), Mockito.any(),
+                Mockito.any(), Mockito.eq(ChapterEntity.class), Mockito.eq(MongoCollections.CHAPTER));
+        assertThat(query.getValue().getQueryObject())
+                .containsEntry("_id", "ch-1")
+                .containsEntry("updated", java.util.Date.from(T1));
+    }
+
+    @Test
+    void aChapterWrittenBeforeTimestampsCanStillBeSaved() {
+        chapters.put(storedChapter("Mozek", null));
+
+        chapterBackendService.update(edit("Mozek upraveno", null));
+
+        assertThat(chapters.get("ch-1").getName()).isEqualTo("Mozek upraveno");
+    }
+
+    private static final Instant T1 = Instant.parse("2026-11-01T10:00:00.123Z");
+
+    private ChapterEntity storedChapter(String name, Instant updated) {
+        ChapterEntity stored = chapter(name, "obsah", List.of("model-1"));
+        stored.setId("ch-1");
+        stored.setCreatorId("alice");
+        stored.setUpdated(updated);
+        return stored;
+    }
+
+    private ChapterEntity edit(String name, Instant basedOn) {
+        ChapterEntity edit = chapter(name, "obsah " + name, List.of("model-1"));
+        edit.setId("ch-1");
+        edit.setUpdated(basedOn);
+        return edit;
     }
 
     private ChapterEntity chapter(String name, String content, List<String> modelIds) {

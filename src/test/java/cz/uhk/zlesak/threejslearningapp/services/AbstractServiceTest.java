@@ -156,6 +156,28 @@ class AbstractServiceTest {
         assertTrue(ex.getMessage().startsWith("Chyba při aktualizaci kapitoly"));
     }
 
+    @Test
+    void update_passesAConflictOnWithTheVersionItTriedToSave() throws Exception {
+        QuickModelEntity stored = QuickModelEntity.builder().id("entity-x").name("Stored").build();
+        when(apiClient.update(any(), any())).thenThrow(
+                new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("conflict", stored));
+
+        var conflict = assertThrows(cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict.class,
+                () -> service.update("entity-x", QuickModelEntity.builder().name("Valid").build()));
+
+        assertSame(stored, conflict.getCurrent());
+        assertEquals("Valid", conflict.getAttempted().getName());
+    }
+
+    @Test
+    void saveResolved_sendsTheCombinedVersionAsItIs() throws Exception {
+        QuickModelEntity combined = QuickModelEntity.builder().id("entity-x").name("Combined").build();
+        when(apiClient.update(any(), any())).thenReturn(combined);
+
+        assertEquals("entity-x", service.saveResolved(combined));
+        verify(apiClient).update("entity-x", combined);
+    }
+
     private static final class TestService extends AbstractService<QuickModelEntity, QuickModelEntity, String> {
         private int validated;
         private int finalized;

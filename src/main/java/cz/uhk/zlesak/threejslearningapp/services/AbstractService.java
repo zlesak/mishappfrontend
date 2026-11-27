@@ -1,6 +1,7 @@
 package cz.uhk.zlesak.threejslearningapp.services;
 
 import cz.uhk.zlesak.threejslearningapp.api.contracts.IApiClient;
+import cz.uhk.zlesak.threejslearningapp.backend.BackendException;
 import cz.uhk.zlesak.threejslearningapp.domain.common.AbstractEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
@@ -140,8 +141,39 @@ public abstract class AbstractService<E extends Q, Q extends AbstractEntity, F> 
             log.error("Chyba při validaci entity před aktualizací: {}", e.getMessage(), e);
             throw new RuntimeException("Chyba při validaci entity před aktualizací: " + e.getMessage(), e);
         }
+        E finalEntity;
         try {
-            return apiClient.update(id, createFinalEntity(entity)).getId();
+            finalEntity = createFinalEntity(entity);
+        } catch (RuntimeException e) {
+            log.error("Chyba při aktualizaci kapitoly: {}", e.getMessage(), e);
+            throw new RuntimeException("Chyba při aktualizaci kapitoly: " + e.getMessage(), e);
+        }
+        return send(id, finalEntity);
+    }
+
+    /**
+     * Saves a version put together in the conflict dialog. It is already complete — the user chose
+     * between two finished versions — so it is sent as it is, and it is checked against the stored
+     * version it was based on like any other save.
+     *
+     * @param resolved the combined version; its {@code updated} is that of the version it was based on.
+     * @return id of the saved entity.
+     * @throws BackendException.Conflict when yet another save got in first.
+     */
+    public String saveResolved(E resolved) {
+        return send(resolved.getId(), resolved);
+    }
+
+    /**
+     * A conflict is passed on as itself, carrying the version this layer tried to save, so a view can
+     * offer the comparison; wrapping it like other failures would leave the view only a message.
+     */
+    private String send(String id, E finalEntity) {
+        try {
+            return apiClient.update(id, finalEntity).getId();
+        } catch (BackendException.Conflict conflict) {
+            log.info("Uložení entity {} odmítnuto, mezitím ji uložil někdo jiný", id);
+            throw conflict.withAttempted(finalEntity);
         } catch (Exception e) {
             log.error("Chyba při aktualizaci kapitoly: {}", e.getMessage(), e);
             throw new RuntimeException("Chyba při aktualizaci kapitoly: " + e.getMessage(), e);

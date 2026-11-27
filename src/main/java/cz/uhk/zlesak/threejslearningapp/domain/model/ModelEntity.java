@@ -38,6 +38,14 @@ public class ModelEntity extends QuickModelEntity {
     InputStreamMultipartFile backgroundImageFile;
 
     /**
+     * Set on a version put together in the conflict dialog when the user kept the stored files:
+     * the save then changes only the name and leaves the stored files, thumbnail and background as
+     * they are, instead of uploading anything.
+     */
+    @Transient
+    boolean keepStoredFiles;
+
+    /**
      * Wraps a stored model so a detail screen can work with it.
      *
      * @param stored model loaded from the database, may be {@code null}.
