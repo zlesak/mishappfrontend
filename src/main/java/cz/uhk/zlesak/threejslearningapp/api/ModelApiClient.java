@@ -54,12 +54,16 @@ public class ModelApiClient implements IModelApiClient {
 
     @Override
     public ModelEntity update(String id, ModelEntity entity) {
+        if (entity.isKeepStoredFiles()) {
+            return ModelEntity.of(modelBackendService.renameKeepingFiles(id, entity.getName(), entity.getUpdated()));
+        }
         return ModelEntity.of(modelBackendService.update(
                 id,
                 partsOf(entity),
                 ModelUploadAssembler.describe(entity),
                 descriptionOf(entity),
-                entity.isAdvanced()));
+                entity.isAdvanced(),
+                entity.getUpdated()));
     }
 
     @Override
@@ -72,6 +76,11 @@ public class ModelApiClient implements IModelApiClient {
     public InputStreamMultipartFile downloadFile(String fileId) throws IOException {
         GridFsResource resource = fileStorageService.requireResource(fileId);
         return new InputStreamMultipartFile(resource.getInputStream(), resource.getFilename(), resource.getFilename());
+    }
+
+    @Override
+    public String fileName(String fileId) {
+        return fileStorageService.requireResource(fileId).getFilename();
     }
 
     private List<MultipartFile> partsOf(ModelEntity entity) {

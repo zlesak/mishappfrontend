@@ -141,7 +141,9 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      * @param questionData List of question data to be included in the quiz
      * @param answerData List of answer data to be included in the quiz
      * @return ID of the saved quiz
-       * @throws ApplicationContextException if validation fails or if update is attempted without loaded quiz data
+     * @throws ApplicationContextException if validation fails or if update is attempted without loaded quiz data
+     * @throws cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict when the quiz was saved by someone
+     *                                     else after {@code loadedQuiz} was read; it carries both versions
      */
     public String saveQuiz(
             String quizId,
@@ -177,7 +179,9 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
                                 .chapterId(chapterId)
                                 .creatorId(loadedQuiz.getCreatorId())
                                 .created(loadedQuiz.getCreated())
-                                .updated(Instant.now())
+                                // The version the edit started from; the backend refuses the save
+                                // if someone else has saved the quiz since.
+                                .updated(loadedQuiz.getUpdated())
                                 .build()
                 );
             }
@@ -232,9 +236,11 @@ public class QuizService extends AbstractService<QuizEntity, QuickQuizEntity, Qu
      */
     @Override
     protected QuizEntity createFinalEntity(QuizEntity createEntity) throws RuntimeException {
+        // Copies: the working lists are cleared once the save returns, and a rejected save hands
+        // this entity to the conflict dialog as the user's version.
         return createEntity.toBuilder()
-                .questions(questions)
-                .answers(answers)
+                .questions(new ArrayList<>(questions))
+                .answers(new ArrayList<>(answers))
                 .created(createEntity.getCreated() != null ? createEntity.getCreated() : Instant.now())
                 .build();
     }

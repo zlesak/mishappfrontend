@@ -369,6 +369,47 @@ class QuizCreateViewKaribuTest {
     }
 
     @Test
+    void aConflictingSaveOpensTheComparisonInsteadOfReportingSuccess() {
+        java.time.Instant loaded = java.time.Instant.parse("2026-11-01T10:00:00Z");
+        java.time.Instant storedAt = java.time.Instant.parse("2026-11-01T10:05:00Z");
+        QuizEntity loadedQuiz = QuizEntity.builder().id("quiz-1").name("Kvíz").updated(loaded).build();
+        QuizEntity attempted = QuizEntity.builder().id("quiz-1").name("Můj kvíz").updated(loaded).timeLimit(0).build();
+        QuizEntity current = QuizEntity.builder().id("quiz-1").name("Jejich kvíz").updated(storedAt).timeLimit(0).build();
+        when(quizService.saveQuiz(eq("quiz-1"), eq(true), same(loadedQuiz), any(), any(), any(), any(), any(), any()))
+                .thenThrow(new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("konflikt", current)
+                        .withAttempted(attempted));
+        when(quizService.saveResolved(any())).thenReturn("quiz-1");
+
+        QuizCreateView view = new QuizCreateView(quizService, chapterService, modelService);
+        UI.getCurrent().add(view);
+        setField(view, "quizId", "quiz-1");
+        setField(view, "isEditMode", true);
+        setField(view, "quizEditLoaded", true);
+        setField(view, "loadedQuiz", loadedQuiz);
+        getField(view, "quizForm", CreateQuizForm.class).getNameField().setValue("Můj kvíz");
+        OpenTextQuestionEditor editor = (OpenTextQuestionEditor) invokeWithResult(
+                view, "addQuestion", new Class[]{QuestionTypeEnum.class}, QuestionTypeEnum.OPEN_TEXT);
+        editor.getQuestionTextField().setValue("What is this?");
+        editor.addOption("Answer A");
+
+        ComponentUtil.fireEvent(UI.getCurrent(), new CreateQuizEvent(UI.getCurrent()));
+        com.github.mvysny.kaributesting.v10.MockVaadin.clientRoundtrip(false);
+
+        var dialog = com.github.mvysny.kaributesting.v10.LocatorJ._get(
+                cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionDialog.class);
+        assertTrue(dialog.isOpened());
+        verify(quizService, never()).saveResolved(any());
+
+        com.github.mvysny.kaributesting.v10.LocatorJ._click(dialog.getSaveButton());
+        com.github.mvysny.kaributesting.v10.MockVaadin.clientRoundtrip(false);
+
+        org.mockito.ArgumentCaptor<QuizEntity> resolved = org.mockito.ArgumentCaptor.forClass(QuizEntity.class);
+        verify(quizService).saveResolved(resolved.capture());
+        assertEquals("Můj kvíz", resolved.getValue().getName());
+        assertEquals(storedAt, resolved.getValue().getUpdated());
+    }
+
+    @Test
     void addQuestion_withSingleChoiceDataAndAnswer_shouldInitializeEditorFromData() {
         QuizCreateView view = new QuizCreateView(quizService, chapterService, modelService);
         UI.getCurrent().add(view);

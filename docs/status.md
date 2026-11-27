@@ -158,6 +158,16 @@ Všech šest vyřešeno, viz [user-testing-findings.md](user-testing-findings.md
 
 ## Rozhodnutí, která si zaslouží zmínku
 
+- **Souběžné úpravy se neztrácejí (#76).** Kapitola, kvíz i model se ukládají jen tehdy, když jsou
+  pořád ve verzi, kterou editor načetl. Verzí je existující časové razítko `updated` (žádné nové pole,
+  žádná migrace) a kontrola se zápisem je jedna podmíněná operace v Mongu (`VersionedWrites`), takže
+  dvě uložení nemohou projít obě. Při neshodě aplikace neohlásí úspěch, ale otevře porovnání: vedle
+  sebe uživatelova a uložená verze po položkách, u každé volba „moje / uložená“, dále „zahodit mé
+  změny a načíst uloženou verzi“ a „zpět k úpravám“. Uložení z porovnání se kontroluje znovu.
+  Obsah kapitoly (s modely u nadpisů) a otázky kvízu (se správnými odpověďmi) se volí jako celek.
+  U modelu se volí název a „soubory a vzhled“ jako celek: uložená verze si soubory ponechá beze
+  změny, odmítnuté nahrání po sobě v GridFS smaže jen to, co samo uložilo.
+
 - **Řádkové výpisy místo dlaždic** (varianta B zadání). Dlaždice v pětisloupcové mřížce byla široká
   asi 240 px, takže se v ní všechno zkracovalo výpustkou a karta kapitoly potřebovala
   `ResizeObserver`, který jen počítal, kolik názvů modelů se vejde.

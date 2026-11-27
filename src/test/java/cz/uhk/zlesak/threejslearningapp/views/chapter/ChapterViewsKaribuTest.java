@@ -112,28 +112,74 @@ class ChapterViewsKaribuTest {
     }
 
     @Test
-    void createViewShouldPreferChapterFromSessionBeforeCallingService() throws Exception {
+    void createViewEditsTheStoredVersionRatherThanTheListsCopy() throws Exception {
+        ChapterEntity stored = ChapterEntity.builder().id("chapter-1").name("Lebka")
+                .updated(java.time.Instant.parse("2026-11-01T10:05:00Z")).build();
+        when(chapterService.read("chapter-1")).thenReturn(stored);
         when(chapterService.getChapterContent("chapter-1")).thenReturn("{\"blocks\":[]}");
         when(chapterService.getChaptersModels("chapter-1")).thenReturn(Map.of());
 
-        ChapterEntity chapter = ChapterEntity.builder()
+        // The list hands over the copy it showed, which can be older than the stored chapter.
+        ChapterEntity fromList = ChapterEntity.builder()
                 .id("chapter-1")
                 .name("Lebka")
+                .updated(java.time.Instant.parse("2026-11-01T10:00:00Z"))
                 .build();
-        VaadinSession.getCurrent().setAttribute("chapterEntity", chapter);
+        VaadinSession.getCurrent().setAttribute("chapterEntity", fromList);
 
         ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
         UI.getCurrent().add(view);
         view.beforeEnter(beforeEnterEvent("chapter-1"));
         view.afterNavigation(null);
         flushUi();
+        MockVaadin.clientRoundtrip(false);
 
         assertTrue(findAll(view, SearchTextField.class).isEmpty());
         assertEquals("Upravit kapitolu", findAll(view, CreateChapterForm.class).getFirst().getCreateChapterButton().getText());
         assertNull(VaadinSession.getCurrent().getAttribute("chapterEntity"));
-        verify(chapterService).getChapterContent("chapter-1");
-        verify(chapterService).getChaptersModels("chapter-1");
-        verify(chapterService, never()).read(anyString());
+        // The save is checked against the version whose content the editor shows, so that version
+        // has to come from the same read as the content.
+        verify(chapterService).read("chapter-1");
+        assertSame(stored, getField(view, "loadedChapter"));
+    }
+
+    @Test
+    void aConflictingSaveOpensTheComparisonInsteadOfReportingSuccess() throws Exception {
+        java.time.Instant loaded = java.time.Instant.parse("2026-11-01T10:00:00Z");
+        java.time.Instant storedAt = java.time.Instant.parse("2026-11-01T10:05:00Z");
+        ChapterEntity loadedChapter = ChapterEntity.builder().id("chapter-1").name("Lebka").updated(loaded).build();
+        ChapterEntity attempted = ChapterEntity.builder().id("chapter-1").name("Moje").updated(loaded)
+                .content("{\"blocks\":[]}").modelIds(List.of("m")).build();
+        ChapterEntity current = ChapterEntity.builder().id("chapter-1").name("Jejich").updated(storedAt)
+                .content("{\"blocks\":[]}").modelIds(List.of("m")).build();
+        when(chapterService.saveChapter(eq("chapter-1"), eq(true), eq("Moje"), any(), any(), same(loadedChapter)))
+                .thenThrow(new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("konflikt", current)
+                        .withAttempted(attempted));
+        when(chapterService.saveResolved(any())).thenReturn("chapter-1");
+
+        ChapterCreateView view = new ChapterCreateView(chapterService, modelService);
+        UI.getCurrent().add(view);
+        view.beforeEnter(beforeEnterEvent("chapter-1"));
+        setField(view, "loadedChapter", loadedChapter);
+        findAll(view, NameTextField.class).getFirst().setValue("Moje");
+
+        invoke(view, "createChapterAndNavigate", new Class[]{String.class, Map.class}, "{\"blocks\":[]}", Map.of());
+        MockVaadin.clientRoundtrip(false);
+
+        var dialog = com.github.mvysny.kaributesting.v10.LocatorJ._get(
+                cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionDialog.class);
+        assertTrue(dialog.isOpened());
+        verify(chapterService, never()).saveResolved(any());
+
+        dialog.choiceFor(cz.uhk.zlesak.threejslearningapp.services.conflict.ChapterConflictResolution.NAME)
+                .setValue(cz.uhk.zlesak.threejslearningapp.services.conflict.ConflictChoice.THEIRS);
+        com.github.mvysny.kaributesting.v10.LocatorJ._click(dialog.getSaveButton());
+        MockVaadin.clientRoundtrip(false);
+
+        org.mockito.ArgumentCaptor<ChapterEntity> resolved = org.mockito.ArgumentCaptor.forClass(ChapterEntity.class);
+        verify(chapterService).saveResolved(resolved.capture());
+        assertEquals("Jejich", resolved.getValue().getName());
+        assertEquals(storedAt, resolved.getValue().getUpdated());
     }
 
     @Test
@@ -217,6 +263,21 @@ class ChapterViewsKaribuTest {
         Method method = findMethod(target.getClass(), name, types);
         method.setAccessible(true);
         return method.invoke(target, args);
+    }
+
+    private void setField(Object target, String name, Object value) throws Exception {
+        Class<?> current = target.getClass();
+        while (current != null) {
+            try {
+                Field field = current.getDeclaredField(name);
+                field.setAccessible(true);
+                field.set(target, value);
+                return;
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException(name);
     }
 
     private Object getField(Object target, String name) throws Exception {

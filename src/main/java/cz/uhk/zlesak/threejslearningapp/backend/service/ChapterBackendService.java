@@ -5,6 +5,7 @@ import cz.uhk.zlesak.threejslearningapp.backend.persistence.ChapterRepository;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.FullTextDocument;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ListingQueries;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.MongoCollections;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.VersionedWrites;
 import cz.uhk.zlesak.threejslearningapp.common.logging.AuditLog;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterEntity;
 import cz.uhk.zlesak.threejslearningapp.domain.chapter.ChapterFilter;
@@ -43,6 +44,7 @@ public class ChapterBackendService {
     private final CurrentUserProvider currentUserProvider;
     private final MongoTemplate mongoTemplate;
     private final AuditLog auditLog;
+    private final VersionedWrites versionedWrites;
     /** Quizzes reference chapters and chapters list their quizzes; the lazy lookup breaks the cycle. */
     private final ObjectProvider<QuizBackendService> quizLookup;
 
@@ -59,7 +61,7 @@ public class ChapterBackendService {
         // Audit is written after the save, once there is an id to record.
         chapter.setCreatorId(currentUserProvider.requireUserId());
         chapter.setCreatorName(currentUserProvider.currentUserName());
-        Instant now = Instant.now();
+        Instant now = VersionedWrites.now();
         chapter.setCreated(chapter.getCreated() != null ? chapter.getCreated() : now);
         chapter.setUpdated(now);
 
@@ -71,8 +73,15 @@ public class ChapterBackendService {
     /**
      * Updates an existing chapter. The original author is preserved: a chapter cannot change owners.
      *
-     * @param chapter chapter carrying the new content; its id must be set.
+     * <p>The save only goes through if the chapter has not been saved by anyone else since the
+     * editor loaded it: {@code chapter.updated} must still be the stored value. Otherwise nothing is
+     * written and the caller gets the stored version to compare with, rather than one of the two
+     * edits silently disappearing.
+     *
+     * @param chapter chapter carrying the new content; its id must be set and its {@code updated}
+     *                must be the value of the version the edit started from.
      * @return the stored chapter, with its models resolved.
+     * @throws BackendException.Conflict when the chapter was saved by someone else in the meantime.
      */
     @PreAuthorize("hasRole('CREATE_CHAPTER')")
     public ChapterEntity update(ChapterEntity chapter) {
@@ -86,14 +95,22 @@ public class ChapterBackendService {
         currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
                 "Kapitolu může upravit pouze její autor.");
 
+        Instant basedOn = chapter.getUpdated();
         chapter.setCreatorId(existing.getCreatorId() != null ? existing.getCreatorId() : editorId);
         chapter.setCreatorName(existing.getCreatorName() != null
                 ? existing.getCreatorName()
                 : currentUserProvider.currentUserName());
         chapter.setCreated(existing.getCreated());
-        chapter.setUpdated(Instant.now());
+        chapter.setUpdated(VersionedWrites.now());
 
-        ChapterEntity saved = afterWrite(chapterRepository.save(chapter));
+        if (versionedWrites.replaceIfUnchanged(chapter, basedOn, ChapterEntity.class, MongoCollections.CHAPTER) == null) {
+            chapter.setUpdated(basedOn);
+            auditLog.failure(AuditLog.Action.UPDATE, "chapter", chapter.getId(), "conflict");
+            throw new BackendException.Conflict(
+                    "Kapitolu mezitím uložil někdo jiný. Vaše změny nebyly uloženy.", require(chapter.getId()));
+        }
+
+        ChapterEntity saved = afterWrite(chapter);
         auditLog.success(AuditLog.Action.UPDATE, "chapter", saved.getId(), saved.getName());
         return saved;
     }

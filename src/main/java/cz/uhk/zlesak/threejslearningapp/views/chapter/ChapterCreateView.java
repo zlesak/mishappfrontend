@@ -8,6 +8,7 @@ import com.vaadin.flow.router.*;
 import com.vaadin.flow.server.VaadinSession;
 import cz.uhk.zlesak.threejslearningapp.components.forms.CreateChapterForm;
 import cz.uhk.zlesak.threejslearningapp.common.LinkTextAudit;
+import cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionFlow;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.ErrorNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.SuccessNotification;
 import cz.uhk.zlesak.threejslearningapp.components.notifications.WarningNotification;
@@ -17,6 +18,7 @@ import cz.uhk.zlesak.threejslearningapp.events.chapter.CreateChapterEvent;
 import cz.uhk.zlesak.threejslearningapp.events.model.ModelSelectedFromDialogEvent;
 import cz.uhk.zlesak.threejslearningapp.services.ChapterService;
 import cz.uhk.zlesak.threejslearningapp.services.ModelService;
+import cz.uhk.zlesak.threejslearningapp.services.conflict.ChapterConflictResolution;
 import cz.uhk.zlesak.threejslearningapp.views.abstractViews.AbstractChapterView;
 import jakarta.annotation.security.RolesAllowed;
 import lombok.extern.slf4j.Slf4j;
@@ -115,16 +117,14 @@ public class ChapterCreateView extends AbstractChapterView {
             return;
         }
 
-        ChapterEntity chapterFromSession = null;
-        if (VaadinSession.getCurrent().getAttribute("chapterEntity") != null) {
-            chapterFromSession = (ChapterEntity) VaadinSession.getCurrent().getAttribute("chapterEntity");
-            VaadinSession.getCurrent().setAttribute("chapterEntity", null);
-        }
-        final ChapterEntity chapterFromSessionFinal = chapterFromSession;
+        // The chapter list leaves its copy of the chapter here. It is not used for editing: the
+        // version the save is checked against has to be the one whose content the editor shows,
+        // and the content is read below.
+        VaadinSession.getCurrent().setAttribute("chapterEntity", null);
 
         runAsync(() -> {
                     try {
-                        ChapterEntity chapter = chapterFromSessionFinal != null ? chapterFromSessionFinal : service.read(chapterId);
+                        ChapterEntity chapter = service.read(chapterId);
                         String chapterContent = service.getChapterContent(chapterId);
                         Map<String, QuickModelEntity> fullModelsMap = resolveFullModels(service.getChaptersModels(chapterId));
                         return new ChapterEditData(chapter, chapterContent, fullModelsMap);
@@ -251,19 +251,50 @@ public class ChapterCreateView extends AbstractChapterView {
                         allModels,
                         loadedChapter
                 ),
-                savedChapterId -> {
-                    if (isEditMode) {
-                        new SuccessNotification(text("chapter.update.success"));
-                    } else {
-                        new SuccessNotification(text("chapter.create.success"));
-                    }
-                    skipBeforeLeaveDialog = true;
-                    UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", savedChapterId)));
-                },
+                this::chapterSaved,
                 error -> {
-                    log.error("Error saving chapter: {}", error.getMessage(), error);
-                    new ErrorNotification(text(isEditMode ? "error.chapterUpdateFailed" : "error.chapterCreationFailed") + ": " + error.getMessage());
+                    if (isEditMode && conflictFlow().handle(error)) {
+                        return;
+                    }
+                    chapterSaveFailed(error);
                 });
+    }
+
+    private void chapterSaved(String savedChapterId) {
+        if (isEditMode) {
+            new SuccessNotification(text("chapter.update.success"));
+        } else {
+            new SuccessNotification(text("chapter.create.success"));
+        }
+        skipBeforeLeaveDialog = true;
+        UI.getCurrent().navigate(ChapterDetailView.class, new RouteParameters(new RouteParam("chapterId", savedChapterId)));
+    }
+
+    private void chapterSaveFailed(Throwable error) {
+        log.error("Error saving chapter: {}", error.getMessage(), error);
+        new ErrorNotification(text(isEditMode ? "error.chapterUpdateFailed" : "error.chapterCreationFailed") + ": " + error.getMessage());
+    }
+
+    /**
+     * Someone else saved the chapter after this editor loaded it. Instead of overwriting their
+     * change or only reporting a failure, the user compares the two versions and decides.
+     */
+    private ConflictResolutionFlow<ChapterEntity> conflictFlow() {
+        return new ConflictResolutionFlow<>(
+                ChapterEntity.class,
+                "conflict.chapter.title",
+                new ChapterConflictResolution(this::text),
+                service::saveResolved,
+                this::runAsync,
+                this::chapterSaved,
+                this::chapterSaveFailed,
+                this::reloadStoredVersion);
+    }
+
+    /** Throws the edits away by loading the editor again, which reads the stored version. */
+    private void reloadStoredVersion() {
+        skipBeforeLeaveDialog = true;
+        UI.getCurrent().getPage().reload();
     }
 
     /**

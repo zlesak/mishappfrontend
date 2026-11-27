@@ -4,6 +4,7 @@ import cz.uhk.zlesak.threejslearningapp.backend.BackendException;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ListingQueries;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ModelRepository;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.MongoCollections;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.VersionedWrites;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
 import cz.uhk.zlesak.threejslearningapp.domain.model.FileSenseType;
@@ -41,6 +42,7 @@ public class ModelBackendService {
     private final ListingQueries listingQueries;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLog auditLog;
+    private final VersionedWrites versionedWrites;
     /** Chapters reference models and deleting a model has to check them; the lazy lookup breaks the cycle. */
     private final ObjectProvider<ChapterBackendService> chapterLookup;
 
@@ -61,7 +63,7 @@ public class ModelBackendService {
         requireModelRoot(metadata);
         ModelFileEntity root = fileStorageService.store(index(files), metadata);
 
-        Instant now = Instant.now();
+        Instant now = VersionedWrites.now();
         QuickModelEntity saved = modelRepository.save(QuickModelEntity.builder()
                 .name(root.getName())
                 .creatorId(currentUserProvider.requireUserId())
@@ -83,24 +85,35 @@ public class ModelBackendService {
      * The new files are stored and the model switched over before the old files are removed, so a
      * failure part way through leaves the model readable rather than pointing at deleted files.
      *
+     * <p>The switch only happens if nobody else has saved the model since the editor loaded it:
+     * {@code basedOn} must still be the stored {@code updated}. A stale save is turned away before
+     * any file is stored when that is already visible, and otherwise by the conditional write
+     * itself; in that case the files it stored are removed again, and the stored version keeps its
+     * own. Only the files of the version actually replaced are ever deleted.
+     *
      * @param modelId     id of the model to replace.
      * @param files       uploaded parts.
      * @param metadata    descriptor tree for the new files.
      * @param description presentation metadata for the UI.
      * @param advanced    whether the model uses per-area textures.
+     * @param basedOn     {@code updated} of the version the edit started from.
      * @return the updated model.
+     * @throws BackendException.Conflict when the model was saved by someone else in the meantime.
      */
     @PreAuthorize("hasRole('CREATE_CHAPTER')")
     public QuickModelEntity update(String modelId,
                                    List<MultipartFile> files,
                                    InputFileDesc metadata,
                                    String description,
-                                   boolean advanced) {
+                                   boolean advanced,
+                                   Instant basedOn) {
         requireModelRoot(metadata);
         QuickModelEntity existing = require(modelId);
         currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
                 "Model může upravit pouze jeho autor.");
-        ModelFileEntity obsolete = existing.getModel();
+        if (!VersionedWrites.sameVersion(existing.getUpdated(), basedOn)) {
+            throw conflict(existing);
+        }
 
         ModelFileEntity root = fileStorageService.store(index(files), metadata);
 
@@ -110,12 +123,70 @@ public class ModelBackendService {
         existing.setAdvanced(advanced);
         existing.setMainTexture(mainTextureOf(root));
         existing.setOtherTextures(otherTexturesOf(root));
-        existing.setUpdated(Instant.now());
+        existing.setUpdated(VersionedWrites.now());
 
-        QuickModelEntity updated = modelRepository.save(existing);
-        fileStorageService.deleteTree(obsolete);
-        auditLog.success(AuditLog.Action.UPDATE, "model", updated.getId(), updated.getName());
-        return updated;
+        QuickModelEntity replaced;
+        try {
+            replaced = versionedWrites.replaceIfUnchanged(existing, basedOn, QuickModelEntity.class, MongoCollections.MODEL);
+        } catch (RuntimeException e) {
+            fileStorageService.deleteTree(root);
+            throw e;
+        }
+        if (replaced == null) {
+            // Someone saved between the check above and the write. Their version is the stored one
+            // and keeps its files; the ones stored for this attempt belong to nothing.
+            fileStorageService.deleteTree(root);
+            throw conflict(require(modelId));
+        }
+
+        fileStorageService.deleteTree(replaced.getModel());
+        auditLog.success(AuditLog.Action.UPDATE, "model", existing.getId(), existing.getName());
+        return existing;
+    }
+
+    /**
+     * Renames a model and keeps its stored files exactly as they are: nothing is uploaded and nothing
+     * in GridFS changes. This is what saving from the conflict dialog does when the user keeps the
+     * stored version's files.
+     *
+     * @param modelId id of the model.
+     * @param name    the new name.
+     * @param basedOn {@code updated} of the version whose files are being kept.
+     * @return the updated model.
+     * @throws BackendException.Conflict when the model was saved by someone else in the meantime,
+     *                                   in which case the files being "kept" are no longer the stored ones.
+     */
+    @PreAuthorize("hasRole('CREATE_CHAPTER')")
+    public QuickModelEntity renameKeepingFiles(String modelId, String name, Instant basedOn) {
+        if (name == null || name.isBlank()) {
+            throw new BackendException.Validation("Název modelu nesmí být prázdný.");
+        }
+        QuickModelEntity existing = require(modelId);
+        currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
+                "Model může upravit pouze jeho autor.");
+        if (!VersionedWrites.sameVersion(existing.getUpdated(), basedOn)) {
+            throw conflict(existing);
+        }
+
+        existing.setName(name);
+        if (existing.getModel() != null) {
+            // The model file's entry carries the display name an upload gives it; only the document
+            // changes here, the file in GridFS keeps its own name.
+            existing.getModel().setName(name);
+        }
+        existing.setUpdated(VersionedWrites.now());
+
+        if (versionedWrites.replaceIfUnchanged(existing, basedOn, QuickModelEntity.class, MongoCollections.MODEL) == null) {
+            throw conflict(require(modelId));
+        }
+        auditLog.success(AuditLog.Action.UPDATE, "model", existing.getId(), existing.getName());
+        return existing;
+    }
+
+    private BackendException.Conflict conflict(QuickModelEntity current) {
+        auditLog.failure(AuditLog.Action.UPDATE, "model", current.getId(), "conflict");
+        return new BackendException.Conflict(
+                "Model mezitím uložil někdo jiný. Vaše změny nebyly uloženy.", current);
     }
 
     /**

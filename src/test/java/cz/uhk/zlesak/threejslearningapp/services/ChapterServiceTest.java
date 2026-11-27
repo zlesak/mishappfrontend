@@ -256,6 +256,43 @@ class ChapterServiceTest {
     }
 
     @Test
+    void saveChapter_sendsTheVersionTheEditWasLoadedFrom() throws Exception {
+        var mainModel = TestFixtures.model("main", "model-main", "Main", null, List.of());
+        java.time.Instant loadedVersion = java.time.Instant.parse("2026-11-01T10:00:00.123Z");
+        ChapterEntity loadedChapter = ChapterEntity.builder().id("chapter-1").name("Loaded")
+                .updated(loadedVersion).models(List.of(mainModel)).build();
+        when(chapterApiClient.update(any(), any(ChapterEntity.class)))
+                .thenReturn(ChapterEntity.builder().id("chapter-1").build());
+
+        chapterService.saveChapter("chapter-1", true, "Upravena",
+                "{\"blocks\":[{\"id\":\"main\",\"type\":\"header\",\"data\":{\"level\":1,\"text\":\"Main\"}}]}",
+                Map.of("main", mainModel), loadedChapter);
+
+        // Anything else — the time of the save, nothing at all — would either conflict with every
+        // save or let a stale one through.
+        ArgumentCaptor<ChapterEntity> sent = ArgumentCaptor.forClass(ChapterEntity.class);
+        verify(chapterApiClient).update(org.mockito.ArgumentMatchers.eq("chapter-1"), sent.capture());
+        assertEquals(loadedVersion, sent.getValue().getUpdated());
+    }
+
+    @Test
+    void saveChapter_passesAConflictOnWithTheVersionItTriedToSave() throws Exception {
+        var mainModel = TestFixtures.model("main", "model-main", "Main", null, List.of());
+        ChapterEntity stored = ChapterEntity.builder().id("chapter-1").name("Jejich").build();
+        when(chapterApiClient.update(any(), any(ChapterEntity.class)))
+                .thenThrow(new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("konflikt", stored));
+
+        var conflict = assertThrows(cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict.class,
+                () -> chapterService.saveChapter("chapter-1", true, "Moje",
+                        "{\"blocks\":[{\"id\":\"main\",\"type\":\"header\",\"data\":{\"level\":1,\"text\":\"Main\"}}]}",
+                        Map.of("main", mainModel),
+                        ChapterEntity.builder().id("chapter-1").models(List.of(mainModel)).build()));
+
+        assertSame(stored, conflict.getCurrent());
+        assertEquals("Moje", conflict.getAttempted().getName());
+    }
+
+    @Test
     void saveChapter_shouldRejectInvalidUpdateState() {
         RuntimeException ex = assertThrows(RuntimeException.class, () -> chapterService.saveChapter(
                 "chapter-1",

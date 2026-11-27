@@ -4,6 +4,7 @@ import cz.uhk.zlesak.threejslearningapp.backend.BackendException;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.ListingQueries;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.MongoCollections;
 import cz.uhk.zlesak.threejslearningapp.backend.persistence.QuizRepository;
+import cz.uhk.zlesak.threejslearningapp.backend.persistence.VersionedWrites;
 import cz.uhk.zlesak.threejslearningapp.common.logging.AuditLog;
 import cz.uhk.zlesak.threejslearningapp.domain.common.FilterParameters;
 import cz.uhk.zlesak.threejslearningapp.domain.common.PageResult;
@@ -36,6 +37,7 @@ public class QuizBackendService {
     private final ListingQueries listingQueries;
     private final CurrentUserProvider currentUserProvider;
     private final AuditLog auditLog;
+    private final VersionedWrites versionedWrites;
 
     /**
      * Stores a new quiz.
@@ -49,7 +51,7 @@ public class QuizBackendService {
         quiz.setId(null);
         quiz.setCreatorId(currentUserProvider.requireUserId());
         quiz.setCreatorName(currentUserProvider.currentUserName());
-        Instant now = Instant.now();
+        Instant now = VersionedWrites.now();
         quiz.setCreated(quiz.getCreated() != null ? quiz.getCreated() : now);
         quiz.setUpdated(now);
         QuizEntity saved = quizRepository.save(quiz);
@@ -60,8 +62,14 @@ public class QuizBackendService {
     /**
      * Updates an existing quiz, keeping its original author and creation time.
      *
-     * @param quiz quiz carrying the new content; its id must be set.
+     * <p>The save only goes through if nobody else has saved the quiz since the editor loaded it:
+     * {@code quiz.updated} must still be the stored value. Otherwise nothing is written and the
+     * caller gets the stored version, answers included, to compare with.
+     *
+     * @param quiz quiz carrying the new content; its id must be set and its {@code updated} must be
+     *             the value of the version the edit started from.
      * @return the stored quiz.
+     * @throws BackendException.Conflict when the quiz was saved by someone else in the meantime.
      */
     @PreAuthorize("hasRole('CREATE_QUIZ')")
     public QuizEntity update(QuizEntity quiz) {
@@ -73,15 +81,22 @@ public class QuizBackendService {
         currentUserProvider.requireAuthorOrTeacher(existing.getCreatorId(),
                 "Kvíz může upravit pouze jeho autor.");
 
+        Instant basedOn = quiz.getUpdated();
         quiz.setCreatorId(existing.getCreatorId() != null ? existing.getCreatorId() : currentUserProvider.requireUserId());
         quiz.setCreatorName(existing.getCreatorName() != null
                 ? existing.getCreatorName()
                 : currentUserProvider.currentUserName());
         quiz.setCreated(existing.getCreated());
-        quiz.setUpdated(Instant.now());
-        QuizEntity saved = quizRepository.save(quiz);
-        auditLog.success(AuditLog.Action.UPDATE, "quiz", saved.getId(), saved.getName());
-        return saved;
+        quiz.setUpdated(VersionedWrites.now());
+
+        if (versionedWrites.replaceIfUnchanged(quiz, basedOn, QuizEntity.class, MongoCollections.QUIZ) == null) {
+            quiz.setUpdated(basedOn);
+            auditLog.failure(AuditLog.Action.UPDATE, "quiz", quiz.getId(), "conflict");
+            throw new BackendException.Conflict(
+                    "Kvíz mezitím uložil někdo jiný. Vaše změny nebyly uloženy.", load(quiz.getId(), true));
+        }
+        auditLog.success(AuditLog.Action.UPDATE, "quiz", quiz.getId(), quiz.getName());
+        return quiz;
     }
 
     /**

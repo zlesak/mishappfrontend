@@ -125,7 +125,7 @@ class ModelCreateViewKaribuTest {
 
     @Test
     void uploadModelShouldSaveAfterThumbnailCallback() throws Exception {
-        when(modelService.saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any()))
+        when(modelService.saveFromUpload(eq(null), any(), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any()))
                 .thenReturn("saved-model");
 
         ModelCreateView view = new ModelCreateView(modelService);
@@ -138,12 +138,12 @@ class ModelCreateViewKaribuTest {
         triggerBackgroundSpecCallback(view, null);
         triggerThumbnailCallback(view, "data:image/png;base64,abc");
 
-        verify(modelService).saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
+        verify(modelService).saveFromUpload(eq(null), any(), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
     }
 
     @Test
     void uploadModelShouldSwallowSaveErrorsInsideThumbnailCallback() throws Exception {
-        when(modelService.saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any()))
+        when(modelService.saveFromUpload(eq(null), any(), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any()))
                 .thenThrow(new RuntimeException("save failed"));
 
         ModelCreateView view = new ModelCreateView(modelService);
@@ -157,7 +157,52 @@ class ModelCreateViewKaribuTest {
         assertDoesNotThrow(() ->
                 triggerThumbnailCallback(view, "data:image/png;base64,abc")
         );
-        verify(modelService).saveFromUpload(eq(null), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
+        verify(modelService).saveFromUpload(eq(null), any(), eq("Lebka"), any(), any(), anyList(), anyList(), eq("data:image/png;base64,abc"), any());
+    }
+
+    @Test
+    void aConflictingSaveOpensTheComparisonInsteadOfReportingSuccess() throws Exception {
+        java.time.Instant loaded = java.time.Instant.parse("2026-11-01T10:00:00Z");
+        java.time.Instant stored = java.time.Instant.parse("2026-11-01T10:05:00Z");
+        ModelEntity editing = ModelEntity.builder().id("model-1").name("Lebka").updated(loaded)
+                .model(ModelFileEntity.builder().id("file-1").name("Lebka").related(List.of()).build()).build();
+        ModelEntity attempted = ModelEntity.builder().id("model-1").name("Lebka moje").updated(loaded)
+                .inputStreamMultipartFile(file("lebka.glb", "glb")).build();
+        cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity current =
+                cz.uhk.zlesak.threejslearningapp.domain.model.QuickModelEntity.builder().id("model-1")
+                        .name("Lebka jejich").updated(stored).build();
+        when(modelService.saveFromUpload(eq("model-1"), eq(loaded), eq("Lebka moje"), any(), any(), anyList(), anyList(), any(), any()))
+                .thenThrow(new cz.uhk.zlesak.threejslearningapp.backend.BackendException.Conflict("konflikt", current)
+                        .withAttempted(attempted));
+        when(modelService.saveResolved(any())).thenReturn("model-1");
+
+        ModelCreateView view = new ModelCreateView(modelService);
+        UI.getCurrent().add(view);
+        setField(view, "modelEntity", editing);
+        findAll(view, ModelUploadForm.class).getFirst().getModelName().setValue("Lebka moje");
+
+        invoke(view, "uploadModel");
+        triggerBackgroundSpecCallback(view, null);
+        triggerThumbnailCallback(view, "data:image/png;base64,abc");
+        com.github.mvysny.kaributesting.v10.MockVaadin.clientRoundtrip(false);
+
+        // The edit was based on the version the editor loaded, and the refusal became a comparison.
+        verify(modelService).saveFromUpload(eq("model-1"), eq(loaded), eq("Lebka moje"), any(), any(), anyList(), anyList(), any(), any());
+        var dialog = com.github.mvysny.kaributesting.v10.LocatorJ._get(
+                cz.uhk.zlesak.threejslearningapp.components.dialogs.ConflictResolutionDialog.class);
+        assertEquals(true, dialog.isOpened());
+        verify(modelService, never()).saveResolved(any());
+
+        dialog.choiceFor(cz.uhk.zlesak.threejslearningapp.services.conflict.ModelConflictResolution.FILES)
+                .setValue(cz.uhk.zlesak.threejslearningapp.services.conflict.ConflictChoice.THEIRS);
+        com.github.mvysny.kaributesting.v10.LocatorJ._click(dialog.getSaveButton());
+        com.github.mvysny.kaributesting.v10.MockVaadin.clientRoundtrip(false);
+
+        org.mockito.ArgumentCaptor<ModelEntity> resolved = org.mockito.ArgumentCaptor.forClass(ModelEntity.class);
+        verify(modelService).saveResolved(resolved.capture());
+        assertEquals(true, resolved.getValue().isKeepStoredFiles());
+        assertEquals("Lebka moje", resolved.getValue().getName());
+        assertEquals(stored, resolved.getValue().getUpdated());
     }
 
     @Test
@@ -204,7 +249,7 @@ class ModelCreateViewKaribuTest {
 
     @Test
     void uploadModel_withEmptyModelName_shouldCallSave() throws Exception {
-        when(modelService.saveFromUpload(eq(null), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any()))
+        when(modelService.saveFromUpload(eq(null), any(), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any()))
                 .thenReturn("saved-empty-name");
 
         ModelCreateView view = new ModelCreateView(modelService);
@@ -214,12 +259,12 @@ class ModelCreateViewKaribuTest {
         triggerBackgroundSpecCallback(view, null);
         triggerThumbnailCallback(view, "data:image/png;base64,xyz");
 
-        verify(modelService).saveFromUpload(eq(null), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any());
+        verify(modelService).saveFromUpload(eq(null), any(), eq(""), any(), any(), anyList(), anyList(), eq("data:image/png;base64,xyz"), any());
     }
 
     @Test
     void uploadModel_whenThumbnailCallbackCalledWithNull_shouldHandleGracefully() throws Exception {
-        when(modelService.saveFromUpload(any(), any(), any(), any(), any(), any(), isNull(), any()))
+        when(modelService.saveFromUpload(any(), any(), any(), any(), any(), any(), any(), isNull(), any()))
                 .thenReturn("saved-null-thumbnail");
 
         ModelCreateView view = new ModelCreateView(modelService);
@@ -308,7 +353,7 @@ class ModelCreateViewKaribuTest {
         UI.getCurrent().add(view);
         setField(view, "modelDiv", null);
         assertDoesNotThrow(() -> invoke(view, "uploadModel"));
-        verify(modelService, never()).saveFromUpload(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(modelService, never()).saveFromUpload(any(), any(), any(), any(), any(), any(), any(), any(), any());
     }
 
     @SuppressWarnings("unchecked")
