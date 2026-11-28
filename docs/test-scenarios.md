@@ -9,7 +9,7 @@ identifikátor, takže se na něj dá odkázat z obhajoby i z hlášení chyby, 
 |---|---|---|---|
 | Jednotkové a komponentové (Java) | JUnit 5, Mockito, Karibu | `src/test/java` | 940 |
 | Jednotkové (TypeScript, 3D vrstva) | Vitest | `src/main/frontend/js/**/*.test.ts` | 78 |
-| End-to-end | Playwright, projekt `e2e` | `e2e/*.spec.ts` | 14 |
+| End-to-end | Playwright, projekt `e2e` | `e2e/*.spec.ts` | 76 |
 | Přístupnost (axe) | Playwright, projekt `a11y` | `e2e/axe.spec.ts` | 10 rout × 2 režimy |
 | Použitelnost (měření) | Playwright, projekt `usability` | `e2e/usability.spec.ts` | 8 úloh |
 | Výkon (aplikace) | k6 | `perf/smoke.js` | 3 profily |
@@ -42,6 +42,19 @@ nemá jak projekt z výchozího běhu vynechat.
 | E-A11Y-5 | 3D scéna je dosažitelná a ovladatelná klávesnicí | `accessibility.spec.ts` | Fixture kapitola |
 | E-A11Y-6 | Ovládání modelu má jména, velikost cílů a funguje z klávesnice | `accessibility.spec.ts` | Fixture model |
 | E-A11Y-7 | Lišta cookies nabízí odmítnutí stejně zřetelně jako přijetí | `accessibility.spec.ts` | — |
+| E-ACC-1 | Hodnocení všech šesti typů otázek: správně, těsně vedle, nezodpovězené, slovní hodnocení | `quiz-grading.spec.ts` | Fixture model |
+| E-ACC-2 | Co formulář kvízu odmítne uložit a že se odmítnutý kvíz neuloží | `quiz-validation.spec.ts` | Fixture model |
+| E-ACC-3 | Časový limit: odpočet, znovuotevření, varování, automatické odeslání (skutečné 2 minuty) | `quiz-timer.spec.ts` | Fixture kvíz |
+| E-ACC-4 | Otevřené odpovědi, úklid uznávaných odpovědí, pokus přes úpravu kvízu, souběžná úprava | `quiz-editing.spec.ts` | — |
+| E-ACC-5 | Mazání vazeb: kapitola s kvízem, model v kapitole, výsledek smazaného kvízu | `relations.spec.ts` | Fixture model |
+| E-ACC-6 | Kapitoly: validace, ořez názvu, nepopisné odkazy, osnova z importu, modely nadpisů, chybný ZIP, souběh | `chapters.spec.ts` | Fixture model |
+| E-ACC-7 | Hledání, filtry, řazení a prázdné výpisy | `search-listing.spec.ts` | Fixture model a kvíz |
+| E-ACC-8 | Routy, přihlášení a odhlášení, dokumentace podle role, stahování modelů, X-Request-Id | `navigation-access.spec.ts` | Fixtures |
+| E-ACC-9 | Nahrávání a úprava modelu, souběžná úprava | `models.spec.ts` | — |
+
+Scénáře E-ACC jsou akceptační sada pro přenos do nového systému (zlesak/mish#9); které pravidlo
+katalogu domén který test pokrývá a proč některá pravidla e2e nemají, říká
+[`e2e/ACCEPTANCE.md`](../e2e/ACCEPTANCE.md).
 
 Fixtures zakládá `e2e/fixtures.setup.ts` (projekt `setup`), idempotentně — opakovaný běh je
 přeskočí. Sada běží na čtyřech workerech; každý scénář si své entity pojmenovává jednoznačně

@@ -12,7 +12,7 @@ a následné úpravy UI.
 |---|---|---|---|
 | Java (JUnit, Mockito, Karibu) | `src/test/java` | 940 | před posledními úpravami CSS a textů |
 | TypeScript (Vitest) | `src/main/frontend/js/**/*.test.ts` | 78 | ano |
-| E2E (Playwright, projekt `e2e`) | `e2e/*.spec.ts` | 14 | ano |
+| E2E (Playwright, projekt `e2e`) | `e2e/*.spec.ts` | 76 (pokrytí katalogu pravidel: `e2e/ACCEPTANCE.md`) | ano |
 | Přístupnost (axe, projekt `a11y`) | `e2e/axe.spec.ts` | 10 rout × 2 režimy | ano |
 | Použitelnost (projekt `usability`) | `e2e/usability.spec.ts` | 8 úloh | ano |
 | Výkon 3D scény (projekt `perf`) | `e2e/*perf*.spec.ts` | 5 | ano |
