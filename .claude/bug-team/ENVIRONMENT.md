@@ -10,8 +10,9 @@ Read by the orchestrator and by DEV, DEVCR and QA before they start.
   why in prose (see `git log`). Project state and known gaps: `docs/status.md`.
 - `main` is protected: PR required, checks `java-tests`, `vitest`, `build`, `e2e` must pass. Repo auto-merge is on.
 
-Baselines on `main` (2026-11-27): Java **1004** tests by Maven's summary line, Vitest **83**, Playwright
-`--project=e2e` **17**. If a count differs, compare like with like — summing surefire `.txt` files misses the
+Baselines on `main` (2026-11-28): Java **1047** tests by Maven's summary line, Vitest **83**, Playwright
+`--project=e2e` **76** + setup (acceptance suite, zlesak/mish#9; coverage in `e2e/ACCEPTANCE.md`). A full `bt e2e`
+takes ~5 min locally (2 workers; the timer spec alone waits a real 2 min), ~20 min on CI. If a count differs, compare like with like — summing surefire `.txt` files misses the
 `@Nested` class `SecurityConfigTest$HttpFilterChainIntegrationTest` (11 tests).
 
 ## Where things are
@@ -62,3 +63,8 @@ shows what it resolved). Throwaway scripts, probes and mutants go in the run fol
 - The gateway (nginx) resolves the app once at start; `bt` restarts it after app restarts. Do the same if you ever
   recreate the app container by hand.
 - A wrong Keycloak password in Playwright looks like a timeout (#61).
+- CI runs e2e with **2 workers** and longer CI-only timeouts (`playwright.config.ts`, `ciScaled` in the helpers): the 4-vCPU
+  runner also hosts the whole stack and renders 3D in software. Watch the report for **flaky** tests, not only green
+  (SRC-015 was flaky on the first green run, #108). CI traces are overwritten by the usability step (#107).
+- On the QA stack (8443) Keycloak rejects the post-logout redirect (`https://localhost:8443` is not in `dev-client`),
+  so the SSO session survives logout; AUTH-020 checks only the app side.
