@@ -12,6 +12,10 @@ const mainTexture = path.resolve(repoRoot, 'src/test/resources/advanced_model/fe
 const otherTexture = path.resolve(repoRoot, 'src/test/resources/advanced_model/femur.1001-parts1.jpg');
 const csvTexture = path.resolve(repoRoot, 'src/test/resources/advanced_model/femur.1001-parts1.csv');
 
+// The CI runner shares four vCPUs with the whole stack and renders the scene in software, so every
+// upload and scene update takes several times longer there than on a workstation.
+const UI_WAIT = process.env.CI ? 30000 : 10000;
+
 function uniqueName(prefix: string): string {
   return `${prefix} ${Date.now()} ${Math.random().toString(36).slice(2, 7)}`;
 }
@@ -38,23 +42,23 @@ async function removeUploadedFile(page: Page, fileName: string): Promise<void> {
   const uploadedFile = page.locator('vaadin-upload-file').filter({hasText: fileName}).first();
   await expect(uploadedFile).toBeVisible();
   await uploadedFile.getByRole('button', {name: 'Remove'}).click();
-  await expect(page.locator('vaadin-upload-file').filter({hasText: fileName})).toHaveCount(0, {timeout: 10000});
+  await expect(page.locator('vaadin-upload-file').filter({hasText: fileName})).toHaveCount(0, {timeout: UI_WAIT});
 }
 
 async function expectUploadedFileVisible(page: Page, fileName: string): Promise<void> {
-  await expect(page.locator('vaadin-upload-file').filter({hasText: fileName}).first()).toBeVisible({timeout: 10000});
+  await expect(page.locator('vaadin-upload-file').filter({hasText: fileName}).first()).toBeVisible({timeout: UI_WAIT});
 }
 
 async function expectModelVisibleStable(page: Page, modelFileName: string): Promise<void> {
   const modelButton = page.getByRole('button', {name: modelFileName}).first();
-  await expect(modelButton).toBeVisible({timeout: 10000});
+  await expect(modelButton).toBeVisible({timeout: UI_WAIT});
   await page.waitForTimeout(500);
   await expect(modelButton).toBeVisible({timeout: 5000});
 }
 
 async function expectModelNotVisibleStable(page: Page, modelFileName: string): Promise<void> {
   const modelButton = page.getByRole('button', {name: modelFileName});
-  await expect(modelButton).toHaveCount(0, {timeout: 10000});
+  await expect(modelButton).toHaveCount(0, {timeout: UI_WAIT});
   await page.waitForTimeout(500);
   await expect(modelButton).toHaveCount(0, {timeout: 5000});
 }
@@ -122,7 +126,7 @@ async function expectModelNotRenderedInScene(page: Page): Promise<void> {
         return currentStates
           .filter((state) => state.hasInstance)
           .every((state) => !state.sceneContainsCurrentModelLoader);
-      }, {timeout: 10000})
+      }, {timeout: UI_WAIT})
       .toBe(true);
   }
 }

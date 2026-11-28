@@ -1,6 +1,6 @@
 import {expect, type Locator, type Page} from '@playwright/test';
 import {waitForChapterSave} from './helpers';
-import {listingRow, waitForListingNarrowedTo} from './quiz-helpers';
+import {listingRow, submitSearch} from './quiz-helpers';
 
 /**
  * Chapters and the administration listings, for the acceptance specs (zlesak/mish#9).
@@ -33,8 +33,7 @@ export async function administrationRow(page: Page, tab: AdministrationTab, name
   const search = panel.getByRole('textbox', {name: 'Hledat výraz'});
   if (await search.isEnabled()) {
     await search.fill(name);
-    await panel.getByRole('button', {name: 'Hledat'}).click();
-    await waitForListingNarrowedTo(panel, name);
+    await submitSearch(panel);
   }
   return listingRow(panel, name);
 }
@@ -94,7 +93,7 @@ export async function searchPublicListing(page: Page, route: '/chapters' | '/qui
   const main = page.getByRole('main');
   const field = main.getByRole('textbox', {name: 'Hledat výraz'});
   await field.fill(query);
-  await main.getByRole('button', {name: 'Hledat'}).click();
+  await submitSearch(main);
   return main;
 }
 

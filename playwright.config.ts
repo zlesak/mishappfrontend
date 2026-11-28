@@ -15,7 +15,12 @@ export default defineConfig({
   // longer collide when run at the same time. Files spread across workers; tests inside one file
   // still run in order, because the CRUD specs build up state step by step.
   fullyParallel: false,
-  workers: Number(process.env.E2E_WORKERS ?? (process.env.CI ? 4 : 2)),
+  // Two on CI as well. The CI runner has four vCPUs and also runs the whole stack (MongoDB, Keycloak,
+  // the application, nginx), and the headless shell draws every 3D scene in software. With the
+  // acceptance specs (zlesak/mish#9) four browsers starved it: trivial tests took 15 s, a reload of an
+  // editor more than the 15 s an assertion waits, and 2 tests failed while 2 more passed only on
+  // retry. Two workers do the same work in about the same wall time without the starvation.
+  workers: Number(process.env.E2E_WORKERS ?? 2),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // JUnit XML alongside the human-readable reports: it is the one format every test-management and
@@ -25,9 +30,11 @@ export default defineConfig({
     ['html', {open: 'never'}],
     ['junit', {outputFile: 'test-results/results.xml'}],
   ],
-  timeout: 90_000,
+  // Longer on CI for the same reason: the runner is several times slower than a workstation, and a
+  // condition that would have come true is not a failure. What the tests assert does not change.
+  timeout: process.env.CI ? 180_000 : 90_000,
   expect: {
-    timeout: 15_000,
+    timeout: process.env.CI ? 30_000 : 15_000,
   },
   use: {
     baseURL,

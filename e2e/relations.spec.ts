@@ -20,6 +20,7 @@ import {
   quizDetailUrl,
   saveQuiz,
   startQuizForm,
+  ciScaled,
 } from './quiz-helpers';
 
 /**
@@ -32,7 +33,7 @@ import {
  */
 
 test('CH-009, QZ-004, QZ-031, SRC-006: deleting a chapter detaches its quizzes instead of deleting them', async ({page}) => {
-  test.setTimeout(150_000);
+  test.setTimeout(ciScaled(150_000));
   const chapterName = uniqueName('E2E Vazby Kapitola');
   const quizName = uniqueName('E2E Vazby Kvíz');
   await loginAsTeacher(page);
@@ -70,7 +71,7 @@ test('CH-009, QZ-004, QZ-031, SRC-006: deleting a chapter detaches its quizzes i
 });
 
 test('MOD-010, MOD-012: a model a chapter uses cannot be deleted until the chapter is gone', async ({page}) => {
-  test.setTimeout(180_000);
+  test.setTimeout(ciScaled(180_000));
   // "AAA" keeps the model on the first page of the model listing, which cannot be searched.
   const modelName = uniqueName('AAA E2E Vazby Model');
   const chapterName = uniqueName('E2E Vazby Kapitola s modelem');
@@ -102,7 +103,7 @@ test.describe.serial('a result outlives its quiz', () => {
   let resultUrl = '';
 
   test('teacher writes the quiz, student takes it', async ({browser}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     const teacher = await browser.newPage();
     await loginAsTeacher(teacher);
     await startQuizForm(teacher, {name: quizName});
@@ -138,7 +139,7 @@ test.describe.serial('a result outlives its quiz', () => {
   });
 
   test('ASM-042, ASM-043: after the quiz is deleted the student still reads the stored result', async ({browser}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     const teacher = await browser.newPage();
     await loginAsTeacher(teacher);
     await deleteFromAdministration(teacher, 'Kvízy', quizName);

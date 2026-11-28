@@ -20,6 +20,7 @@ import {
   quizDetailUrl,
   saveQuiz,
   startQuizForm,
+  ciScaled,
 } from './quiz-helpers';
 
 /**
@@ -57,7 +58,7 @@ test.describe.serial('quiz grading of every question type', () => {
   let detailUrl = '';
 
   test('QZ-023, QZ-032: teacher writes a quiz with all six question types', async ({page}) => {
-    test.setTimeout(180_000);
+    test.setTimeout(ciScaled(180_000));
     await loginAsTeacher(page);
     await startQuizForm(page, {name: quizName});
 
@@ -81,7 +82,7 @@ test.describe.serial('quiz grading of every question type', () => {
   });
 
   test('ASM-029, ASM-030, ASM-031..036, ASM-045: every type answered correctly scores full points', async ({page}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     await loginAsStudent(page);
     await playQuiz(page, detailUrl);
 
@@ -106,7 +107,7 @@ test.describe.serial('quiz grading of every question type', () => {
   });
 
   test('ASM-029..036, ASM-040, ASM-045: a near miss on every type scores nothing — no partial points', async ({page}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     await loginAsStudent(page);
     await playQuiz(page, detailUrl);
 
@@ -130,7 +131,7 @@ test.describe.serial('quiz grading of every question type', () => {
   });
 
   test('ASM-036, ASM-040, ASM-045: a wrong area alone costs exactly that question (20 / 27, passed)', async ({page}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     await loginAsStudent(page);
     await playQuiz(page, detailUrl);
 
@@ -150,7 +151,7 @@ test.describe.serial('quiz grading of every question type', () => {
   });
 
   test('ASM-023..025, ASM-038, ASM-045: questions left blank are listed first, then graded as wrong', async ({page}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     await loginAsStudent(page);
     await playQuiz(page, detailUrl);
 

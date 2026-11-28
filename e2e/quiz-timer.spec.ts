@@ -12,6 +12,7 @@ import {
   quizDetailUrl,
   saveQuiz,
   startQuizForm,
+  ciScaled,
 } from './quiz-helpers';
 
 /**
@@ -48,7 +49,7 @@ test.describe.serial('timed quiz', () => {
   });
 
   test('ASM-002, ASM-004, ASM-009..011, ASM-013, ASM-014: the countdown survives a reload and submits on its own', async ({page}) => {
-    test.setTimeout(240_000);
+    test.setTimeout(ciScaled(240_000));
     await loginAsStudent(page);
     await playQuiz(page, detailUrl);
     const openedAt = Date.now();
@@ -72,7 +73,9 @@ test.describe.serial('timed quiz', () => {
 
     // Time runs out with two questions blank: submitted automatically, without first listing the
     // blanks (ASM-013) — the result page comes up on its own.
-    await expectResultPage(page, openedAt + 130_000 - Date.now());
+    // The deadline is two minutes after the attempt started; the submission and the result page
+    // then take a few seconds more (more on CI).
+    await expectResultPage(page, openedAt + 120_000 + ciScaled(15_000) - Date.now());
     await expect(page.getByRole('heading', {name: 'Zbývá zodpovědět'})).toHaveCount(0);
     await expectScore(page, 2, 4, '50.00', 'Bohužel, zkuste to znovu.');
     await expectQuestionResult(page, 1, OPEN.text, true, OPEN.points);

@@ -11,7 +11,7 @@ import {
   pickModelInDialog,
   searchPublicListing,
 } from './content-helpers';
-import {listingRow} from './quiz-helpers';
+import {listingRow, ciScaled} from './quiz-helpers';
 
 /**
  * Writing chapters: what the form refuses, what it tidies, what it warns about, the outline a chapter
@@ -78,7 +78,7 @@ test('CH-022: links that do not say where they go are pointed out, and the chapt
 });
 
 test('CH-018, CH-019, CH-025, CH-028: an imported chapter is outlined by its level-one headings, with the lower ones under them', async ({page}) => {
-  test.setTimeout(120_000);
+  test.setTimeout(ciScaled(120_000));
   const name = uniqueName('E2E Kapitola osnova');
   await page.goto('/createChapter');
   await uploadWithChooser(page, 'Nahrát Moodle ZIP', chapterZip);
@@ -116,7 +116,7 @@ test('CH-018, CH-019, CH-025, CH-028: an imported chapter is outlined by its lev
 });
 
 test('CH-017, CH-020, MOD-016: models of headings join the main model once each, and a sub-chapter shows its own', async ({page}) => {
-  test.setTimeout(240_000);
+  test.setTimeout(ciScaled(240_000));
   // "AAA" keeps the model on the first page of the model picker, which cannot be searched (SRC-010).
   const headingModel = uniqueName('AAA E2E Model nadpisu');
   const name = uniqueName('E2E Kapitola modely nadpisů');
@@ -158,7 +158,7 @@ test('CH-017, CH-020, MOD-016: models of headings join the main model once each,
   // A sub-chapter shows the model of its heading (CH-020).
   await page.getByRole('button', {name: /^Vyberte podkapitolu/}).click();
   await page.getByRole('option', {name: 'Popis hemisféry'}).click();
-  await expect(modelSelect).toContainText(headingModel, {timeout: 30_000});
+  await expect(modelSelect).toContainText(headingModel, {timeout: ciScaled(30_000)});
 
   await deleteFromAdministration(page, 'Kapitoly', name);
   await expect(page.getByText('Kapitola byla úspěšně smazána')).toBeVisible();
@@ -176,9 +176,11 @@ test('CH-024: an import without imsmanifest.xml is refused', async ({page}, test
 });
 
 test('CH-023: a save over a version someone else saved meanwhile is stopped, not applied', async ({browser, page}) => {
-  test.setTimeout(150_000);
+  test.setTimeout(ciScaled(150_000));
   const name = uniqueName('E2E Kapitola souběh');
   await createChapterAndWait(page, {name, content: 'Obsah kapitoly pro souběžnou úpravu.', model: FIXTURE_MODEL});
+  // Off the chapter's detail and its 3D scene until the end; see the note below.
+  await page.goto('/administration');
 
   const first = await teacherPage(browser);
   const second = await teacherPage(browser);
@@ -188,16 +190,19 @@ test('CH-023: a save over a version someone else saved meanwhile is stopped, not
   await nameField(first).fill(`${name} A`);
   await first.getByRole('button', {name: 'Upravit kapitolu'}).click();
   expect(await waitForChapterSave(first)).toBe(true);
+  // Done with the first window. Every editor and detail page runs a 3D scene, and on CI each open
+  // page competes for the same CPU as the reload this test waits for.
+  await first.context().close();
 
   await nameField(second).fill(`${name} B`);
   await second.getByRole('button', {name: 'Upravit kapitolu'}).click();
   await expect(second.getByRole('heading', {name: 'Kapitolu mezitím uložil někdo jiný'})).toBeVisible();
   await second.getByRole('button', {name: 'Zahodit mé změny a načíst uloženou verzi'}).click();
-  await expect(nameField(second)).toHaveValue(`${name} A`);
+  // The discard reloads the editor; it has to boot and load the chapter again.
+  await expect(nameField(second)).toHaveValue(`${name} A`, {timeout: ciScaled(60_000)});
 
   await expect(await administrationRow(page, 'Kapitoly', `${name} A`)).toBeVisible();
   await expect(await administrationRow(page, 'Kapitoly', `${name} B`)).toHaveCount(0);
-  await first.context().close();
   await second.context().close();
 });
 

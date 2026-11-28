@@ -11,6 +11,7 @@ import {
   quizDetailUrl,
   saveQuiz,
   startQuizForm,
+  ciScaled,
 } from './quiz-helpers';
 
 /**
@@ -89,7 +90,7 @@ test.describe.serial('editing a quiz and open answers', () => {
   });
 
   test('QZ-026: an attempt started before the teacher saves the quiz again is still graded correctly', async ({browser}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     const student = await newPage(browser, loginAsStudent);
     await playQuiz(student, detailUrl);
     // One answer before the teacher saves the quiz, one after.
@@ -110,7 +111,7 @@ test.describe.serial('editing a quiz and open answers', () => {
   });
 
   test('QZ-033: a save over a version someone else saved meanwhile is stopped, not applied', async ({browser}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     const first = await newPage(browser, loginAsTeacher);
     const second = await newPage(browser, loginAsTeacher);
     await openEditor(first, quizName);
@@ -118,6 +119,9 @@ test.describe.serial('editing a quiz and open answers', () => {
 
     await first.getByRole('textbox', {name: 'Popis'}).fill('Popis z prvního okna');
     await saveQuiz(first);
+    // Done with the first window. Every editor and detail page runs a 3D scene, and on CI each open
+    // page competes for the same CPU as the reload this test waits for.
+    await first.context().close();
 
     await second.getByRole('textbox', {name: 'Popis'}).fill('Popis z druhého okna');
     await second.getByRole('button', {name: 'Upravit kvíz'}).click();
@@ -127,11 +131,11 @@ test.describe.serial('editing a quiz and open answers', () => {
     // Nothing was written yet: the stored description is the first window's.
     await expect(second).toHaveURL(/\/createQuiz\//);
     await second.getByRole('button', {name: 'Zahodit mé změny a načíst uloženou verzi'}).click();
-    await expect(second.getByRole('textbox', {name: 'Popis'})).toHaveValue('Popis z prvního okna');
+    // The discard reloads the editor; it has to boot and load the quiz again.
+    await expect(second.getByRole('textbox', {name: 'Popis'})).toHaveValue('Popis z prvního okna', {timeout: ciScaled(60_000)});
 
-    await first.goto(detailUrl);
-    await expect(first.getByRole('main')).toContainText('Popis z prvního okna');
-    await first.context().close();
+    await second.goto(detailUrl);
+    await expect(second.getByRole('main')).toContainText('Popis z prvního okna');
     await second.context().close();
   });
 });

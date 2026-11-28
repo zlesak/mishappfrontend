@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test';
 import {FIXTURE_CHAPTER, FIXTURE_MODEL, FIXTURE_QUIZ, expectBlockedTeacherRoute, loginAsStudent, loginAsTeacher} from './helpers';
-import {listingRow, searchListing, waitForListingNarrowedTo} from './quiz-helpers';
+import {listingRow, searchListing} from './quiz-helpers';
 
 /**
  * Routes, sign-in and sign-out, documentation by role, the model download endpoint and request ids.
@@ -123,7 +123,6 @@ test('AUTH-008, AUTH-016: a student cannot open the editor of existing content',
     // The model listing cannot be searched (SRC-010); the fixture model is on its first page.
     if (listing !== '/models') {
       await searchListing(page, name);
-      await waitForListingNarrowedTo(page.getByRole('main'), name);
     }
     await listingRow(page.getByRole('main'), name).getByRole('button', {name: 'Otevřít'}).click();
     await page.waitForURL(/\/(chapter|model|quiz)\/[^/]+$/);

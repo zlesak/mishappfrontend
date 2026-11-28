@@ -57,7 +57,7 @@ katalogu domén který test pokrývá a proč některá pravidla e2e nemají, ř
 [`e2e/ACCEPTANCE.md`](../e2e/ACCEPTANCE.md).
 
 Fixtures zakládá `e2e/fixtures.setup.ts` (projekt `setup`), idempotentně — opakovaný běh je
-přeskočí. Sada běží na čtyřech workerech; každý scénář si své entity pojmenovává jednoznačně
+přeskočí. Sada běží na dvou workerech (na CI víc nezvládne, sdílí stroj s celým stackem a 3D scénu kreslí softwarově); každý scénář si své entity pojmenovává jednoznačně
 a fixtures vybírá jménem, takže si scénáře navzájem nemažou data.
 
 ## Úlohy uživatelského testování

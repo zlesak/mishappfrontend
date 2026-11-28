@@ -1,7 +1,7 @@
 import {expect, test, type Locator, type Page} from '@playwright/test';
 import {FIXTURE_MODEL, FIXTURE_QUIZ, loginAsTeacher} from './helpers';
 import {createChapterAndWait, nothingFound, searchPublicListing} from './content-helpers';
-import {listingRow} from './quiz-helpers';
+import {listingRow, submitSearch, ciScaled} from './quiz-helpers';
 
 /**
  * Searching, filtering and sorting the listings.
@@ -34,7 +34,7 @@ async function openFilters(page: Page): Promise<Locator> {
 
 test.describe.serial('search and listings', () => {
   test('teacher writes two chapters sharing a token', async ({page}) => {
-    test.setTimeout(120_000);
+    test.setTimeout(ciScaled(120_000));
     await loginAsTeacher(page);
     await createChapterAndWait(page, {name: BRAIN, content: `Kapitola o mozku a míše. ${contentWord}`, model: FIXTURE_MODEL});
     await createChapterAndWait(page, {name: HEART, content: 'Kapitola o srdci.', model: FIXTURE_MODEL});
@@ -99,11 +99,11 @@ test.describe.serial('search and listings', () => {
     const main = await openFilters(page);
     await main.getByRole('textbox', {name: 'Obsahuje model'}).fill(FIXTURE_MODEL.slice(4).toLowerCase());
     await main.getByRole('textbox', {name: 'Hledat výraz'}).fill(token);
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(headings(main)).toHaveText([BRAIN, HEART]);
 
     await main.getByRole('textbox', {name: 'Obsahuje model'}).fill(`${token}-žádný-model`);
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(nothingFound(main)).toBeVisible();
   });
 
@@ -112,11 +112,11 @@ test.describe.serial('search and listings', () => {
     const main = await openFilters(page);
     await main.getByRole('textbox', {name: 'Hledat výraz'}).fill(token);
     await main.getByRole('textbox', {name: 'Autor'}).fill('LIC');
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(headings(main)).toHaveText([BRAIN, HEART]);
 
     await main.getByRole('textbox', {name: 'Autor'}).fill('bart');
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(nothingFound(main)).toBeVisible();
   });
 
@@ -140,7 +140,7 @@ test.describe.serial('search and listings', () => {
     await from.press('Enter');
     await to.fill(today);
     await to.press('Enter');
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(headings(main)).toHaveText([BRAIN, HEART]);
 
     // Up to yesterday only: nothing.
@@ -148,7 +148,7 @@ test.describe.serial('search and listings', () => {
     await from.press('Enter');
     await to.fill(yesterday);
     await to.press('Enter');
-    await main.getByRole('button', {name: 'Hledat'}).click();
+    await submitSearch(main);
     await expect(nothingFound(main)).toBeVisible();
   });
 });

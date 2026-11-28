@@ -5,6 +5,7 @@ import {
   addMultipleChoice,
   addOpenText,
   addOrdering,
+  ciScaled,
   addQuestion,
   addSingleChoice,
   listingRow,
@@ -134,7 +135,7 @@ test.describe('quiz validation', () => {
     await editor.getByRole('textbox', {name: 'Text otázky'}).fill('Textura bez oblasti');
     await editor.getByRole('button', {name: 'Vybrat model'}).click();
     await listingRow(page.getByRole('dialog'), FIXTURE_MODEL).getByRole('button', {name: 'Vybrat'}).click();
-    await expect(editor.getByRole('button', {name: /^Vyberte model/})).toContainText(FIXTURE_MODEL, {timeout: 30_000});
+    await expect(editor.getByRole('button', {name: /^Vyberte model/})).toContainText(FIXTURE_MODEL, {timeout: ciScaled(30_000)});
     await expectQuizRefused(page, 'Otázka č. 1 není správně vyplněna.');
     await expectNotStored(page, name);
   });

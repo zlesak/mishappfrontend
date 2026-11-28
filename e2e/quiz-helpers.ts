@@ -19,6 +19,15 @@ export type QuestionType =
   | 'Seřazování'
   | 'Kliknutí na texturu';
 
+/**
+ * A wait or test budget, doubled on CI. The CI runner shares four vCPUs with the whole stack and
+ * draws the 3D scene in software, so the same condition takes several times longer to come true
+ * there; only how long we wait changes, never what is asserted.
+ */
+export function ciScaled(ms: number): number {
+  return process.env.CI ? ms * 2 : ms;
+}
+
 export function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -30,17 +39,22 @@ export function listingRow(scope: Page | Locator, name: string): Locator {
 }
 
 /**
- * Waits until the listing shows only entities whose name contains `name` (or none). The search
- * re-renders the list; a row picked before that happens is replaced under the click, which then
- * goes nowhere — this was seen with four workers.
+ * Presses "Hledat" in `scope` (a listing with its toolbar) and waits until the listing has been
+ * rendered again.
+ *
+ * A search replaces every row of the list. A row located before that happens is swapped out under a
+ * click, which then goes nowhere (seen with four workers on CI). Waiting for the first old row to
+ * leave the page is a definite signal; asking whether the shown names "look narrowed" is not — the
+ * list is briefly empty while it re-renders, and a full-text match need not contain the name.
  */
-export async function waitForListingNarrowedTo(scope: Locator, name: string): Promise<void> {
-  await expect
-    .poll(async () => {
-      const names = await scope.getByRole('list').first().getByRole('heading', {level: 2}).allTextContents();
-      return names.every((shown) => shown.includes(name));
-    }, {message: `listing never narrowed to "${name}"`})
-    .toBe(true);
+export async function submitSearch(scope: Locator): Promise<void> {
+  const rows = scope.getByRole('list').first().getByRole('listitem');
+  const before = (await rows.count()) > 0 ? await rows.first().elementHandle() : null;
+  await scope.getByRole('button', {name: 'Hledat'}).click();
+  if (before) {
+    await scope.page().waitForFunction((row) => !row.isConnected, before, {timeout: 60_000});
+    await before.dispose();
+  }
 }
 
 /** Types into the listing's search field and searches. */
@@ -48,7 +62,7 @@ export async function searchListing(page: Page, query: string): Promise<void> {
   const field = page.getByRole('main').getByRole('textbox', {name: 'Hledat výraz'});
   await expect(field).toBeEnabled();
   await field.fill(query);
-  await page.getByRole('main').getByRole('button', {name: 'Hledat'}).click();
+  await submitSearch(page.getByRole('main'));
 }
 
 /** Opens the quiz form with the name, description and time limit filled in. */
@@ -72,8 +86,7 @@ export async function pickQuizChapter(page: Page, chapterName: string): Promise<
   const dialog = page.getByRole('dialog');
   const search = dialog.getByRole('textbox', {name: 'Hledat výraz'});
   await search.fill(chapterName);
-  await dialog.getByRole('button', {name: 'Hledat'}).click();
-  await waitForListingNarrowedTo(dialog, chapterName);
+  await submitSearch(dialog);
   await listingRow(dialog, chapterName).getByRole('button', {name: 'Vybrat'}).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('button', {name: /^Spjatá kapitola/})).toContainText(chapterName);
@@ -268,10 +281,10 @@ export async function addTextureClick(page: Page, spec: TextureClickSpec): Promi
   const dialog = page.getByRole('dialog');
   await listingRow(dialog, FIXTURE_MODEL).getByRole('button', {name: 'Vybrat'}).click();
   await expect(dialog).toHaveCount(0);
-  await expect(editor.getByRole('button', {name: /^Vyberte model/})).toContainText(FIXTURE_MODEL, {timeout: 30_000});
+  await expect(editor.getByRole('button', {name: /^Vyberte model/})).toContainText(FIXTURE_MODEL, {timeout: ciScaled(30_000)});
   await pickOption(page, editor.getByRole('button', {name: /^Vyberte texturu/}), spec.texture ?? 'femur.1001-parts1.jpg');
   const areaSelect = editor.getByRole('button', {name: /^Vyberte oblast textury/});
-  await expect(areaSelect).toBeEnabled({timeout: 30_000});
+  await expect(areaSelect).toBeEnabled({timeout: ciScaled(30_000)});
   await pickOption(page, areaSelect, spec.area);
   return editor;
 }
@@ -279,7 +292,7 @@ export async function addTextureClick(page: Page, spec: TextureClickSpec): Promi
 /** Presses the save button and waits for the listing the form returns to on success. */
 export async function saveQuiz(page: Page): Promise<void> {
   await page.getByRole('button', {name: /^(Vytvořit kvíz|Upravit kvíz)$/}).click();
-  await page.waitForURL(/\/quizes$/, {timeout: 30_000});
+  await page.waitForURL(/\/quizes$/, {timeout: ciScaled(30_000)});
 }
 
 /** Presses the save button and expects it to be refused with a message containing `message`. */
@@ -293,7 +306,6 @@ export async function expectQuizRefused(page: Page, message: string | RegExp): P
 export async function quizDetailUrl(page: Page, name: string): Promise<string> {
   await page.goto('/quizes');
   await searchListing(page, name);
-  await waitForListingNarrowedTo(page.getByRole('main'), name);
   await listingRow(page.getByRole('main'), name).getByRole('button', {name: 'Otevřít'}).click();
   await page.waitForURL(/\/quiz\/[^/]+$/);
   return new URL(page.url()).pathname;
@@ -391,7 +403,8 @@ export async function answerTextureClick(
   await expect(scene).toBeVisible();
   const status = question.getByRole('status');
 
-  const deadline = Date.now() + 60_000;
+  // The model has to load and render first, in software on CI.
+  const deadline = Date.now() + ciScaled(60_000);
   let lastClicked = '';
   while (Date.now() < deadline) {
     for (const point of await colourCandidates(page, scene, colour)) {
@@ -471,7 +484,7 @@ export async function submitQuiz(page: Page): Promise<void> {
   await expectResultPage(page);
 }
 
-export async function expectResultPage(page: Page, timeout = 30_000): Promise<void> {
+export async function expectResultPage(page: Page, timeout = ciScaled(30_000)): Promise<void> {
   await page.waitForURL(/\/quiz-result\/[^/]+\/[^/]+$/, {timeout});
   await expect(page.getByRole('heading', {name: 'Vaše skóre'})).toBeVisible();
 }

@@ -423,10 +423,22 @@ async function selectFixtureFromDialog(page: Page, entityName: string): Promise<
     .toBeGreaterThan(0);
 
   const search = page.locator('vaadin-dialog-overlay input[placeholder="např. mozek"]:visible').first();
-  if (await search.isVisible().catch(() => false)) {
+  if (await search.isVisible().catch(() => false) && await search.isEnabled().catch(() => false)) {
     await search.fill(entityName);
     await page.getByRole('button', {name: 'Hledat'}).last().click();
     await page.waitForTimeout(500);
+  }
+
+  // The named entity when the dialog shows it. The model dialog cannot search, and "whatever is
+  // first" there is a model another worker uploaded a moment ago and is about to delete — a chapter
+  // created on it makes that delete fail ("Model nelze smazat, používají jej kapitoly: …").
+  const named = page
+    .getByRole('dialog')
+    .getByRole('listitem')
+    .filter({has: page.getByRole('heading', {name: entityName, exact: true})});
+  if ((await named.count()) > 0) {
+    await named.first().getByRole('button', {name: 'Vybrat'}).click();
+    return;
   }
 
   const clicked = await clickVisibleButtonByTextDeep(page, 'Vybrat');

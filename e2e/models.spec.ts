@@ -1,3 +1,4 @@
+import {ciScaled} from './quiz-helpers';
 import {expect, test, type Browser, type Page} from '@playwright/test';
 import {writeFileSync} from 'node:fs';
 import {
@@ -52,7 +53,7 @@ test.describe.serial('a model through its life', () => {
   const name = uniqueName('AAA E2E Model životní cyklus');
 
   test('MOD-004, MOD-006: the name is trimmed and the uploader is the author', async ({page}) => {
-    test.setTimeout(150_000);
+    test.setTimeout(ciScaled(150_000));
     await loginAsTeacher(page);
     await createModelForE2E(page, `   ${name}  `);
     const row = await administrationRow(page, 'Modely', name);
@@ -61,7 +62,7 @@ test.describe.serial('a model through its life', () => {
   });
 
   test('MOD-018: a save over a version someone else saved meanwhile is stopped, not applied', async ({browser}) => {
-    test.setTimeout(150_000);
+    test.setTimeout(ciScaled(150_000));
     const first = await teacherPage(browser);
     const second = await teacherPage(browser);
     await openModelEditor(first, name);
@@ -70,13 +71,16 @@ test.describe.serial('a model through its life', () => {
     await modelName(first).fill(`${name} A`);
     await first.getByRole('button', {name: 'Upravit model'}).click();
     expect(await waitForModelSave(first)).toBe(true);
+    // Done with the first window. Every editor and detail page runs a 3D scene, and on CI each open
+    // page competes for the same CPU as the reload this test waits for.
+    await first.context().close();
 
     await modelName(second).fill(`${name} B`);
     await second.getByRole('button', {name: 'Upravit model'}).click();
-    await expect(second.getByRole('heading', {name: 'Model mezitím uložil někdo jiný'})).toBeVisible({timeout: 30_000});
+    await expect(second.getByRole('heading', {name: 'Model mezitím uložil někdo jiný'})).toBeVisible({timeout: ciScaled(30_000)});
     await second.getByRole('button', {name: 'Zahodit mé změny a načíst uloženou verzi'}).click();
-    await expect(modelName(second)).toHaveValue(`${name} A`);
-    await first.context().close();
+    // The discard reloads the editor; it has to boot and load the model again.
+    await expect(modelName(second)).toHaveValue(`${name} A`, {timeout: ciScaled(60_000)});
     await second.context().close();
   });
 
@@ -104,5 +108,5 @@ async function teacherPage(browser: Browser): Promise<Page> {
 async function openModelEditor(page: Page, name: string): Promise<void> {
   await editFromAdministration(page, 'Modely', name);
   await page.waitForURL(/\/createModel\/[^/]+$/);
-  await expect(modelName(page)).toHaveValue(name, {timeout: 30_000});
+  await expect(modelName(page)).toHaveValue(name, {timeout: ciScaled(30_000)});
 }
